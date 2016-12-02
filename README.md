@@ -9,5 +9,5 @@ My tasks were:
 
 # Bibliography
 
-[1]: "On event-based optic flow detection", Tobias Brosch, Stephan Tschechne, Heiko Neumann, April 2015
-[2]: "Visual control of navigation in insects and its relevance for robotics", Mandyam V Srinivasan, 20011
+1. "On event-based optic flow detection", Tobias Brosch, Stephan Tschechne, Heiko Neumann, April 2015
+2. "Visual control of navigation in insects and its relevance for robotics", Mandyam V Srinivasan, 20011
