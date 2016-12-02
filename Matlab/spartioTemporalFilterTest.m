@@ -3,18 +3,15 @@ clear all;
 
 %general
 times = linspace(0,1,100)';
-garborSize = 31;
+garborSize = 20;
 garborRes = 0.5;
 
 % Parameters for Garbor Filters
 thetaGarbor = 25;
 % Frequenzy for which the filter is sensitive
 f0 = 0.08;
-% Prefeered orientation
-angle = 45/360*2*pi();
-% Compute fx and fy
-fx0 = cos(angle)*f0;
-fy0 = sin(angle)*f0;
+% Prefeered orientations
+angles = 0:45:135;
 
 % Parameters for bi-phasic temporal filter
 s1 = 1/2.;
@@ -29,36 +26,41 @@ uMono = 0.28;%1/5.*(1 + uBi1*sqrt(36 + 10*log(s1/s2)));
 thetaMono = uMono/3.;
 
 % Compute individual filters 
-[Godd, Geven, X, Y] = constructGarborFilter(thetaGarbor, fx0, fy0, garborSize,garborRes);
-tempoBi = constructTemporalBiFilter(thetaBi1,uBi1,s1,thetaBi2,uBi2,s2,times);
-tempoMono = constructTemporalMonoFilter(thetaMono,uMono,times);
-combined = combineFilters(Geven,Godd,tempoBi,tempoMono);
+[filters, tBi, tMo] = constructSpartialTemporalFilterbank(thetaGarbor, ...
+    f0, angles,times, garborSize, garborRes, s1,s2,...
+    uBi1, uBi2, thetaBi1, thetaBi2,uMono, thetaMono);
 
 figure;
-surf(X,Y,Godd);
-rotate3d on;
-title('G_{odd}');
-figure;
-surf(X,Y,Geven);
-rotate3d on;
-title('G_{even}');
-figure;
 hold on;
-plot(times,tempoBi);
-plot(times,tempoMono);
+plot(times,tBi);
+plot(times,tMo);
 legend('Biphasic','monophasic');
 title('Temporal filters');
 
-
-figure;
-colormap jet;
-s = slice(combined/max(combined(:)),1:2:garborSize/garborRes,1:2:garborSize/garborRes,1:15:100);
-for n=1:length(s)
-    set(s(n), 'EdgeColor', 'none');
-    set(s(n),'alphadata',(abs(get(s(n),'cdata'))>0.1)*0.6,'facealpha','flat')
+for f = filters
+    figure;
+    colormap jet;
+    s = slice(f.combined/max(f.combined(:)),1:2:garborSize/garborRes,1:2:garborSize/garborRes,1:15:100);
+    for n=1:length(s)
+        set(s(n), 'EdgeColor', 'none');
+        set(s(n),'alphadata',(abs(get(s(n),'cdata'))>0.1)*0.6,'facealpha','flat')
+    end
+    title(['Spartial-temporal filter, angle=' num2str(f.G.angle*360/(2*pi()))]);
+    xlabel('x');
+    ylabel('y');
+    zlabel('t');
+    axis equal;
+    rotate3d on;
+    
+    figure;
+    surf(f.G.Go);
+    axis tight;
+    rotate3d on;
+    title(['G_{odd}, angle=' num2str(f.G.angle*360/(2*pi()))]);
+    figure;
+    surf(f.G.Ge);
+    axis tight;
+    rotate3d on;
+    title(['G_{even}, angle=' num2str(f.G.angle*360/(2*pi()))]);
+    
 end
-title('Sliced spartial-temporal filter, regions with to little responce removed');
-xlabel('x');
-ylabel('y');
-zlabel('t');
-axis equal;
