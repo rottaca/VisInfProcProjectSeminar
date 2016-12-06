@@ -11,7 +11,7 @@ thetaGarbor = 25;
 % Frequenzy for which the filter is sensitive
 f0 = 0.08;
 % Prefeered orientations
-angles = 0:45:135;
+angles = 0;%0:45:135;
 
 % Parameters for bi-phasic temporal filter
 s1 = 1/2.;
