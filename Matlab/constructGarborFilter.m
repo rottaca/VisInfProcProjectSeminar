@@ -1,7 +1,7 @@
-function [Godd, Geven, X, Y] = constructGarborFilter(theta, fx0, fy0, sz,res)
+function [Godd, Geven, X, Y] = constructGarborFilter(theta, fx0, fy0, halfGarborRange)
     tmp = 2*pi()/theta^2;
     
-    p = -sz/2:res:sz/2;
+    p = -halfGarborRange:halfGarborRange;
     [X,Y] = meshgrid(p,p);
     
     gauss = exp(-2*pi()^2.*(X.^2+Y.^2)./theta^2);
