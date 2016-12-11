@@ -4,7 +4,7 @@ file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
 % Convert to coordinates, time and event type
 [x_coord, y_coord, allTsnew, on_off] = dvsAER2coordinates(allTs, allAddr);
 
-timewindow_us = 20000;
+timewindow_us = 300000;
 viewdelta = 5000;
 time = allTsnew(1);
 while(time < allTsnew(end))
@@ -28,5 +28,5 @@ while(time < allTsnew(end))
     ylim([1 128]);
     zlim([-timewindow_us 0 ]);
     drawnow;
-    time = time + viewdelta;
+    time = time + viewdelta
 end

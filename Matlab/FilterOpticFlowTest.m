@@ -10,7 +10,7 @@ file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
 parameters;
 
 % Iterate over events
-timewindow_us = 20000;
+timewindow_us = 100000;
 outputU = zeros(128);
 outputV = zeros(128);
 outputFilters = zeros(128,128,length(filters));
@@ -47,7 +47,7 @@ for i=1:length(x_coord)
         if(windowOF(j) == 0)
             signal = 1;
         else
-            signal = -1;
+            continue;
         end
         % Apply all spartil/temporal filters
         for k=1:length(filters)

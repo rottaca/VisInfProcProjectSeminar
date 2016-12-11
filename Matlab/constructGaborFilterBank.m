@@ -1,4 +1,4 @@
-function [ result ] = constructGarborFilterBank( theta, f0, angles, halfGarborRange )
+function [ result ] = constructGaborFilterBank( theta, f0, angles, halfGaborRange )
     
     result = {};
     for i=angles
@@ -10,7 +10,7 @@ function [ result ] = constructGarborFilterBank( theta, f0, angles, halfGarborRa
         result(end).fy0 = fy0;
         result(end).angle = angle;
         
-        [Godd, Geven] = constructGarborFilter(theta, fx0, fy0, halfGarborRange);
+        [Godd, Geven] = constructGaborFilter(theta, fx0, fy0, halfGaborRange);
         result(end).Go = Godd;
         result(end).Ge = Geven;
     end

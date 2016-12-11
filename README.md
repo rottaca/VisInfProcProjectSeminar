@@ -20,8 +20,9 @@ The software consists of the following components:
 - **Navigation planner**: Plans the robot navigation based on the estimated optic flow. Here the biological inspired algorithms are involved.
 - **Visualisation component**: Visualizes the events by either integrating the events in a small time window (shows moving edges) or by displaying optic flow vectors. Additionally the component shows the current robot navigation plan (turning rate, speed,...).
 
+
 ## eDVS Streaming Formats
-The eDVS chip streams the events in the following formats. The event always contains two bytes as shown in E0. The first byte contains the 7 bit Y-coordinate and a leading 1. Te second byte contains the polarity (on = 0, off = 1) and the 7 bit X-coordinate. The optional timestamps have a resolution of 1us.
+The eDVS chip streams the events in the following formats. The event always contains two bytes as shown in E0. The first byte contains the 7 bit Y-coordinate and a leading 1. The second byte contains the polarity (on = 0, off = 1) and the 7 bit X-coordinate. The optional timestamps have a resolution of 1us.
 
 - E0: default, no timestamp -> 1yyyyyyy.pxxxxxxx
 - E1: additional delta timestamp with 1 to 4 bytes (only 7 bits each, leading bit = 1 indicates last timestamp byte)
