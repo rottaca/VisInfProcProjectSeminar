@@ -9,8 +9,8 @@ plot(times,tMo);
 legend('Biphasic','monophasic');
 title('Temporal filters');
 
-[X,Y,Z] = meshgrid(-halfGarborRange:halfGarborRange,-halfGarborRange:halfGarborRange,times*100);
-    
+[X,Y,Z] = meshgrid(-halfGarborRange:halfGarborRange,-halfGarborRange:halfGarborRange,times);
+
 for f = filters
     figure;
     colormap jet;
@@ -32,7 +32,8 @@ for f = filters
     xlabel('x');
     ylabel('y');
     zlabel('t');
-    axis equal;
+    %axis equal;
+    axis([-halfGarborRange halfGarborRange -halfGarborRange halfGarborRange 0 times(end)]);
     rotate3d on;
     
     figure;

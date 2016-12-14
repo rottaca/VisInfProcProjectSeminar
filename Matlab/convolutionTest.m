@@ -1,8 +1,8 @@
 close all;
 clear all;
 parameters;
-Buffer1 = init3DBuffer(128,128,100);
-Buffer2 = init3DBuffer(128,128,100);
+Buffer1 = init3DBuffer(128,128,length(times));
+Buffer2 = init3DBuffer(128,128,length(times));
 
 % Rightwards
 %combined1 = filters(1).combined.OddMono - filters(1).combined.EvenBi;
@@ -29,11 +29,13 @@ file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
 [x_coord, y_coord, allTsnew, on_off] = dvsAER2coordinates(allTs, allAddr);
 
 % Iterate over events
-timewindow_us = 30000;
+timewindow_us = 135000;
 
-currTime = allTsnew(1);
+slotTime = allTsnew(1);
 timeRes = timewindow_us/length(times);
+maxEnergy = [];%zeros(1,length(x_coord));
 for i=1:length(x_coord)
+    
     % Current Event
     currX = x_coord(i);
     currY = y_coord(i);
@@ -47,40 +49,56 @@ for i=1:length(x_coord)
     else
         continue;
     end
+    
+    disp(['Done: ' num2str(100*double(i)/length(x_coord)) '%']);
         
-    deltaT = currT - currTime;
+    deltaT = currT - slotTime;
     timeSlotsToSkip = floor(double(deltaT)/timeRes);
     for j = 1:timeSlotsToSkip
         Buffer1.W = mod(Buffer1.W,size(Buffer1.buff,3))+1;
-        [Buffer1, ~] = read3DConvolutionRes(Buffer1);
         Buffer2.W = mod(Buffer2.W,size(Buffer2.buff,3))+1;
-        [Buffer2, ~] = read3DConvolutionRes(Buffer2);
-    end
-    currTime = currT;
-    
-    Buffer1 = convolute3D(Buffer1,combined1,currX,currY); 
-    [Buffer1, res1] = read3DConvolutionRes(Buffer1);
-    Buffer2 = convolute3D(Buffer2,combined2,currX,currY); 
-    [Buffer2, res2] = read3DConvolutionRes(Buffer2);
         
+        [Buffer1, res1] = read3DConvolutionRes(Buffer1);
+        [Buffer2, res2] = read3DConvolutionRes(Buffer2);
     % Display every nth frame
     %if mod(i,10) == 0
         figure(1);
-        energy = res1.^2 + res2.^2;
+         energy = res1.^2 + res2.^2;
         imagesc(energy);
+        caxis([0 2]);
+        maxEnergy(end+1) = max(energy(:));
         max(energy(:))
         colormap jet;
         hold on;
-        disp(['events visible: ' num2str(sum(allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i))]);
-        xSlot = x_coord(allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i);
-        ySlot = y_coord(allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i);
-        scatter(xSlot,ySlot,'filled','g');
+        windowIdices = allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i;
+        disp(['events visible: ' num2str(sum(windowIdices))]);
+        xSlot = x_coord(windowIdices);
+        ySlot = y_coord(windowIdices);
+        c = allTsnew(windowIdices);
+        c = c - min(c(:));
+        c = round(double(c)/max(c(:))*255.0);
+        c = squeeze(ind2rgb(uint8(c),gray(256)));
+        scatter(xSlot,ySlot,10,c,'filled');
         axis([1 128 1 128]);
         set(gca,'Ydir','reverse');
         figure(2);
         imagesc(squeeze(Buffer1.buff(64,:,[Buffer1.R:size(Buffer1.buff,3) 1:Buffer1.R-1])));
+        title('Buffer 1');
+        axis equal;
+        axis tight;
+        %caxis([-1 1]);
+        figure(3);
+        imagesc(squeeze(Buffer2.buff(64,:,[Buffer2.R:size(Buffer2.buff,3) 1:Buffer2.R-1])));
+        title('Buffer 2');
+        axis equal;
+        axis tight;
+        %caxis([-1 1]);
         drawnow;
-   % end
-    %break;
+        slotTime = slotTime + timeRes;
+    end
     
+    Buffer1 = convolute3D(Buffer1,combined1,currX,currY); 
+    Buffer2 = convolute3D(Buffer2,combined2,currX,currY); 
 end
+figure;
+bar(maxEnergy);
