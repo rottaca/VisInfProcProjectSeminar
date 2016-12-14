@@ -6,6 +6,7 @@
 class FilterSettings
 {
 public:
+    FilterSettings();
     /**
      * @brief FilterSettings Computes the spatial temporal filter settings according to
      * psychovisual experiments.
@@ -24,16 +25,16 @@ public:
     QString toString();
 
 public:
-    const float f0;
-    const float s1,s2;
-    const float muBi1,muBi2;
-    const float sigmaBi1, sigmaBi2;
-    const float muMono;
-    const float sigmaMono;
-    const float sigmaGabor;
-    const float temporalEnd;
-    const float temporalSteps;
-    const int spatialSize;
+    float f0;
+    float s1,s2;
+    float muBi1,muBi2;
+    float sigmaBi1, sigmaBi2;
+    float muMono;
+    float sigmaMono;
+    float sigmaGabor;
+    float temporalEnd;
+    float temporalSteps;
+    int spatialSize;
 
 };
 

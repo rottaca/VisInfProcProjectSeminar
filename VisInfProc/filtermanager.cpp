@@ -8,9 +8,9 @@ FilterManager::FilterManager()
 }
 
 
-Filter1D FilterManager::constructTemporalFilter(FilterSettings s, enum TemporalFilter type)
+Buffer1D FilterManager::constructTemporalFilter(FilterSettings s, enum TemporalFilter type)
 {
-    Filter1D f1(s.temporalSteps);
+    Buffer1D f1(s.temporalSteps);
     float tStep = s.temporalEnd/(s.temporalSteps-1);
     float t = 0;
 
@@ -33,9 +33,9 @@ Filter1D FilterManager::constructTemporalFilter(FilterSettings s, enum TemporalF
     return f1;
 }
 
-Filter2D FilterManager::constructSpatialFilter(FilterSettings s, float orientation, enum SpatialFilter type)
+Buffer2D FilterManager::constructSpatialFilter(FilterSettings s, float orientation, enum SpatialFilter type)
 {
-    Filter2D f2(s.spatialSize,s.spatialSize);
+    Buffer2D f2(s.spatialSize,s.spatialSize);
     float fx0,fy0;
     fx0 = qCos(orientation)*s.f0;
     fy0 = qSin(orientation)*s.f0;
@@ -72,4 +72,22 @@ float FilterManager::gaussTemporal(float sigma, float mu, float t)
 float FilterManager::gaussSpatial(float sigma, float x, float y)
 {
     return qExp(-2*M_PI*M_PI*(x*x+y*y)/(sigma*sigma));
+}
+
+Buffer3D FilterManager::combineFilters(Buffer1D temporal, Buffer2D spatial)
+{
+    Buffer3D buff(
+                spatial.getSizeX(),
+                spatial.getSizeY(),
+                temporal.getSize());
+
+    for(int t = 0; t < temporal.getSize(); t++){
+        float vt = temporal(t);
+        for(int y = 0; y < spatial.getSizeY(); y++){
+            for(int x = 0; x < spatial.getSizeX(); x++){
+                buff(x,y,t) = spatial(x,y)*vt;
+            }
+        }
+    }
+    return buff;
 }

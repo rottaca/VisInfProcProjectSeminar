@@ -7,14 +7,19 @@
  * @brief The Filter3D class stores the filter coefficients for a 3d filter.
  * The memory layout is x, then y, then z
  */
-class Filter3D
+class Buffer3D
 {
 public:
-    Filter3D(int sx, int sy, int sz);
-    ~Filter3D();
+    Buffer3D();
+    Buffer3D(int sx, int sy, int sz);
+    Buffer3D(const Buffer3D& b);
+    ~Buffer3D();
 
+    Buffer3D &operator=(const Buffer3D& other);
     float& operator()(int x,int y,int z);
     float operator()(int x,int y,int z) const;
+    Buffer3D operator-(Buffer3D& b) const;
+    Buffer3D operator+(Buffer3D& b) const;
 
     int getSizeX() const{
         return sx;
@@ -28,6 +33,10 @@ public:
     float* getBuff() const{
         return buffer;
     }
+
+    QImage toImageXY(int pos);
+    QImage toImageXZ(int pos);
+    QImage toImageYZ(int pos);
 
 private:
     float* buffer;

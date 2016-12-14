@@ -2,9 +2,9 @@
 #define FILTERMANAGER_H
 
 #include "filtersettings.h"
-#include "filter1d.h"
-#include "filter2d.h"
-#include "filter3d.h"
+#include "buffer1d.h"
+#include "buffer2d.h"
+#include "buffer3d.h"
 
 class FilterManager
 {
@@ -15,9 +15,10 @@ public:
 
     FilterManager();
 
-    Filter1D constructTemporalFilter(FilterSettings s, enum TemporalFilter type);
-    Filter2D constructSpatialFilter(FilterSettings s, float orientation, enum SpatialFilter type);
+    Buffer1D constructTemporalFilter(FilterSettings s, enum TemporalFilter type);
+    Buffer2D constructSpatialFilter(FilterSettings s, float orientation, enum SpatialFilter type);
 
+    Buffer3D combineFilters(Buffer1D temporal, Buffer2D spatial);
 
 
 private:

@@ -3,6 +3,11 @@
 
 #include <assert.h>
 
+FilterSettings::FilterSettings():FilterSettings(0,0,0,0,0)
+{
+
+}
+
 FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz)
     :f0(_f0),
      s1(1.f/2),s2(3.f/4),
@@ -15,7 +20,7 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _t
      temporalSteps(_tempSteps),
      spatialSize(_spatialSz)
 {
-    assert(spatialSize % 2 != 0);
+
 }
 
 QString FilterSettings::toString()
@@ -30,9 +35,9 @@ QString FilterSettings::toString()
                    "muMono: %8\n"
                    "sigmaMono: %9\n"
                    "sigmaGabor: %10\n"
-                   "temporalEnd: %10\n"
-                   "temporalSteps: %10\n"
-                   "spatialSize: %10\n")
+                   "temporalEnd: %11\n"
+                   "temporalSteps: %12\n"
+                   "spatialSize: %13\n")
             .arg(f0)
             .arg(s1)
             .arg(s2)

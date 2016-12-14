@@ -8,13 +8,15 @@
  * @brief The Filter2D class stores the filter coefficients for a 2d filter.
  * The memory layout is x, then y
  */
-class Filter2D
+class Buffer2D
 {
 public:
-    Filter2D(int sx, int sy);
-    Filter2D(const Filter2D& f);
-    ~Filter2D();
+    Buffer2D();
+    Buffer2D(int sx, int sy);
+    Buffer2D(const Buffer2D& f);
+    ~Buffer2D();
 
+    Buffer2D &operator=(const Buffer2D& other);
     float& operator()(int x, int y);
     float operator()(int x, int y) const;
 

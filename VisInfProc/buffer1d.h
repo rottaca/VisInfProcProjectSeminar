@@ -6,11 +6,12 @@
 /**
  * @brief The Filter1D class stores the filter coefficients for a 1d filter.
  */
-class Filter1D
+class Buffer1D
 {
 public:
-    Filter1D(int size);
-    Filter1D(const Filter1D& f);
+    Buffer1D();
+    Buffer1D(int size);
+    Buffer1D(const Buffer1D& f);
 
     float& operator()(int i);
     float operator()(int i) const;

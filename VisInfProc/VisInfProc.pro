@@ -15,16 +15,20 @@ TEMPLATE = app
 SOURCES += main.cpp\
         mainwindow.cpp \
     filtersettings.cpp \
-    filter3d.cpp \
-    filter1d.cpp \
-    filter2d.cpp \
-    filtermanager.cpp
+    filtermanager.cpp \
+    buffer1d.cpp \
+    buffer2d.cpp \
+    buffer3d.cpp \
+    filterset.cpp \
+    helper.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
-    filter3d.h \
-    filter1d.h \
-    filter2d.h \
-    filtermanager.h
+    filtermanager.h \
+    buffer1d.h \
+    buffer2d.h \
+    buffer3d.h \
+    filterset.h \
+    helper.h
 
 FORMS    += mainwindow.ui
