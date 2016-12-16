@@ -16,7 +16,6 @@ Buffer2D::Buffer2D(int sx, int sy)
     this->sy = sy;
 
     size_t s = sx*sy;
-    qDebug(QString("Constructing 2D-Filter: %1 kB").arg(s/1024.0f*sizeof(float)).toLocal8Bit());
     buffer = new float[s];
     memset(buffer,0,s*sizeof(float));
 }
@@ -69,13 +68,25 @@ Buffer2D::~Buffer2D()
         delete[] buffer;
     buffer = NULL;
 }
+void Buffer2D::resize(int sx, int sy)
+{
+    if(sx == this->sx && sy == this->sy)
+        return;
+
+    if(buffer != NULL)
+        delete[] buffer;
+
+    this->sx = sx;
+    this->sy = sy;
+    size_t s = sx*sy;
+    buffer = new float[s];
+}
 
 QImage Buffer2D::toImage() const
 {
     QImage img(sx,sy,QImage::Format_RGB888);
     float mx = *std::max_element(buffer,buffer+sx*sy);
     float mn = *std::min_element(buffer,buffer+sx*sy);
-    qDebug(QString("Min: %1 Max: %2").arg(mn).arg(mx).toLocal8Bit());
 
     for(int y = 0; y < sy; y++){
         uchar* ptr = img.scanLine(y);

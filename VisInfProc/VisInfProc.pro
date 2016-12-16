@@ -20,7 +20,10 @@ SOURCES += main.cpp\
     buffer2d.cpp \
     buffer3d.cpp \
     filterset.cpp \
-    helper.cpp
+    helper.cpp \
+    convolution3d.cpp \
+    dvseventhandler.cpp \
+    opticflowestimator.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -29,6 +32,9 @@ HEADERS  += mainwindow.h \
     buffer2d.h \
     buffer3d.h \
     filterset.h \
-    helper.h
+    helper.h \
+    convolution3d.h \
+    dvseventhandler.h \
+    opticflowestimator.h
 
 FORMS    += mainwindow.ui

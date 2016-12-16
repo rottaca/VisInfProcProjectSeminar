@@ -1,12 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-#include "buffer1d.h"
-#include "buffer2d.h"
-#include "buffer3d.h"
-#include "filtermanager.h"
-#include "filtersettings.h"
-#include "filterset.h"
 
 #include <QtMath>
 
@@ -16,13 +10,40 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    FilterSettings fs(0.08f,0.2f,0.7,100,25);
-    qDebug(QString("Filter: \n%1").arg(fs.toString()).toLocal8Bit());
+    fsettings = FilterSettings::getSettings(FilterSettings::SPEED_25);
+    fset = FilterSet(fsettings,qDegreesToRadians(45.0f));
+    conv = Convolution3D(128,
+                         128,
+                         fset.spatialTemporal[FilterSet::LEFT1].getSizeZ());
 
-    FilterSet fset(fs,0);
+    dvsEventHandler.playBackFile("/tausch/scale4/mnist_0_scale04_0550.aedat",1);
 
-    QImage img = fset.spatialTemporal[FilterSet::LEFT2].toImageXZ(15).scaled(500, 500, Qt::KeepAspectRatio);
+    qRegisterMetaType<DVSEventHandler::DVSEvent>("DVSEventHandler::DVSEvent");
+    connect(&dvsEventHandler,SIGNAL(OnNewEvent(DVSEventHandler::DVSEvent)),this,SLOT(OnNewEvent(DVSEventHandler::DVSEvent)));
+    connect(ui->verticalSlider,SIGNAL(valueChanged(int)),this,SLOT(OnChangeSlider(int)));
+    OnChangeSlider(0);
+}
+
+void MainWindow::OnChangeSlider(int pos)
+{
+    QImage img = fset.spatialTemporal[FilterSet::LEFT1].toImageXZ(pos).scaled(400, 400, Qt::KeepAspectRatio);
     ui->label->setPixmap(QPixmap::fromImage(img));
+
+}
+void MainWindow::OnNewEvent(DVSEventHandler::DVSEvent e)
+{
+    conv.convolute3D(fset.spatialTemporal[FilterSet::LEFT1],QVector2D(e.posX,e.posY));
+
+    QImage img = conv.getBuff()->toImageXZ(64).scaled(400, 400, Qt::KeepAspectRatio);
+    ui->label_2->setPixmap(QPixmap::fromImage(img));
+    Buffer2D b;
+    conv.nextTimeSlot(&b);
+    img = b.toImage().scaled(400, 400, Qt::KeepAspectRatio);
+    ui->label_3->setPixmap(QPixmap::fromImage(img));
+    Buffer2D b2(128,128);
+    b2(e.posX,e.posY) = 1;
+    img = b2.toImage().scaled(400, 400, Qt::KeepAspectRatio);
+    ui->label_4->setPixmap(QPixmap::fromImage(img));
 }
 
 MainWindow::~MainWindow()

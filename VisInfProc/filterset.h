@@ -10,6 +10,7 @@
 class FilterSet
 {
 public:
+    FilterSet(){}
     FilterSet(FilterSettings fs, float orientation);
 
 public:

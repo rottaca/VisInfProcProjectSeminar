@@ -12,7 +12,7 @@ class Buffer3D
 public:
     Buffer3D();
     Buffer3D(int sx, int sy, int sz);
-    Buffer3D(const Buffer3D& b);
+    Buffer3D(const Buffer3D& other);
     ~Buffer3D();
 
     Buffer3D &operator=(const Buffer3D& other);
@@ -33,10 +33,10 @@ public:
     float* getBuff() const{
         return buffer;
     }
-
-    QImage toImageXY(int pos);
-    QImage toImageXZ(int pos);
-    QImage toImageYZ(int pos);
+    void resize(int sx, int sy, int sz);
+    QImage toImageXY(int pos) const;
+    QImage toImageXZ(int pos) const;
+    QImage toImageYZ(int pos) const;
 
 private:
     float* buffer;

@@ -3,12 +3,12 @@
 
 #include <assert.h>
 
-FilterSettings::FilterSettings():FilterSettings(0,0,0,0,0)
+FilterSettings::FilterSettings():FilterSettings(0,0,0,0,0,0)
 {
 
 }
 
-FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz)
+FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz, int _timewindow_us)
     :f0(_f0),
      s1(1.f/2),s2(3.f/4),
      muBi1(_muBi1),muBi2(2*muBi1),
@@ -18,7 +18,8 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _t
      sigmaGabor(25),
      temporalEnd(_tempEnd),
      temporalSteps(_tempSteps),
-     spatialSize(_spatialSz)
+     spatialSize(_spatialSz),
+     timewindow_us(_timewindow_us)
 {
 
 }
@@ -51,4 +52,19 @@ QString FilterSettings::toString()
             .arg(temporalEnd)
             .arg(temporalSteps)
             .arg(spatialSize);
+}
+
+FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
+{
+    switch (ps) {
+    case DEFAULT:
+            return FilterSettings(0.08f,0.2f,0.7,100,25,135000);
+        break;
+    case SPEED_25:
+            return FilterSettings(0.2f,0.23f,0.7,100,25,135000);
+        break;
+    default:
+            return FilterSettings(0,0,0,0,0,0);
+        break;
+    }
 }

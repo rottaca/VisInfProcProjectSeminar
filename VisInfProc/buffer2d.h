@@ -29,6 +29,8 @@ public:
     float* getBuff() const{
         return buffer;
     }
+
+    void resize(int sx, int sy);
     QImage toImage() const;
 
 private:

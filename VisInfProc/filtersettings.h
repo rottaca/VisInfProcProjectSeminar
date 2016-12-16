@@ -6,6 +6,7 @@
 class FilterSettings
 {
 public:
+
     FilterSettings();
     /**
      * @brief FilterSettings Computes the spatial temporal filter settings according to
@@ -15,14 +16,18 @@ public:
      * @param _tempEnd End of temporal function
      * @param _tempSteps Number of steps to go from t = 0 to t = tempEnd
      * @param _spatialSz Size of spatial filter, has to be odd
+     * @param _timewindow timewindow for filter
      */
-    FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz);
+    FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz, int _timewindow_us);
 
     /**
      * @brief toString Converts the filtersettings into a string
      * @return
      */
     QString toString();
+
+    enum PredefinedSettings {DEFAULT,SPEED_25};
+    static FilterSettings getSettings(enum PredefinedSettings ps);
 
 public:
     float f0;
@@ -35,6 +40,7 @@ public:
     float temporalEnd;
     float temporalSteps;
     int spatialSize;
+    int timewindow_us;
 
 };
 

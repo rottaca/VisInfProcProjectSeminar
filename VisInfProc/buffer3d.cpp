@@ -22,15 +22,15 @@ Buffer3D::Buffer3D(int sx, int sy, int sz)
     buffer = new float[s];
     memset(buffer,0,s*sizeof(float));
 }
-Buffer3D::Buffer3D(const Buffer3D& b)
+Buffer3D::Buffer3D(const Buffer3D& other)
 {
-    sx = b.getSizeX();
-    sy = b.getSizeY();
-    sz = b.getSizeZ();
+    sx = other.getSizeX();
+    sy = other.getSizeY();
+    sz = other.getSizeZ();
 
     size_t s = sx*sy*sz;
     buffer = new float[s];
-    memcpy(buffer,b.getBuff(),s*sizeof(float));
+    memcpy(buffer,other.getBuff(),s*sizeof(float));
 }
 
 Buffer3D &Buffer3D::operator=(const Buffer3D& other)
@@ -84,7 +84,7 @@ Buffer3D Buffer3D::operator+(Buffer3D& b) const
     float *ptrRes = buff.getBuff();
     float *ptrB = b.getBuff();
     for(int i = 0; i < sx*sy*sz; i++){
-        ptrRes[i] = buffer[i]-ptrB[i];
+        ptrRes[i] = buffer[i]+ptrB[i];
     }
     return buff;
 }
@@ -96,13 +96,26 @@ Buffer3D::~Buffer3D()
         buffer = NULL;
     }
 }
+void Buffer3D::resize(int sx, int sy, int sz)
+{
+    if(sx == this->sx && sy == this->sy && sz == this->sz)
+        return;
 
-QImage Buffer3D::toImageXY(int pos)
+    if(buffer != NULL)
+        delete[] buffer;
+
+    this->sx = sx;
+    this->sy = sy;
+    this->sz = sz;
+    size_t s = sx*sy*sz;
+    buffer = new float[s];
+}
+QImage Buffer3D::toImageXY(int pos) const
 {
     assert(pos >= 0 && pos < sz);
     QImage img(sx,sy,QImage::Format_RGB888);
-    float mx = *std::max_element(buffer+pos*sx*sy,buffer+sx*sy+pos*sx*sy);
-    float mn = *std::min_element(buffer+pos*sx*sy,buffer+sx*sy+pos*sx*sy);
+    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
+    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
 
     float* buffPtr = buffer+pos*sx*sy;
 
@@ -118,22 +131,12 @@ QImage Buffer3D::toImageXY(int pos)
 
     return img;
 }
-QImage Buffer3D::toImageXZ(int pos)
+QImage Buffer3D::toImageXZ(int pos) const
 {
     assert(pos >= 0 && pos < sy);
     QImage img(sx,sz,QImage::Format_RGB888);
-    float mx = buffer[0];
-    float mn = buffer[0];
-
-    for(int z = 0; z < sz; z++){
-        for(int x = 0; x < sx; x++){
-            float v = buffer[z*sx*sy + pos*sx + x];
-            if(mx < v)
-                mx = v;
-            if(mn > v)
-                mn = v;
-        }
-    }
+    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
+    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
 
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
@@ -147,22 +150,12 @@ QImage Buffer3D::toImageXZ(int pos)
 
     return img;
 }
-QImage Buffer3D::toImageYZ(int pos)
+QImage Buffer3D::toImageYZ(int pos) const
 {
     assert(pos >= 0 && pos < sx);
     QImage img(sy,sz,QImage::Format_RGB888);
-    float mx = buffer[0];
-    float mn = buffer[0];
-
-    for(int z = 0; z < sz; z++){
-        for(int y = 0; y< sy; y++){
-            float v = buffer[z*sx*sy + y*sx + pos];
-            if(mx < v)
-                mx = v;
-            if(mn > v)
-                mn = v;
-        }
-    }
+    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
+    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
 
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);

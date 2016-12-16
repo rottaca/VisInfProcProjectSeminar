@@ -13,6 +13,7 @@ public:
     Buffer1D(int size);
     Buffer1D(const Buffer1D& f);
 
+    Buffer1D& operator=(const Buffer1D &other);
     float& operator()(int i);
     float operator()(int i) const;
 
@@ -20,12 +21,12 @@ public:
         return size;
     }
 
-    QVector<float> getV() const{
-        return v;
+    float* getBuff() const{
+        return buffer;
     }
 
 private:
-    QVector<float> v;
+    float* buffer;
     int size;
 };
 
