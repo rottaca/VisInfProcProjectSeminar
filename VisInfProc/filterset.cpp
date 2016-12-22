@@ -1,5 +1,6 @@
 #include "filterset.h"
 #include "filtermanager.h"
+#include <iostream>
 
 FilterSet::FilterSet(FilterSettings fs, float orientation)
 {
@@ -19,9 +20,15 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
     spatialTemporal[ODD_MONO] = FilterManager::combineFilters(tempMono,gaborOdd);
     spatialTemporal[ODD_BI] = FilterManager::combineFilters(tempBi,gaborOdd);
     // Construct differences
-    spatialTemporal[LEFT1] = spatialTemporal[ODD_BI] - spatialTemporal[EVEN_MONO];
-    spatialTemporal[RIGHT1] = spatialTemporal[ODD_BI] + spatialTemporal[EVEN_MONO];
-    spatialTemporal[RIGHT2] = spatialTemporal[ODD_MONO] - spatialTemporal[EVEN_BI];
-    spatialTemporal[LEFT2] = spatialTemporal[ODD_MONO] + spatialTemporal[EVEN_BI];
+    spatialTemporal[LEFT1] = spatialTemporal[ODD_BI] + spatialTemporal[EVEN_MONO];
+    spatialTemporal[RIGHT1] = spatialTemporal[ODD_BI] - spatialTemporal[EVEN_MONO];
+    spatialTemporal[RIGHT2] = spatialTemporal[ODD_MONO] + spatialTemporal[EVEN_BI];
+    spatialTemporal[LEFT2] = spatialTemporal[ODD_MONO] - spatialTemporal[EVEN_BI];
 
+//    for(int t = 0; t < 100; t++){
+//        for(int x = 0; x < 24; x++){
+//            std::cout << spatialTemporal[RIGHT2](x,12,t) << ", ";
+//        }
+//        std::cout << spatialTemporal[RIGHT2](24,12,t) << std::endl;
+//    }
 }

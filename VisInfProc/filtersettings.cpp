@@ -61,7 +61,7 @@ FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
             return FilterSettings(0.08f,0.2f,0.7,100,25,135000);
         break;
     case SPEED_25:
-            return FilterSettings(0.2f,0.23f,0.7,100,25,135000);
+            return FilterSettings(0.15f,0.23f,0.7,100,25,135000);
         break;
     default:
             return FilterSettings(0,0,0,0,0,0);

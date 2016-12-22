@@ -3,6 +3,7 @@
 #include <QRgb>
 #include <QColor>
 #include "helper.h"
+#include <assert.h>
 
 Buffer2D::Buffer2D()
 {
@@ -16,8 +17,8 @@ Buffer2D::Buffer2D(int sx, int sy)
     this->sy = sy;
 
     size_t s = sx*sy;
-    buffer = new float[s];
-    memset(buffer,0,s*sizeof(float));
+    buffer = new double[s];
+    memset(buffer,0,s*sizeof(double));
 }
 Buffer2D::Buffer2D(const Buffer2D& f)
 {
@@ -30,8 +31,8 @@ Buffer2D::Buffer2D(const Buffer2D& f)
         buffer = NULL;
         return;
     }
-    buffer = new float[s];
-    memcpy(buffer,f.getBuff(),s*sizeof(float));
+    buffer = new double[s];
+    memcpy(buffer,f.getBuff(),s*sizeof(double));
 }
 
 Buffer2D &Buffer2D::operator=(const Buffer2D& other)
@@ -47,18 +48,22 @@ Buffer2D &Buffer2D::operator=(const Buffer2D& other)
         sy = other.getSizeY();
 
         size_t s = sx*sy;
-        buffer = new float[s];
-        memcpy(buffer,other.getBuff(),s*sizeof(float));
+        buffer = new double[s];
+        memcpy(buffer,other.getBuff(),s*sizeof(double));
     }
 
     return *this;
 }
-float& Buffer2D::operator()(int x, int y)
+double& Buffer2D::operator()(int x, int y)
 {
+    assert(x >= 0 && x < sx);
+    assert(y >= 0 && y < sy);
     return buffer[y*sx + x];
 }
-float Buffer2D::operator()(int x, int y) const
+double Buffer2D::operator()(int x, int y) const
 {
+    assert(x >= 0 && x < sx);
+    assert(y >= 0 && y < sy);
     return buffer[y*sx + x];
 }
 
@@ -79,15 +84,18 @@ void Buffer2D::resize(int sx, int sy)
     this->sx = sx;
     this->sy = sy;
     size_t s = sx*sy;
-    buffer = new float[s];
+    buffer = new double[s];
 }
 
-QImage Buffer2D::toImage() const
+QImage Buffer2D::toImage(double min, double max) const
 {
     QImage img(sx,sy,QImage::Format_RGB888);
-    float mx = *std::max_element(buffer,buffer+sx*sy);
-    float mn = *std::min_element(buffer,buffer+sx*sy);
-
+    double mx = max;
+    double mn = min;
+    if(min == 0 && max == 0){
+        mx = *std::max_element(buffer,buffer+sx*sy);
+        mn = *std::min_element(buffer,buffer+sx*sy);
+    }
     for(int y = 0; y < sy; y++){
         uchar* ptr = img.scanLine(y);
         for(int x = 0; x < sx*3; ){

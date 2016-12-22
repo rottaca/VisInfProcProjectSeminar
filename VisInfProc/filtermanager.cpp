@@ -10,6 +10,7 @@ Buffer1D FilterManager::constructTemporalFilter(FilterSettings &s, enum Temporal
 
     for(float i = 0; i < s.temporalSteps; i++){
 
+        t= i*tStep;
         switch (type) {
         case BI:
                 f1(i) = -s.s1*gaussTemporal(s.sigmaBi1,s.muBi1,t) +
@@ -20,9 +21,8 @@ Buffer1D FilterManager::constructTemporalFilter(FilterSettings &s, enum Temporal
             break;
         }
 
-        t+= tStep;
     }
-    assert(qAbs(t-tStep-s.temporalEnd) < 1e-5);
+    assert(qAbs(t-s.temporalEnd) < 1e-5);
 
     return f1;
 }

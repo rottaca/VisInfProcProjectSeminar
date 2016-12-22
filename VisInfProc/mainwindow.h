@@ -11,6 +11,7 @@
 #include "filterset.h"
 #include "convolution3d.h"
 #include "dvseventhandler.h"
+#include "motionenergyestimator.h"
 
 namespace Ui {
 class MainWindow;
@@ -27,13 +28,13 @@ public:
 public slots:
     void OnChangeSlider(int pos);
     void OnNewEvent(DVSEventHandler::DVSEvent e);
+    void OnImageReady(QImage energy, QImage bufferXZ);
 
 private:
     Ui::MainWindow *ui;
     FilterSettings fsettings;
-    FilterSet fset;
-    Convolution3D conv;
     DVSEventHandler dvsEventHandler;
+    MotionEnergyEstimator* opticFlowEstim;
 };
 
 #endif // MAINWINDOW_H

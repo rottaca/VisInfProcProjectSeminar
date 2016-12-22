@@ -17,8 +17,8 @@ public:
     ~Buffer2D();
 
     Buffer2D &operator=(const Buffer2D& other);
-    float& operator()(int x, int y);
-    float operator()(int x, int y) const;
+    double& operator()(int x, int y);
+    double operator()(int x, int y) const;
 
     int getSizeX() const{
         return sx;
@@ -26,15 +26,15 @@ public:
     int getSizeY() const{
         return sy;
     }
-    float* getBuff() const{
+    double* getBuff() const{
         return buffer;
     }
 
     void resize(int sx, int sy);
-    QImage toImage() const;
+    QImage toImage(double min = 0, double max = 0) const;
 
 private:
-    float* buffer;
+    double* buffer;
     int sx,sy;
 };
 

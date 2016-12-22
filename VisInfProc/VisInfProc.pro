@@ -23,6 +23,7 @@ SOURCES += main.cpp\
     helper.cpp \
     convolution3d.cpp \
     dvseventhandler.cpp \
+    motionenergyestimator.cpp \
     opticflowestimator.cpp
 
 HEADERS  += mainwindow.h \
@@ -35,6 +36,7 @@ HEADERS  += mainwindow.h \
     helper.h \
     convolution3d.h \
     dvseventhandler.h \
+    motionenergyestimator.h \
     opticflowestimator.h
 
 FORMS    += mainwindow.ui

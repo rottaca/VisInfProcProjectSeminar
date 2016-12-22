@@ -12,14 +12,14 @@ class DVSEventHandler: public QObject
 public:
 
     typedef struct {
-        int posX, posY;
-        bool On;
-        long timestamp;
+        u_int8_t posX, posY;
+        u_int8_t On;
+        u_int32_t timestamp;
     } DVSEvent;
 
     DVSEventHandler(QObject* parent = 0);
 
-    bool playBackFile(QString fileName, int speedMs);
+    bool PlayBackFile(QString fileName, int speedMs);
 
 
 signals:

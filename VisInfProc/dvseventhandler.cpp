@@ -10,7 +10,7 @@ DVSEventHandler::DVSEventHandler(QObject *parent)
 }
 
 
-bool DVSEventHandler::playBackFile(QString fileName, int speedMs)
+bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
 {
     eventIdx = 0;
     QFile f(fileName);
@@ -59,35 +59,35 @@ bool DVSEventHandler::playBackFile(QString fileName, int speedMs)
         u_int32_t ad = 0,time = 0;
         switch(version){
         case 1:
-            ad = ((uchar)buff.at(buffIdx++) << 0x10);
+            ad = ((uchar)buff.at(buffIdx++) << 0x08);
             ad |= ((uchar)buff.at(buffIdx++) << 0x00);
 
-            time = ((uchar)buff.at(buffIdx++) << 0x40);
-            time |= ((uchar)buff.at(buffIdx++) << 0x20);
+            time = ((uchar)buff.at(buffIdx++) << 0x18);
             time |= ((uchar)buff.at(buffIdx++) << 0x10);
+            time |= ((uchar)buff.at(buffIdx++) << 0x08);
             time |= ((uchar)buff.at(buffIdx++) << 0x00);
 
             break;
         case 2:
-            ad = ((uchar)buff.at(buffIdx++) << 0x40);
-            ad |= ((uchar)buff.at(buffIdx++) << 0x20);
-            ad |= ((uchar)buff.at(buffIdx++) << 0x10);
+            ad = ((uchar)buff.at(buffIdx++) << 0x18);
+            ad |= ((uchar)buff.at(buffIdx++) << 010);
+            ad |= ((uchar)buff.at(buffIdx++) << 0x08);
             ad |= ((uchar)buff.at(buffIdx++) << 0x00);
 
-            time = ((uchar)buff.at(buffIdx++) << 0x40);
-            time |= ((uchar)buff.at(buffIdx++) << 0x20);
+            time = ((uchar)buff.at(buffIdx++) << 0x18);
             time |= ((uchar)buff.at(buffIdx++) << 0x10);
+            time |= ((uchar)buff.at(buffIdx++) << 0x08);
             time |= ((uchar)buff.at(buffIdx++) << 0x00);
             break;
         }
         // Extract event from address by assuming a DVS128 camera
         DVSEvent e;
         e.On = ad & 0x01;       // Polarity: LSB
-        e.posX = ((ad >> 0x01) & 0xFE);
-        e.posY = ((ad >> 0x10) & 0x7F) ;
+        e.posX = ((ad >> 0x01) & 0x7F);  // X: 0 - 127
+        e.posY = ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
         e.timestamp = time;
         eventList.append(e);
-        qDebug(QString("%1 %2 %3 %4").arg(e.On).arg(e.posX).arg(e.posY).arg(e.timestamp).toLocal8Bit());
+        //qDebug(QString("%1 %2 %3 %4").arg(e.On).arg(e.posX).arg(e.posY).arg(e.timestamp).toLocal8Bit());
     }
     timer.start(speedMs);
     return true;

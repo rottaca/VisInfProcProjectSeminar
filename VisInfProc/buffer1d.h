@@ -14,19 +14,19 @@ public:
     Buffer1D(const Buffer1D& f);
 
     Buffer1D& operator=(const Buffer1D &other);
-    float& operator()(int i);
-    float operator()(int i) const;
+    double& operator()(int i);
+    double operator()(int i) const;
 
     int getSize() const{
         return size;
     }
 
-    float* getBuff() const{
+    double* getBuff() const{
         return buffer;
     }
 
 private:
-    float* buffer;
+    double* buffer;
     int size;
 };
 

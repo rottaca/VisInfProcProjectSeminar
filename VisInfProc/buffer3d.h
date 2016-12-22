@@ -16,8 +16,8 @@ public:
     ~Buffer3D();
 
     Buffer3D &operator=(const Buffer3D& other);
-    float& operator()(int x,int y,int z);
-    float operator()(int x,int y,int z) const;
+    double& operator()(int x,int y,int z);
+    double operator()(int x,int y,int z) const;
     Buffer3D operator-(Buffer3D& b) const;
     Buffer3D operator+(Buffer3D& b) const;
 
@@ -30,16 +30,16 @@ public:
     int getSizeZ() const{
         return sz;
     }
-    float* getBuff() const{
+    double* getBuff() const{
         return buffer;
     }
     void resize(int sx, int sy, int sz);
-    QImage toImageXY(int pos) const;
-    QImage toImageXZ(int pos) const;
-    QImage toImageYZ(int pos) const;
+    QImage toImageXY(int pos, double min = 0, double max = 0) const;
+    QImage toImageXZ(int pos, double min = 0, double max = 0) const;
+    QImage toImageYZ(int pos, double min = 0, double max = 0) const;
 
 private:
-    float* buffer;
+    double* buffer;
     int sx,sy,sz;
 
 };

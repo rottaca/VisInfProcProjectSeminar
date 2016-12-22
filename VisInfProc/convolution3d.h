@@ -25,23 +25,22 @@ public:
      * @brief nextTimeSlot Returns the spatial filter response for the current time and increases the read and write indices
      * @param output
      */
-    void nextTimeSlot(Buffer2D* output);
+    void nextTimeSlot(Buffer2D* output = NULL, int slotsToSkip = 1);
 
     Buffer3D *getBuff(){
         return &buffer;
-    }
-
-    int getReadIdx(){
-        return readIdx;
     }
 
     int getWriteIdx(){
         return writeIdx;
     }
 
-private:
+    QImage toOrderedImageXZ(int orderStart, int slicePos, float min = 0, float max = 0);
+    QImage toOrderedImageYZ(int orderStart, int slicePos, float min = 0, float max = 0);
+
+public:
     Buffer3D buffer;
-    int readIdx,writeIdx;
+    int writeIdx;
 };
 
 #endif // CONVOLUTION3D_H

@@ -19,8 +19,8 @@ Buffer3D::Buffer3D(int sx, int sy, int sz)
     this->sz = sz;
 
     size_t s = sx*sy*sz;
-    buffer = new float[s];
-    memset(buffer,0,s*sizeof(float));
+    buffer = new double[s];
+    memset(buffer,0,s*sizeof(double));
 }
 Buffer3D::Buffer3D(const Buffer3D& other)
 {
@@ -29,8 +29,8 @@ Buffer3D::Buffer3D(const Buffer3D& other)
     sz = other.getSizeZ();
 
     size_t s = sx*sy*sz;
-    buffer = new float[s];
-    memcpy(buffer,other.getBuff(),s*sizeof(float));
+    buffer = new double[s];
+    memcpy(buffer,other.getBuff(),s*sizeof(double));
 }
 
 Buffer3D &Buffer3D::operator=(const Buffer3D& other)
@@ -47,20 +47,26 @@ Buffer3D &Buffer3D::operator=(const Buffer3D& other)
         sz = other.getSizeZ();
 
         size_t s = sx*sy*sz;
-        buffer = new float[s];
-        memcpy(buffer,other.getBuff(),s*sizeof(float));
+        buffer = new double[s];
+        memcpy(buffer,other.getBuff(),s*sizeof(double));
     }
 
     return *this;
 }
 
-float& Buffer3D::operator()(int x, int y, int z)
+double& Buffer3D::operator()(int x, int y, int z)
 {
+    assert(x >= 0 && x < sx);
+    assert(y >= 0 && y < sy);
+    assert(z >= 0 && z < sz);
     return buffer[z*sx*sy + y*sx + x];
 }
 
-float Buffer3D::operator()(int x, int y, int z) const
+double Buffer3D::operator()(int x, int y, int z) const
 {
+    assert(x >= 0 && x < sx);
+    assert(y >= 0 && y < sy);
+    assert(z >= 0 && z < sz);
     return buffer[z*sx*sy + y*sx + x];
 }
 
@@ -68,8 +74,8 @@ Buffer3D Buffer3D::operator-(Buffer3D& b) const
 {
     assert(sx == b.getSizeX() && sy == b.getSizeY() && sz == b.getSizeZ());
     Buffer3D buff(sx,sy,sz);
-    float *ptrRes = buff.getBuff();
-    float *ptrB = b.getBuff();
+    double *ptrRes = buff.getBuff();
+    double *ptrB = b.getBuff();
     for(int i = 0; i < sx*sy*sz; i++){
         ptrRes[i] = buffer[i]-ptrB[i];
     }
@@ -81,8 +87,8 @@ Buffer3D Buffer3D::operator+(Buffer3D& b) const
 {
     assert(sx == b.getSizeX() && sy == b.getSizeY() && sz == b.getSizeZ());
     Buffer3D buff(sx,sy,sz);
-    float *ptrRes = buff.getBuff();
-    float *ptrB = b.getBuff();
+    double *ptrRes = buff.getBuff();
+    double *ptrB = b.getBuff();
     for(int i = 0; i < sx*sy*sz; i++){
         ptrRes[i] = buffer[i]+ptrB[i];
     }
@@ -108,16 +114,21 @@ void Buffer3D::resize(int sx, int sy, int sz)
     this->sy = sy;
     this->sz = sz;
     size_t s = sx*sy*sz;
-    buffer = new float[s];
+    buffer = new double[s];
 }
-QImage Buffer3D::toImageXY(int pos) const
+QImage Buffer3D::toImageXY(int pos, double min, double max) const
 {
     assert(pos >= 0 && pos < sz);
     QImage img(sx,sy,QImage::Format_RGB888);
-    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
-    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
 
-    float* buffPtr = buffer+pos*sx*sy;
+    double mx = max;
+    double mn = min;
+    if(min == 0 && max == 0){
+        mx = *std::max_element(buffer,buffer+sz*sx*sy);
+        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+    }
+
+    double* buffPtr = buffer+pos*sx*sy;
 
     for(int y = 0; y < sy; y++){
         uchar* ptr = img.scanLine(y);
@@ -129,14 +140,22 @@ QImage Buffer3D::toImageXY(int pos) const
         }
     }
 
+    uchar* ptr = img.scanLine(0);
+    ptr[0] = 0;
+    ptr[1] = 0;
+    ptr[2] = 0;
     return img;
 }
-QImage Buffer3D::toImageXZ(int pos) const
+QImage Buffer3D::toImageXZ(int pos, double min, double max ) const
 {
     assert(pos >= 0 && pos < sy);
     QImage img(sx,sz,QImage::Format_RGB888);
-    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
-    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
+    double mx = max;
+    double mn = min;
+    if(min == 0 && max == 0){
+        mx = *std::max_element(buffer,buffer+sz*sx*sy);
+        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+    }
 
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
@@ -148,14 +167,22 @@ QImage Buffer3D::toImageXZ(int pos) const
         }
     }
 
+    uchar* ptr = img.scanLine(0);
+    ptr[0] = 0;
+    ptr[1] = 0;
+    ptr[2] = 0;
     return img;
 }
-QImage Buffer3D::toImageYZ(int pos) const
+QImage Buffer3D::toImageYZ(int pos, double min, double max) const
 {
     assert(pos >= 0 && pos < sx);
     QImage img(sy,sz,QImage::Format_RGB888);
-    float mx = *std::max_element(buffer,buffer+sz*sx*sy);
-    float mn = *std::min_element(buffer,buffer+sz*sx*sy);
+    double mx = max;
+    double mn = min;
+    if(min == 0 && max == 0){
+        mx = *std::max_element(buffer,buffer+sz*sx*sy);
+        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+    }
 
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
@@ -167,5 +194,9 @@ QImage Buffer3D::toImageYZ(int pos) const
         }
     }
 
+    uchar* ptr = img.scanLine(0);
+    ptr[0] = 0;
+    ptr[1] = 0;
+    ptr[2] = 0;
     return img;
 }
