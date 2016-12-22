@@ -19,6 +19,10 @@ public:
     MotionEnergyEstimator(FilterSettings fs, QList<float> orientations);
     ~MotionEnergyEstimator();
 
+    FilterSettings getSettings(){
+        return fsettings;
+    }
+
 public slots:
     void OnNewEvent(DVSEventHandler::DVSEvent e);
 
@@ -34,6 +38,7 @@ private:
     Convolution3D* conv;
     QList<float> orientations;
     float currentWindowStartTime;
+    int startTime;
     float timeRes;
     std::vector<DVSEventHandler::DVSEvent> events;
 

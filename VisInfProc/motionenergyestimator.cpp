@@ -10,6 +10,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
     this->fsettings = fs;
     this->orientations = orientations;
     currentWindowStartTime = 0;
+    startTime = -1;
 
     fset = new FilterSet[orientations.length()];
     conv = new Convolution3D[orientations.length()*4];
@@ -34,11 +35,14 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
 }
 void MotionEnergyEstimator::OnNewEvent(DVSEventHandler::DVSEvent e)
 {
+    if(startTime == -1)
+        startTime = e.timestamp;
+
     if(e.On)
         return;
-
     //if(currentWindowStartTime > 0)
     //    return;
+
 
     // Events are sorted by time
     assert(events.size() == 0 || e.timestamp >= events.back().timestamp);
@@ -47,7 +51,7 @@ void MotionEnergyEstimator::OnNewEvent(DVSEventHandler::DVSEvent e)
     QVector2D ePos(e.posX,e.posY);
     //QVector2D ePos(63,63);
 
-    int deltaT = e.timestamp - currentWindowStartTime;
+    int deltaT = (e.timestamp-startTime) - currentWindowStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor((float)deltaT/timeRes);
     //qDebug(QString("%1").arg((float)deltaT/timeRes).toLocal8Bit());
@@ -65,27 +69,29 @@ void MotionEnergyEstimator::OnNewEvent(DVSEventHandler::DVSEvent e)
             conv[i*4+1].nextTimeSlot(&left2,timeSlotsToSkip);
             conv[i*4+2].nextTimeSlot(&right1,timeSlotsToSkip);
             conv[i*4+3].nextTimeSlot(&right2,timeSlotsToSkip);
-            Buffer2D motionEnergyLeft, motionEnergyRight;
-            computeMotionEnergy(left1,left2,motionEnergyLeft);
-            computeMotionEnergy(right1,right2,motionEnergyRight);
+            if(qRound(currentWindowStartTime/timeRes) % 5 == 1){
+                Buffer2D motionEnergyLeft, motionEnergyRight;
+                computeMotionEnergy(left1,left2,motionEnergyLeft);
+                computeMotionEnergy(right1,right2,motionEnergyRight);
 
-            double* ptrOne = motionEnergyLeft.getBuff();
-            double max = *std::max_element(ptrOne,ptrOne+128*128);
+                double* ptrOne = motionEnergyLeft.getBuff();
+                double max = *std::max_element(ptrOne,ptrOne+128*128);
 
-            qDebug(QString("%1").arg(max).toLocal8Bit());
-            //emit ImageReady(motionEnergyLeft.toImage(0,0.5f),conv[i*4].getBuff()->toImageXZ(64,-0.2,0.2));
-            QImage img = motionEnergyLeft.toImage(0,1.5f);
+                qDebug(QString("Energy: %1").arg(max).toLocal8Bit());
+//                //emit ImageReady(motionEnergyLeft.toImage(0,0.5f),conv[i*4].getBuff()->toImageXZ(64,-0.2,0.2));
+                QImage img = motionEnergyRight.toImage(0,0.8f);
 
-            for(int k = 0; k < events.size(); k++)
-                img.setPixel(events.at(k).posX,events.at(k).posY,qRgb(0, 0, 0));
-         //   emit ImageReady(img,
-         //           conv[0].toOrderedImageXZ(conv[0].getWriteIdx(),13,-0.02,0.02));
+                for(int k = 0; k < events.size(); k++)
+                    img.setPixel(events.at(k).posX,events.at(k).posY,qRgb(0, 0, 0));
+//             //   emit ImageReady(img,
+//             //           conv[0].toOrderedImageXZ(conv[0].getWriteIdx(),13,-0.02,0.02));
 
-            //emit ImageReady(fset[0].spatialTemporal[FilterSet::LEFT1].toImageXZ(13),
-            //    conv[0].toOrderedImageXZ(conv[0].getWriteIdx(),13,-0.015,0.015));
+//                //emit ImageReady(fset[0].spatialTemporal[FilterSet::LEFT1].toImageXZ(13),
+//                //    conv[0].toOrderedImageXZ(conv[0].getWriteIdx(),13,-0.015,0.015));
 
-            emit ImageReady(img,
-                    conv[0].toOrderedImageXZ(conv[1].getWriteIdx(),63,-0.2,0.2));
+                emit ImageReady(img,
+                        motionEnergyLeft.toImage(0,0.8f));
+            }
 //            std::cout << "Image" << std::endl;
 //                for(int y = 0; y < 100; y++){
 //                    for(int x = 0; x < 127; x++){
@@ -104,11 +110,10 @@ void MotionEnergyEstimator::OnNewEvent(DVSEventHandler::DVSEvent e)
 
     //currentWindowStartTime++;
 
-    qint64 nanoSec = t.nsecsElapsed();
     if(timeSlotsToSkip > 0){
         currentWindowStartTime += timeRes*timeSlotsToSkip;
         while(!events.empty() &&
-              (int64_t)events.front().timestamp < (int64_t)currentWindowStartTime - fsettings.timewindow_us)
+              (int64_t)events.front().timestamp - startTime < (int64_t)currentWindowStartTime - fsettings.timewindow_us)
             events.erase(events.begin());
     }
 

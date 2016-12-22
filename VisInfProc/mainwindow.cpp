@@ -14,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent) :
     fsettings = FilterSettings::getSettings(FilterSettings::SPEED_25);
 
     QList<float> orients;
-    orients.append(qDegreesToRadians(45.0f));
+    orients.append(qDegreesToRadians(0.0f));
     opticFlowEstim = new MotionEnergyEstimator(fsettings,orients);
 
     qRegisterMetaType<DVSEventHandler::DVSEvent>("DVSEventHandler::DVSEvent");
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     OnChangeSlider(0);
 
-    dvsEventHandler.PlayBackFile("/tausch/scale4/mnist_0_scale04_0550.aedat",1);
+    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_corridor_take_1_2016-12-22.aedat",1);
 }
 
 void MainWindow::OnChangeSlider(int pos)

@@ -33,9 +33,10 @@ void Convolution3D::convolute3D(Buffer3D &filter, QVector2D pos)
     int bs_z = buffer.getSizeZ();
 
     // For every time slice
+#pragma omp parallel for
     for(int z = 0; z < fs_z;z++){
         if(z >= bs_z)
-            break;
+            continue;
 
         // Get Pointer to time slice in 3d buffer
         double* ptrFilterTSlice = filter.getBuff() + z*fs_xy;
@@ -76,12 +77,19 @@ void Convolution3D::nextTimeSlot(Buffer2D* output, int slotsToSkip)
         ptrOutput = output->getBuff();
     }
 
-
     for(int i = 0; i < buffer.getSizeY()*buffer.getSizeX(); i++){
         ptrOutput[i] = ptrBuffer[i];
     }
+    long pageSize = buffer.getSizeX()*buffer.getSizeY()*sizeof(double);
 
-    memset(ptrBuffer,0,sizeof(double)*buffer.getSizeX()*buffer.getSizeY()*slotsToSkip);
+    if(writeIdx+slotsToSkip >= buffer.getSizeZ()){
+        long slotCntOverflow = (writeIdx+slotsToSkip) % buffer.getSizeZ();
+        memset(&buffer(0,0,0),0,pageSize*slotCntOverflow);
+
+        slotsToSkip-=slotCntOverflow;
+    }
+    // Skip at the end of the buffer
+    memset(ptrBuffer,0,pageSize*slotsToSkip);
 
     // Increase write and read pointer
     writeIdx = (writeIdx+slotsToSkip) % buffer.getSizeZ();

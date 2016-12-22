@@ -11,6 +11,8 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = VisInfProc
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += -fopenmp
+LIBS += -fopenmp
 
 SOURCES += main.cpp\
         mainwindow.cpp \
@@ -40,3 +42,22 @@ HEADERS  += mainwindow.h \
     opticflowestimator.h
 
 FORMS    += mainwindow.ui
+
+# CUDA Settings
+CUDA_SOURCES = cuda_stuff.cu
+
+CUDA_DIR = /usr/local/cuda
+CUDA_ARCH = sm_32 # as supported by the Tegra K1
+
+INCLUDEPATH += $$CUDA_DIR/include
+LIBS += -L $$CUDA_DIR/lib -lcudart -lcuda
+osx: LIBS += -F/Library/Frameworks -framework CUDA
+
+cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
+cuda.dependency_type = TYPE_C
+cuda.depend_command = $$CUDA_DIR/bin/nvcc -M ${QMAKE_FILE_NAME}
+cuda.input = CUDA_SOURCES
+cuda.output = ${QMAKE_FILE_BASE}_cuda.o
+QMAKE_EXTRA_COMPILERS += cuda
+
+DISTFILES +=
