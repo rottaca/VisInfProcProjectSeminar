@@ -26,7 +26,8 @@ SOURCES += main.cpp\
     convolution3d.cpp \
     dvseventhandler.cpp \
     motionenergyestimator.cpp \
-    opticflowestimator.cpp
+    opticflowestimator.cpp \
+    worker.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -39,18 +40,22 @@ HEADERS  += mainwindow.h \
     convolution3d.h \
     dvseventhandler.h \
     motionenergyestimator.h \
-    opticflowestimator.h
+    opticflowestimator.h \
+    cuda_helper.h \
+    cuda_convolution3d.h \
+    cuda_settings.h \
+    worker.h
 
 FORMS    += mainwindow.ui
 
 # CUDA Settings
-CUDA_SOURCES = cuda_stuff.cu
+CUDA_SOURCES = cuda_helper.cu cuda_convolution3d.cu
 
-CUDA_DIR = /usr/local/cuda
-CUDA_ARCH = sm_32 # as supported by the Tegra K1
+CUDA_DIR = /usr/local/cuda-7.5
+CUDA_ARCH = sm_50 # as supported by the Tegra K1
 
 INCLUDEPATH += $$CUDA_DIR/include
-LIBS += -L $$CUDA_DIR/lib -lcudart -lcuda
+LIBS += -L $$CUDA_DIR/lib64 -lcuda -lcudart
 osx: LIBS += -F/Library/Frameworks -framework CUDA
 
 cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
@@ -60,4 +65,6 @@ cuda.input = CUDA_SOURCES
 cuda.output = ${QMAKE_FILE_BASE}_cuda.o
 QMAKE_EXTRA_COMPILERS += cuda
 
-DISTFILES +=
+DISTFILES += \
+    cuda_helper.cu \
+    cuda_convolution3d.cu

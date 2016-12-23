@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 
 #include "buffer1d.h"
 #include "buffer2d.h"
@@ -11,7 +12,11 @@
 #include "filterset.h"
 #include "convolution3d.h"
 #include "dvseventhandler.h"
-#include "motionenergyestimator.h"
+#include "opticflowestimator.h"
+#include "worker.h"
+
+#define FPS 30
+
 
 namespace Ui {
 class MainWindow;
@@ -25,16 +30,20 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+signals:
+    void startProcessing();
+
 public slots:
-    void OnChangeSlider(int pos);
+    void OnUpdate();
     void OnNewEvent(DVSEventHandler::DVSEvent e);
-    void OnImageReady(QImage energy, QImage bufferXZ);
+    void OnPlaybackFinished();
 
 private:
     Ui::MainWindow *ui;
     FilterSettings fsettings;
     DVSEventHandler dvsEventHandler;
-    MotionEnergyEstimator* opticFlowEstim;
+    Worker* worker;
+    QTimer updateTimer;
 };
 
 #endif // MAINWINDOW_H

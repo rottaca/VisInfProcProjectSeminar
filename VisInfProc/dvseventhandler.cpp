@@ -9,18 +9,20 @@ DVSEventHandler::DVSEventHandler(QObject *parent)
     eventIdx = 0;
 }
 
-
 bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
 {
     eventIdx = 0;
     QFile f(fileName);
     if(!f.open(QIODevice::ReadOnly)){
+        qDebug("Can't open file!");
         return false;
     }
     QByteArray buff = f.readAll();
 
-    if(buff.size() == 0)
+    if(buff.size() == 0){
+        qDebug("File is empty");
         return false;
+    }
 
     // Parse events from file
     QString versionToken = "#!AER-DAT";
@@ -102,6 +104,7 @@ void DVSEventHandler::onTimePlayback()
 
     if(eventIdx >= eventList.size())
     {
+        emit OnPlaybackFinished();
         eventIdx = 0;
         eventList.clear();
         timer.stop();

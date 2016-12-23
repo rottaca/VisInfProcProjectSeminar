@@ -36,19 +36,8 @@ Buffer3D::Buffer3D(const Buffer3D& other)
 Buffer3D &Buffer3D::operator=(const Buffer3D& other)
 {
     if(this != &other){
-        if(buffer != NULL)
-        {
-            delete []buffer;
-            buffer = NULL;
-        }
-
-        sx = other.getSizeX();
-        sy = other.getSizeY();
-        sz = other.getSizeZ();
-
-        size_t s = sx*sy*sz;
-        buffer = new double[s];
-        memcpy(buffer,other.getBuff(),s*sizeof(double));
+        resize(other.getSizeX(),other.getSizeY(),other.getSizeZ());
+        memcpy(buffer,other.getBuff(),sx*sy*sz*sizeof(double));
     }
 
     return *this;

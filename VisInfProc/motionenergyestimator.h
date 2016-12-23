@@ -10,11 +10,10 @@
 #include "convolution3d.h"
 #include "dvseventhandler.h"
 
-#include <vector>
+#include <assert.h>
 
-class MotionEnergyEstimator: public QObject
+class MotionEnergyEstimator
 {
-    Q_OBJECT
 public:
     MotionEnergyEstimator(FilterSettings fs, QList<float> orientations);
     ~MotionEnergyEstimator();
@@ -23,11 +22,28 @@ public:
         return fsettings;
     }
 
-public slots:
-    void OnNewEvent(DVSEventHandler::DVSEvent e);
+    void processEvent(DVSEventHandler::DVSEvent e);
 
-signals:
-    void ImageReady(QImage energy, QImage bufferXZ);
+    bool isEnergyReady(){
+        return isMotionEnergyReady;
+    }
+
+    void getMotionEnergy(int orientationIdx,Buffer2D &left, Buffer2D &right)
+    {
+        assert(orientationIdx < orientations.length());
+        left = motionLeft[orientationIdx];
+        right = motionRight[orientationIdx];
+        isMotionEnergyReady = false;
+    }
+
+    QVector<DVSEventHandler::DVSEvent> getEventsInWindow(){
+        return timeWindowEvents;
+    }
+
+    long getWindowStartTime(){
+        return currentWindowStartTime;
+    }
+
 
 private:
     void computeMotionEnergy(Buffer2D &one, Buffer2D &two, Buffer2D &energy);
@@ -37,10 +53,14 @@ private:
     FilterSet* fset;
     Convolution3D* conv;
     QList<float> orientations;
-    float currentWindowStartTime;
+    long currentWindowStartTime;
     int startTime;
     float timeRes;
-    std::vector<DVSEventHandler::DVSEvent> events;
+    QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
+
+    bool isMotionEnergyReady;
+    Buffer2D *motionRight;
+    Buffer2D *motionLeft;
 
 };
 

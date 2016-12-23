@@ -3,10 +3,13 @@
 #include <assert.h>
 #include <QColor>
 #include "helper.h"
+#include "cuda_helper.h"
+#include "cuda_convolution3d.h"
 
 Convolution3D::Convolution3D()
 {
     writeIdx = 0;
+    gpuBuffer = NULL;
 }
 
 
@@ -14,12 +17,17 @@ Convolution3D::Convolution3D(int sx, int sy, int sz)
 {
     buffer = Buffer3D(sx,sy,sz);
     writeIdx = 0;
+    gpuBuffer = cudaCreateBuffer(sx*sy*sz);
+    cudaUploadBuffer(buffer.getBuff(),gpuBuffer,sx*sy*sz);
+}
+Convolution3D::~Convolution3D()
+{
+    if(gpuBuffer != NULL)
+        cudaFreeBuffer(gpuBuffer);
 }
 
 void Convolution3D::convolute3D(Buffer3D &filter, QVector2D pos)
 {
-    // TODO SPEEDUP!
-    // Precompute xBuff, yBuff, idxBuff, idxFilter where possible
     int fs_x = filter.getSizeX();
     int fs_y = filter.getSizeY();
     int fx_2 = qFloor(fs_x/2.0f);
@@ -32,6 +40,20 @@ void Convolution3D::convolute3D(Buffer3D &filter, QVector2D pos)
     int bs_xy = bs_x*bs_y;
     int bs_z = buffer.getSizeZ();
 
+//    double* gpuFilter = cudaCreateBuffer(fs_xy*fs_z);
+//    cudaUploadBuffer(filter.getBuff(),gpuFilter,fs_xy*fs_z);
+//    cudaConvolution3D(gpuBuffer,writeIdx,bs_x,bs_y,bs_z,
+//                      gpuFilter,fs_x,fs_y,fs_z,
+//                      pos.x(),pos.y());
+
+//    gpuErrchk(cudaMemcpy(buffer.getBuff(),gpuBuffer,bs_xy*bs_z*sizeof(double),cudaMemcpyDeviceToHost));
+    //cudaDownloadBuffer(gpuBuffer,buffer.getBuff(),bs_xy*bs_z);
+
+//    cudaFreeBuffer(gpuFilter);
+//    return;
+    // TODO SPEEDUP!
+    // Precompute xBuff, yBuff, idxBuff, idxFilter where possible
+//    return;
     // For every time slice
 #pragma omp parallel for
     for(int z = 0; z < fs_z;z++){

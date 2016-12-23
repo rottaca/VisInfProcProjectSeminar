@@ -1,0 +1,8 @@
+#ifndef CUDA_SETTINGS_H
+#define CUDA_SETTINGS_H
+
+
+#define THREADS_PER_BLOCK 512
+
+#endif // CUDA_SETTINGS_H
+

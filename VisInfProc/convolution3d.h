@@ -14,6 +14,7 @@ class Convolution3D
 public:
     Convolution3D();
     Convolution3D(int sx, int sy, int sz);
+    ~Convolution3D();
 
     /**
      * @brief convolute3D Convolutes the given filter into a forward looking ring buffer
@@ -41,6 +42,7 @@ public:
 public:
     Buffer3D buffer;
     int writeIdx;
+    double * gpuBuffer;
 };
 
 #endif // CONVOLUTION3D_H

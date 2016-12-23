@@ -38,18 +38,8 @@ Buffer2D::Buffer2D(const Buffer2D& f)
 Buffer2D &Buffer2D::operator=(const Buffer2D& other)
 {
     if(this != &other){
-        if(buffer != NULL)
-        {
-            delete []buffer;
-            buffer = NULL;
-        }
-
-        sx = other.getSizeX();
-        sy = other.getSizeY();
-
-        size_t s = sx*sy;
-        buffer = new double[s];
-        memcpy(buffer,other.getBuff(),s*sizeof(double));
+        resize(other.getSizeX(),other.getSizeY());
+        memcpy(buffer,other.getBuff(),sx*sy*sizeof(double));
     }
 
     return *this;

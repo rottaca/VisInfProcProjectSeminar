@@ -24,6 +24,7 @@ public:
 
 signals:
     void OnNewEvent(DVSEventHandler::DVSEvent e);
+    void OnPlaybackFinished();
 
 public slots:
     void onTimePlayback();
