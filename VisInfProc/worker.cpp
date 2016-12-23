@@ -71,7 +71,7 @@ void Worker::setNextEvent(DVSEventHandler::DVSEvent event)
     loggingEventMutex.lock();
     eventCnt++;
 
-    if(!eventSemaphoreW->tryAcquire(1,1)){
+    if(!eventSemaphoreW->tryAcquire(1,2)){
         dischargedEventCnt++;
         loggingEventMutex.unlock();
         return;

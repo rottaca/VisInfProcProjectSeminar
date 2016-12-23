@@ -2,9 +2,7 @@
 #define DVSEVENTHANDLER_H
 #include <QTimer>
 #include <QVector>
-
-
-
+#include <QTime>
 
 class DVSEventHandler: public QObject
 {
@@ -33,6 +31,7 @@ private:
     QTimer timer;
     QVector<DVSEvent> eventList;
     int eventIdx;
+    QTime timeMeasure;
 };
 
 Q_DECLARE_METATYPE(DVSEventHandler::DVSEvent)

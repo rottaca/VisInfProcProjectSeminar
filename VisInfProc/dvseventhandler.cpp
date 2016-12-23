@@ -91,6 +91,7 @@ bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
         eventList.append(e);
         //qDebug(QString("%1 %2 %3 %4").arg(e.On).arg(e.posX).arg(e.posY).arg(e.timestamp).toLocal8Bit());
     }
+    timeMeasure.start();
     timer.start(speedMs);
     return true;
 }
@@ -106,7 +107,13 @@ void DVSEventHandler::onTimePlayback()
     {
         emit OnPlaybackFinished();
         eventIdx = 0;
-        eventList.clear();
         timer.stop();
+        int nMillis = timeMeasure.elapsed();
+        int dtUs = eventList.last().timestamp - eventList.first().timestamp;
+        qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
+               arg(nMillis).
+               arg(dtUs/1000).
+               arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
+        eventList.clear();
     }
 }

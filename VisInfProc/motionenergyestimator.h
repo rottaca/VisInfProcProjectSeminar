@@ -50,8 +50,8 @@ private:
 
 private:
     FilterSettings fsettings;
-    FilterSet* fset;
-    Convolution3D* conv;
+    FilterSet** fset;
+    Convolution3D** conv;
     QList<float> orientations;
     long currentWindowStartTime;
     int startTime;

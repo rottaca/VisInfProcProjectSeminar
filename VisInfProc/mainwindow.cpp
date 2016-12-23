@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "cuda_helper.h"
 
 #include <QtMath>
 #include <QList>
@@ -10,6 +11,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    gpuErrchk(cudaSetDevice(0));
 
     worker = new Worker();
     FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
@@ -49,10 +52,10 @@ void MainWindow::OnUpdate()
         //worker->getMotionEnergy(0,1,l2,r2);
 
         if(time != -1){
-            QImage imgl1 = l1.toImage(0,0.5).scaled(400, 400);
-            QImage imgr1 = r1.toImage(0,0.5).scaled(400, 400);
-            //QImage imgl2 = l2.toImage(0,0.5).scaled(400, 400);
-            //QImage imgr2 = r2.toImage(0,0.5).scaled(400, 400);
+            QImage imgl1 = l1.toImage(0,0.8).scaled(400, 400);
+            QImage imgr1 = r1.toImage(0,0.8).scaled(400, 400);
+            //QImage imgl2 = l2.toImage(0,0.8).scaled(400, 400);
+            //QImage imgr2 = r2.toImage(0,0.8).scaled(400, 400);
             ui->label_1->setPixmap(QPixmap::fromImage(imgl1));
             ui->label_2->setPixmap(QPixmap::fromImage(imgr1));
             //ui->label_3->setPixmap(QPixmap::fromImage(imgl2));

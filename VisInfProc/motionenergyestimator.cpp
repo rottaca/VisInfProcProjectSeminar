@@ -12,14 +12,14 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
     currentWindowStartTime = 0;
     startTime = -1;
 
-    fset = new FilterSet[orientations.length()];
-    conv = new Convolution3D[orientations.length()*4];
+    fset = new FilterSet*[orientations.length()];
+    conv = new Convolution3D*[orientations.length()*4];
     motionRight = new Buffer2D[orientations.length()];
     motionLeft = new Buffer2D[orientations.length()];
     for(int i = 0; i < orientations.length(); i++){
-        fset[i] = FilterSet(fs,orientations.at(i));
+        fset[i] = new FilterSet(fs,orientations.at(i));
         for(int j = 0; j < 4; j++){
-            conv[i*4+j] = Convolution3D(128,128,fset[i].spatialTemporal[FilterSet::LEFT1].getSizeZ());
+            conv[i*4+j] = new Convolution3D(128,128,fset[i]->sz);
         }
     }
     // Time per timeslot
@@ -29,6 +29,13 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
+    for(int i = 0; i < orientations.length(); i++){
+        delete fset[i];
+        for(int j = 0; j < 4; j++){
+            delete conv[i*4+j];
+        }
+    }
+
     delete[] fset;
     fset = NULL;
     delete[] fset;
@@ -63,10 +70,10 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
         //qDebug("ProcessEvent");
         if(timeSlotsToSkip > 0){
             Buffer2D left1,left2,right1,right2;
-            conv[i*4+0].nextTimeSlot(&left1,timeSlotsToSkip);
-            conv[i*4+1].nextTimeSlot(&left2,timeSlotsToSkip);
-            conv[i*4+2].nextTimeSlot(&right1,timeSlotsToSkip);
-            conv[i*4+3].nextTimeSlot(&right2,timeSlotsToSkip);
+            conv[i*4+0]->nextTimeSlot(&left1,timeSlotsToSkip);
+            conv[i*4+1]->nextTimeSlot(&left2,timeSlotsToSkip);
+            conv[i*4+2]->nextTimeSlot(&right1,timeSlotsToSkip);
+            conv[i*4+3]->nextTimeSlot(&right2,timeSlotsToSkip);
 
             computeMotionEnergy(left1,left2,motionLeft[i]);
             computeMotionEnergy(right1,right2,motionRight[i]);
@@ -79,10 +86,13 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
                 timeWindowEvents.pop_front();
         }
         // Convolute all four filters for this direction
-        conv[i*4+0].convolute3D(fset[i].spatialTemporal[FilterSet::LEFT1],ePos);
-        conv[i*4+1].convolute3D(fset[i].spatialTemporal[FilterSet::LEFT2],ePos);
-        conv[i*4+2].convolute3D(fset[i].spatialTemporal[FilterSet::RIGHT1],ePos);
-        conv[i*4+3].convolute3D(fset[i].spatialTemporal[FilterSet::RIGHT2],ePos);
+        long fs_x = fset[i]->sx;
+        long fs_y = fset[i]->sy;
+        long fs_z = fset[i]->sz;
+        conv[i*4+0]->convolute3D(fset[i]->gpuSpatialTemporal[FilterSet::LEFT1],fs_x,fs_y,fs_z,ePos);
+        conv[i*4+1]->convolute3D(fset[i]->gpuSpatialTemporal[FilterSet::LEFT2],fs_x,fs_y,fs_z,ePos);
+        conv[i*4+2]->convolute3D(fset[i]->gpuSpatialTemporal[FilterSet::RIGHT1],fs_x,fs_y,fs_z,ePos);
+        conv[i*4+3]->convolute3D(fset[i]->gpuSpatialTemporal[FilterSet::RIGHT2],fs_x,fs_y,fs_z,ePos);
     }
 }
 
