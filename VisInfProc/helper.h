@@ -4,7 +4,7 @@
 #include <QColor>
 class Helper{
 public:
-    static QColor pseudoColor(float v,float min, float max);
+    static void pseudoColor(double v, double min, double max, uchar *r, uchar *g, uchar *b);
 };
 
 #endif // HELPER

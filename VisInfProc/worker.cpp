@@ -32,6 +32,17 @@ void Worker::createOpticFlowEstimator(QList<FilterSettings> settings, QList<floa
         delete ofe;
     ofe = new OpticFlowEstimator(settings,orientations);
     ofeMutex.unlock();
+
+    loggingEventMutex.lock();
+    eventCnt = 0;
+    dischargedEventCnt = 0;
+    loggingEventMutex.unlock();
+    // Save ??
+    delete eventSemaphoreR;
+    eventSemaphoreR = new QSemaphore(0);
+    delete eventSemaphoreW;
+    eventSemaphoreW = new QSemaphore(1);
+
 }
 
 void Worker::stopProcessing()
@@ -71,7 +82,7 @@ void Worker::setNextEvent(DVSEventHandler::DVSEvent event)
     loggingEventMutex.lock();
     eventCnt++;
 
-    if(!eventSemaphoreW->tryAcquire(1,2)){
+    if(!eventSemaphoreW->tryAcquire(1,1)){
         dischargedEventCnt++;
         loggingEventMutex.unlock();
         return;

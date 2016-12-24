@@ -16,12 +16,14 @@ Convolution3D::Convolution3D(int sx, int sy, int sz)
 {
     buffer = Buffer3D(sx,sy,sz);
     writeIdx = 0;
-
+    qDebug("Creating GPU convolution buffer..");
     gpuBuffer = cudaCreateDoubleBuffer(sx*sy*sz);
     cudaSetDoubleBuffer(gpuBuffer,0,sx*sy*sz);
+    qDebug("GPU Convolution buffer created and cleared..");
 }
 Convolution3D::~Convolution3D()
 {
+    qDebug("Releasing GPU convolution buffer..");
     cudaFreeDoubleBuffer(gpuBuffer);
     gpuBuffer = NULL;
 }
@@ -83,11 +85,10 @@ QImage Convolution3D::toOrderedImageXZ(int orderStart, int slicePos, float min, 
     for(int z = 0; z < sz; z++){
         int zWarped = (orderStart + z) % sz;
         uchar* ptr = img.scanLine(z);
-        for(int x = 0; x < sx*3; ){
-            QColor rgb = Helper::pseudoColor(buff[zWarped*sx*sy + slicePos*sx + x/3],mn,mx);
-            ptr[x++] = rgb.red();
-            ptr[x++] = rgb.green();
-            ptr[x++] = rgb.blue();
+        for(int x = 0; x < sx*3; x+=3){
+
+            Helper::pseudoColor(buff[zWarped*sx*sy + slicePos*sx + x/3],mn,mx,
+                    &ptr[x+0],&ptr[x+1],&ptr[x+2]);
         }
     }
 
@@ -118,10 +119,8 @@ QImage Convolution3D::toOrderedImageYZ(int orderStart, int slicePos, float min, 
         int zWarped = (orderStart + z) % sz;
         uchar* ptr = img.scanLine(z);
         for(int y = 0; y < sy*3; ){
-            QColor rgb = Helper::pseudoColor(buff[zWarped*sx*sy + y/3*sx + slicePos],mn,mx);
-            ptr[y++] = rgb.red();
-            ptr[y++] = rgb.green();
-            ptr[y++] = rgb.blue();
+            Helper::pseudoColor(buff[zWarped*sx*sy + y/3*sx + slicePos],mn,mx,
+                    &ptr[y+0],&ptr[y+1],&ptr[y+2]);
         }
     }
 

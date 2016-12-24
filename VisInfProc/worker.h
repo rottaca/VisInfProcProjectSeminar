@@ -38,13 +38,24 @@ public:
 
     float getProcessingRatio(){
         loggingEventMutex.lock();
-        float p = 1 - (float)dischargedEventCnt/eventCnt;
+        float p = 0;
+        if(eventCnt > 0)
+            p = 1 - (float)dischargedEventCnt/eventCnt;
         loggingEventMutex.unlock();
         return p;
     }
     bool getIsProcessing(){
         return isProcessing;
     }
+
+    QVector<DVSEventHandler::DVSEvent> getEventsInWindow(int filterNr){
+        QVector<DVSEventHandler::DVSEvent> events;
+        ofeMutex.lock();
+        events = ofe->getEventsInWindow(filterNr);
+        ofeMutex.unlock();
+        return events;
+    }
+
     void run();
 
 private:

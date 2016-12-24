@@ -41,7 +41,7 @@ public:
     }
 
     long getWindowStartTime(){
-        return currentWindowStartTime;
+        return currentSlotStartTime;
     }
 
 
@@ -53,7 +53,7 @@ private:
     FilterSet** fset;
     Convolution3D** conv;
     QList<float> orientations;
-    long currentWindowStartTime;
+    long currentSlotStartTime;
     int startTime;
     float timeRes;
     QVector<DVSEventHandler::DVSEvent> timeWindowEvents;

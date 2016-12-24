@@ -11,7 +11,10 @@ DVSEventHandler::DVSEventHandler(QObject *parent)
 
 bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
 {
+    timer.stop();
     eventIdx = 0;
+    eventList.clear();
+
     QFile f(fileName);
     if(!f.open(QIODevice::ReadOnly)){
         qDebug("Can't open file!");
@@ -91,6 +94,7 @@ bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
         eventList.append(e);
         //qDebug(QString("%1 %2 %3 %4").arg(e.On).arg(e.posX).arg(e.posY).arg(e.timestamp).toLocal8Bit());
     }
+
     timeMeasure.start();
     timer.start(speedMs);
     return true;
@@ -105,7 +109,6 @@ void DVSEventHandler::onTimePlayback()
 
     if(eventIdx >= eventList.size())
     {
-        emit OnPlaybackFinished();
         eventIdx = 0;
         timer.stop();
         int nMillis = timeMeasure.elapsed();
@@ -115,5 +118,6 @@ void DVSEventHandler::onTimePlayback()
                arg(dtUs/1000).
                arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
         eventList.clear();
+        emit OnPlaybackFinished();
     }
 }

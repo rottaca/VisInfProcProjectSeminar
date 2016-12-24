@@ -51,6 +51,7 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
 }
 FilterSet::~FilterSet(){
 
+    qDebug("Releasing filterset from GPU...");
     for(int i = 0; i < CNT; i++){
         if(gpuSpatialTemporal[i] != NULL){
             cudaFree(gpuSpatialTemporal[i]);

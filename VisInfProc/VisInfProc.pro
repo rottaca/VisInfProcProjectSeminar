@@ -27,7 +27,8 @@ SOURCES += main.cpp\
     dvseventhandler.cpp \
     motionenergyestimator.cpp \
     opticflowestimator.cpp \
-    worker.cpp
+    worker.cpp \
+    aspectratiopixmaplabel.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -44,7 +45,8 @@ HEADERS  += mainwindow.h \
     cuda_helper.h \
     cuda_convolution3d.h \
     cuda_settings.h \
-    worker.h
+    worker.h \
+    aspectratiopixmaplabel.h
 
 FORMS    += mainwindow.ui
 

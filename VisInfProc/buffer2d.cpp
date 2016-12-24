@@ -86,13 +86,14 @@ QImage Buffer2D::toImage(double min, double max) const
         mx = *std::max_element(buffer,buffer+sx*sy);
         mn = *std::min_element(buffer,buffer+sx*sy);
     }
+
+#pragma omp parallel for
     for(int y = 0; y < sy; y++){
         uchar* ptr = img.scanLine(y);
+        double * buffPtr = buffer + y*sx;
         for(int x = 0; x < sx*3; ){
-            QColor rgb = Helper::pseudoColor(buffer[y*sx+x/3],mn,mx);
-            ptr[x++] = rgb.red();
-            ptr[x++] = rgb.green();
-            ptr[x++] = rgb.blue();
+            Helper::pseudoColor(buffPtr[x/3],mn,mx,
+                    &ptr[x++],&ptr[x++],&ptr[x++]);
         }
     }
 

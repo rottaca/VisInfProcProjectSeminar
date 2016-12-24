@@ -9,7 +9,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
 {
     this->fsettings = fs;
     this->orientations = orientations;
-    currentWindowStartTime = 0;
+    currentSlotStartTime = 0;
     startTime = -1;
 
     fset = new FilterSet*[orientations.length()];
@@ -59,15 +59,13 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
     timeWindowEvents.push_back(e);
     QVector2D ePos(e.posX,e.posY);
 
-    int deltaT = (e.timestamp-startTime) - currentWindowStartTime;
+    int deltaT = (e.timestamp-startTime) - currentSlotStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor((float)deltaT/timeRes);
 
     for(int i = 0; i < orientations.length(); i++){
 
         // Skip time slots
-        // TODO Skip everything ?
-        //qDebug("ProcessEvent");
         if(timeSlotsToSkip > 0){
             Buffer2D left1,left2,right1,right2;
             conv[i*4+0]->nextTimeSlot(&left1,timeSlotsToSkip);
@@ -79,10 +77,10 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
             computeMotionEnergy(right1,right2,motionRight[i]);
             isMotionEnergyReady = true;
 
-            currentWindowStartTime += timeRes*timeSlotsToSkip;
+            currentSlotStartTime += timeRes*timeSlotsToSkip;
 
             while(timeWindowEvents.size() > 0
-                  && timeWindowEvents.front().timestamp < currentWindowStartTime)
+                  && timeWindowEvents.front().timestamp - startTime < currentSlotStartTime - fsettings.timewindow_us)
                 timeWindowEvents.pop_front();
         }
         // Convolute all four filters for this direction

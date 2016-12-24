@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>574</width>
+    <height>421</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QLabel" name="label_1">
+     <widget class="AspectRatioPixmapLabel" name="label_1">
       <property name="text">
        <string>TextLabel</string>
       </property>
@@ -26,7 +26,7 @@
      </widget>
     </item>
     <item row="0" column="1">
-     <widget class="QLabel" name="label_2">
+     <widget class="AspectRatioPixmapLabel" name="label_2">
       <property name="text">
        <string>TextLabel</string>
       </property>
@@ -35,27 +35,7 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="1">
-     <widget class="QLabel" name="label_4">
-      <property name="text">
-       <string>TextLabel</string>
-      </property>
-      <property name="scaledContents">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="1" column="0">
-     <widget class="QLabel" name="label_3">
-      <property name="text">
-       <string>TextLabel</string>
-      </property>
-      <property name="scaledContents">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="0" column="2" rowspan="2">
+    <item row="0" column="3" rowspan="2">
      <widget class="QSlider" name="verticalSlider">
       <property name="maximum">
        <number>24</number>
@@ -65,6 +45,89 @@
       </property>
      </widget>
     </item>
+    <item row="1" column="1">
+     <widget class="AspectRatioPixmapLabel" name="label_4">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+      <property name="scaledContents">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="2">
+     <widget class="AspectRatioPixmapLabel" name="label_eventwindow">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="AspectRatioPixmapLabel" name="label_3">
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+      <property name="scaledContents">
+       <bool>false</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="4">
+     <layout class="QFormLayout" name="formLayout">
+      <item row="1" column="1">
+       <widget class="QLabel" name="l_timestamp">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="l_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Timestamp:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <widget class="QLabel" name="l_proc_ratio">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="l_timestamp_4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>ProcessingRatio:</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
@@ -72,7 +135,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>400</width>
+     <width>574</width>
      <height>22</height>
     </rect>
    </property>
@@ -88,6 +151,13 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>AspectRatioPixmapLabel</class>
+   <extends>QLabel</extends>
+   <header>aspectratiopixmaplabel.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

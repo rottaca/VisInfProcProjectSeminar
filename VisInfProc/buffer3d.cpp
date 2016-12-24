@@ -119,20 +119,17 @@ QImage Buffer3D::toImageXY(int pos, double min, double max) const
 
     double* buffPtr = buffer+pos*sx*sy;
 
+#pragma omp parallel for
     for(int y = 0; y < sy; y++){
         uchar* ptr = img.scanLine(y);
-        for(int x = 0; x < sx*3; ){
-            QColor rgb = Helper::pseudoColor(buffPtr[y*sx+x/3],mn,mx);
-            ptr[x++] = rgb.red();
-            ptr[x++] = rgb.green();
-            ptr[x++] = rgb.blue();
+        double* buffPtrY = buffPtr + y*sx;
+        for(int x = 0; x < sx*3; x+=3){
+
+            Helper::pseudoColor(buffPtrY[x/3],mn,mx,
+                    &ptr[x+0],&ptr[x+1],&ptr[x+2]);
         }
     }
 
-    uchar* ptr = img.scanLine(0);
-    ptr[0] = 0;
-    ptr[1] = 0;
-    ptr[2] = 0;
     return img;
 }
 QImage Buffer3D::toImageXZ(int pos, double min, double max ) const
@@ -146,20 +143,17 @@ QImage Buffer3D::toImageXZ(int pos, double min, double max ) const
         mn = *std::min_element(buffer,buffer+sz*sx*sy);
     }
 
+    int sxy = sx*sy;
+#pragma omp parallel for
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
-        for(int x = 0; x < sx*3; ){
-            QColor rgb = Helper::pseudoColor(buffer[z*sx*sy + pos*sx + x/3],mn,mx);
-            ptr[x++] = rgb.red();
-            ptr[x++] = rgb.green();
-            ptr[x++] = rgb.blue();
+        double* buffPtr = buffer + z*sxy + pos*sx;
+        for(int x = 0; x < sx*3; x+=3){
+            Helper::pseudoColor(buffPtr[x/3],mn,mx,
+                    &ptr[x+0],&ptr[x+1],&ptr[x+2]);
         }
     }
 
-    uchar* ptr = img.scanLine(0);
-    ptr[0] = 0;
-    ptr[1] = 0;
-    ptr[2] = 0;
     return img;
 }
 QImage Buffer3D::toImageYZ(int pos, double min, double max) const
@@ -172,20 +166,17 @@ QImage Buffer3D::toImageYZ(int pos, double min, double max) const
         mx = *std::max_element(buffer,buffer+sz*sx*sy);
         mn = *std::min_element(buffer,buffer+sz*sx*sy);
     }
+    int sxy = sx*sy;
 
+#pragma omp parallel for
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
-        for(int y = 0; y< sy*3; ){
-            QColor rgb = Helper::pseudoColor(buffer[z*sx*sy + y*sx + pos/3],mn,mx);
-            ptr[y++] = rgb.red();
-            ptr[y++] = rgb.green();
-            ptr[y++] = rgb.blue();
+        double* buffPtr = buffer + z*sxy + pos;
+        for(int y = 0; y< sy*3; y+=3){
+
+            Helper::pseudoColor(buffPtr[y/3*sx],mn,mx,
+                    &ptr[y+0],&ptr[y+1],&ptr[y+2]);
         }
     }
-
-    uchar* ptr = img.scanLine(0);
-    ptr[0] = 0;
-    ptr[1] = 0;
-    ptr[2] = 0;
     return img;
 }

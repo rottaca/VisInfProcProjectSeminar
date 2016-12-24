@@ -17,12 +17,15 @@ public:
     void processEvent(DVSEventHandler::DVSEvent event);
 
     void setEnergyThreshold(int filterNr, double threshold){
+        assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         filterThresholds[filterNr] = threshold;
     }
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &energyLeft, Buffer2D &energyRight){
+        assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
+        assert(orientationIdx >= 0);
         assert(orientationIdx < orientations.length());
         energyLeft = motionEnergiesLeft[filterNr*orientations.length() + orientationIdx];
         energyRight = motionEnergiesRight[filterNr*orientations.length() + orientationIdx];
@@ -30,6 +33,7 @@ public:
     }
 
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(int filterNr){
+        assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         return motionEnergyEstimators[filterNr]->getEventsInWindow();
     }

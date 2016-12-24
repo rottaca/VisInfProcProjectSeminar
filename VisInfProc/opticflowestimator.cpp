@@ -25,13 +25,13 @@ OpticFlowEstimator::~OpticFlowEstimator()
 
     delete[] motionEnergyEstimators;
     motionEnergyEstimators = NULL;
-    delete motionEnergiesLeft;
+    delete[] motionEnergiesLeft;
     motionEnergiesLeft = NULL;
-    delete motionEnergiesRight;
+    delete[] motionEnergiesRight;
     motionEnergiesRight = NULL;
-    delete updateTimeStamps;
+    delete[] updateTimeStamps;
     updateTimeStamps = NULL;
-    delete filterThresholds;
+    delete[] filterThresholds;
     filterThresholds = NULL;
 }
 
@@ -39,7 +39,7 @@ void OpticFlowEstimator::processEvent(DVSEventHandler::DVSEvent event)
 {
     for(int i = 0; i < energyEstimatorCnt; i++){
         motionEnergyEstimators[i]->processEvent(event);
-        // Rew motion energy ready ?
+        // New motion energy ready ?
         if(motionEnergyEstimators[i]->isEnergyReady()){
             for(int j = 0; j < orientations.length(); j++){
                 motionEnergyEstimators[i]->getMotionEnergy(j,
