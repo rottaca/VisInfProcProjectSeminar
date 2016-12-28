@@ -17,8 +17,7 @@ public:
 
     DVSEventHandler(QObject* parent = 0);
 
-    bool PlayBackFile(QString fileName, int speedMs);
-
+    bool PlayBackFile(QString fileName, int speedMs = 0);
 
 signals:
     void OnNewEvent(DVSEventHandler::DVSEvent e);
@@ -29,9 +28,13 @@ public slots:
 
 private:
     QTimer timer;
+    bool playBackRealTime;
+    bool streamStartTime;
+
     QVector<DVSEvent> eventList;
     int eventIdx;
     QTime timeMeasure;
+
 };
 
 Q_DECLARE_METATYPE(DVSEventHandler::DVSEvent)

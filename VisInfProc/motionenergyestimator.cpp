@@ -70,16 +70,16 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
             conv[i*4+2]->nextTimeSlot(&right1,timeSlotsToSkip);
             conv[i*4+3]->nextTimeSlot(&right2,timeSlotsToSkip);
 
-//            QFile file("left.png");
-//            file.open(QIODevice::WriteOnly);
-//            conv[i*4+0]->buffer.toImageXZ(64).save(&file,"PNG");
+            int sx = left1.getSizeX();
+            int sy = left1.getSizeY();
 
-            computeMotionEnergy(left1,left2,energyL);
-            computeMotionEnergy(right1,right2,energyR);
+            opponentMotionEnergy[i].resize(sx,sy);
 
-            opponentMotionEnergy[i] = energyR;
-            opponentMotionEnergy[i] -= energyL;
-            //opponentMotionEnergy[i] = left1;
+            cudaComputeOpponentMotionEnergy(sx,sy,
+                                    left1.getGPUPtr(),left2.getGPUPtr(),
+                                    right1.getGPUPtr(),right2.getGPUPtr(),
+                                    opponentMotionEnergy[i].getGPUPtr());
+
             isMotionEnergyReady = true;
 
             currentSlotStartTime += timeRes*timeSlotsToSkip;
@@ -93,19 +93,7 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
         conv[i*4+1]->convolute3D(fset[i]->spatialTemporal[FilterSet::LEFT2],ePos);
         conv[i*4+2]->convolute3D(fset[i]->spatialTemporal[FilterSet::RIGHT1],ePos);
         conv[i*4+3]->convolute3D(fset[i]->spatialTemporal[FilterSet::RIGHT2],ePos);
-
     }
 }
 
-void MotionEnergyEstimator::computeMotionEnergy(Buffer2D &one, Buffer2D &two, Buffer2D &energy)
-{
-    double* ptrOne = one.getCPUPtr();
-    double* ptrTwo = two.getCPUPtr();
-    energy.resize(one.getSizeX(),one.getSizeY());
-    double* ptrEnergy = energy.getCPUPtr();
-
-    for(int i = 0; i < one.getSizeX()*one.getSizeY(); i++){
-        ptrEnergy[i] = qSqrt(ptrOne[i]*ptrOne[i] + ptrTwo[i]*ptrTwo[i]);
-    }
-}
 

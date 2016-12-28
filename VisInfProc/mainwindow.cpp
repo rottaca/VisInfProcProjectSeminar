@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
     QList<FilterSettings> fsettings;
     fsettings.append(fset);
     orients.append(qDegreesToRadians(0.0f));
-    //orients.append(qDegreesToRadians(90.0f));
+    orients.append(qDegreesToRadians(90.0f));
     worker->createOpticFlowEstimator(fsettings,orients);
 
     qRegisterMetaType<DVSEventHandler::DVSEvent>("DVSEventHandler::DVSEvent");
@@ -41,9 +41,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     emit startProcessing();
 
-    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat",0);
-    //dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_wall_take_2_2016-12-22.aedat",0);
-    //dvsEventHandler.PlayBackFile("/tausch/scale4/mnist_0_scale04_0550.aedat",0);
+    //dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat");
+    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_wall_take_2_2016-12-22.aedat");
+    //dvsEventHandler.PlayBackFile("/tausch/scale4/mnist_0_scale04_0550.aedat");
 
     updateTimer.start(1000/FPS);
 }
@@ -56,13 +56,13 @@ void MainWindow::OnUpdate()
     if(worker->getIsProcessing()){
         Buffer2D oppMoEnergy1,oppMoEnergy2;
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
-        //worker->getMotionEnergy(0,1,oppMoEnergy2);
+        worker->getMotionEnergy(0,1,oppMoEnergy2);
 
         if(time != -1){
             QImage img1 = oppMoEnergy1.toImage(-0.4,0.4);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
-            //QImage img2 = oppMoEnergy2.toImage(-0.4,0.4);
-            //ui->label_2->setPixmap(QPixmap::fromImage(img2));
+            QImage img2 = oppMoEnergy2.toImage(-0.4,0.4);
+            ui->label_2->setPixmap(QPixmap::fromImage(img2));
 
             ui->l_timestamp->setText(QString("%1").arg(time));
         }
@@ -91,15 +91,15 @@ void MainWindow::OnPlaybackFinished()
 {
     worker->stopProcessing();
 
-    FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
+//    FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
 
-    QList<float> orients;
-    QList<FilterSettings> fsettings;
-    fsettings.append(fset);
-    orients.append(qDegreesToRadians(0.0f));
-    //orients.append(qDegreesToRadians(90.0f));
-    worker->createOpticFlowEstimator(fsettings,orients);
+//    QList<float> orients;
+//    QList<FilterSettings> fsettings;
+//    fsettings.append(fset);
+//    orients.append(qDegreesToRadians(0.0f));
+//    //orients.append(qDegreesToRadians(90.0f));
+//    worker->createOpticFlowEstimator(fsettings,orients);
 
-    emit startProcessing();
-    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat",0);
+//    emit startProcessing();
+//    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat",0);
 }

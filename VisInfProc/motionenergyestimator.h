@@ -12,6 +12,14 @@
 
 #include <assert.h>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+extern void cudaComputeOpponentMotionEnergy(int sx, int sy,
+                                    double* gpul1,double* gpul2,
+                                    double* gpur1,double* gpur2,
+                                   double* gpuEnergy);
+
 class MotionEnergyEstimator
 {
 public:
@@ -43,9 +51,6 @@ public:
         return currentSlotStartTime;
     }
 
-
-private:
-    void computeMotionEnergy(Buffer2D &one, Buffer2D &two, Buffer2D &energy);
 
 private:
     FilterSettings fsettings;

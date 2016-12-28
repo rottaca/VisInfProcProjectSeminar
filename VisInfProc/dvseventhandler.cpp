@@ -4,7 +4,6 @@
 DVSEventHandler::DVSEventHandler(QObject *parent)
 {
     connect(&timer,SIGNAL(timeout()),this,SLOT(onTimePlayback()));
-
     eventList.clear();
     eventIdx = 0;
 }

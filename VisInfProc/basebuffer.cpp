@@ -65,7 +65,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
         gpuValid = false;
         cpuValid = true;
     }else{
-        qDebug("Can't copy buffer!");
+        qDebug("Buffer empty, can't copy!");
     }
 }
 
@@ -114,7 +114,7 @@ void BaseBuffer::downloadBuffer() const
 
     cudaDownloadBuffer(gpuBuffer,cpuBuffer,itemCnt*sizeof(double));
     cpuValid = true;
-    //qDebug("Downloading buffer");
+    qDebug("Downloading buffer");
 }
 void BaseBuffer::uploadBuffer() const
 {
@@ -126,7 +126,7 @@ void BaseBuffer::uploadBuffer() const
 
     cudaUploadBuffer(cpuBuffer,gpuBuffer,itemCnt*sizeof(double));
     gpuValid = true;
-    //qDebug("Uploading buffer");
+    qDebug("Uploading buffer");
 }
 
 void BaseBuffer::createCPUBuffer(long sz)
