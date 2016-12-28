@@ -8,6 +8,10 @@
 #include <QPainter>
 #include <QPoint>
 
+#include "buffer1d.h"
+#include "buffer2d.h"
+#include "buffer3d.h"
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -50,19 +54,16 @@ MainWindow::~MainWindow()
 void MainWindow::OnUpdate()
 {
     if(worker->getIsProcessing()){
-        Buffer2D l1,r1,l2,r2;
-        long time = worker->getMotionEnergy(0,0,l1,r1);
-        //worker->getMotionEnergy(0,1,l2,r2);
+        Buffer2D oppMoEnergy1,oppMoEnergy2;
+        long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
+        //worker->getMotionEnergy(0,1,oppMoEnergy2);
 
         if(time != -1){
-            QImage imgl1 = l1.toImage(0,0.8);
-            QImage imgr1 = r1.toImage(0,0.8);
-            //QImage imgl2 = l2.toImage(0,0.8);
-            //QImage imgr2 = r2.toImage(0,0.8);
-            ui->label_1->setPixmap(QPixmap::fromImage(imgl1));
-            ui->label_2->setPixmap(QPixmap::fromImage(imgr1));
-            //ui->label_3->setPixmap(QPixmap::fromImage(imgl2));
-            //ui->label_4->setPixmap(QPixmap::fromImage(imgr2));
+            QImage img1 = oppMoEnergy1.toImage(-0.4,0.4);
+            ui->label_1->setPixmap(QPixmap::fromImage(img1));
+            //QImage img2 = oppMoEnergy2.toImage(-0.4,0.4);
+            //ui->label_2->setPixmap(QPixmap::fromImage(img2));
+
             ui->l_timestamp->setText(QString("%1").arg(time));
         }
         QVector<DVSEventHandler::DVSEvent> ev = worker->getEventsInWindow(0);

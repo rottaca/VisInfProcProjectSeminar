@@ -28,11 +28,10 @@ public:
         return isMotionEnergyReady;
     }
 
-    void getMotionEnergy(int orientationIdx,Buffer2D &left, Buffer2D &right)
+    void getMotionEnergy(int orientationIdx,Buffer2D &oppMoEnergy)
     {
         assert(orientationIdx < orientations.length());
-        left = motionLeft[orientationIdx];
-        right = motionRight[orientationIdx];
+        oppMoEnergy = opponentMotionEnergy[orientationIdx];
         isMotionEnergyReady = false;
     }
 
@@ -58,9 +57,10 @@ private:
     float timeRes;
     QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
 
+    Buffer2D left1,left2,right1,right2;
+    Buffer2D energyL,energyR;
     bool isMotionEnergyReady;
-    Buffer2D *motionRight;
-    Buffer2D *motionLeft;
+    Buffer2D *opponentMotionEnergy;
 
 };
 

@@ -28,7 +28,8 @@ SOURCES += main.cpp\
     motionenergyestimator.cpp \
     opticflowestimator.cpp \
     worker.cpp \
-    aspectratiopixmaplabel.cpp
+    aspectratiopixmaplabel.cpp \
+    basebuffer.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -46,12 +47,16 @@ HEADERS  += mainwindow.h \
     cuda_convolution3d.h \
     cuda_settings.h \
     worker.h \
-    aspectratiopixmaplabel.h
+    aspectratiopixmaplabel.h \
+    basebuffer.h
 
 FORMS    += mainwindow.ui
 
 # CUDA Settings
-CUDA_SOURCES = cuda_helper.cu cuda_convolution3d.cu
+CUDA_SOURCES =  cuda_helper.cu \
+                cuda_convolution3d.cu \
+                filter_manager.cu \
+                buffer.cu
 
 CUDA_DIR = /usr/local/cuda-7.5
 CUDA_ARCH = sm_50 # as supported by the Tegra K1
@@ -69,4 +74,6 @@ QMAKE_EXTRA_COMPILERS += cuda
 
 DISTFILES += \
     cuda_helper.cu \
-    cuda_convolution3d.cu
+    cuda_convolution3d.cu \
+    filter_manager.cu \
+    buffer.cu

@@ -9,34 +9,31 @@
 Convolution3D::Convolution3D()
 {
     writeIdx = 0;
-    gpuBuffer = NULL;
 }
 
 Convolution3D::Convolution3D(int sx, int sy, int sz)
 {
     buffer = Buffer3D(sx,sy,sz);
     writeIdx = 0;
-    qDebug("Creating GPU convolution buffer..");
-    gpuBuffer = cudaCreateDoubleBuffer(sx*sy*sz);
-    cudaSetDoubleBuffer(gpuBuffer,0,sx*sy*sz);
-    qDebug("GPU Convolution buffer created and cleared..");
 }
 Convolution3D::~Convolution3D()
 {
-    qDebug("Releasing GPU convolution buffer..");
-    cudaFreeDoubleBuffer(gpuBuffer);
-    gpuBuffer = NULL;
+
 }
 
-void Convolution3D::convolute3D(double* gpuFilter, int fs_x,int fs_y, int fs_z, QVector2D pos)
+void Convolution3D::convolute3D(Buffer3D& filter, QVector2D pos)
 {
     int bs_x = buffer.getSizeX();
     int bs_y = buffer.getSizeY();
     int bs_z = buffer.getSizeZ();
+    int fs_x = filter.getSizeX();
+    int fs_y = filter.getSizeY();
+    int fs_z = filter.getSizeZ();
 
-    cudaConvolution3D(gpuBuffer,writeIdx,bs_x,bs_y,bs_z,
-                      gpuFilter,fs_x,fs_y,fs_z,
+    cudaConvolution3D(buffer.getGPUPtr(),writeIdx,bs_x,bs_y,bs_z,
+                      filter.getGPUPtr(),fs_x,fs_y,fs_z,
                       pos.x(),pos.y());
+
     return;
 }
 
@@ -46,22 +43,21 @@ void Convolution3D::nextTimeSlot(Buffer2D* output, int slotsToSkip)
 
     if(output != NULL){
         output->resize(buffer.getSizeX(),buffer.getSizeY());
-
-        cudaDownloadDoubleBuffer(gpuBuffer + pageSize*writeIdx,
-                                 output->getBuff(),
-                                 pageSize);
+        // Move image to output image
+        cudaCopyBuffer(output->getGPUPtr(),
+                             buffer.getGPUPtr() + pageSize*writeIdx,pageSize*sizeof(double));
     }
 
     if(writeIdx+slotsToSkip > buffer.getSizeZ())
     {
         long slotCntOverflow = (writeIdx+slotsToSkip) % buffer.getSizeZ();
         // clear at the beginning of the buffer
-        cudaSetDoubleBuffer(gpuBuffer,0,pageSize*slotCntOverflow);
+        cudaSetDoubleBuffer(buffer.getGPUPtr(),0,pageSize*slotCntOverflow);
         slotsToSkip-=slotCntOverflow;
     }
     if(slotsToSkip > 0){
         // Clear from current ring buffer position
-        cudaSetDoubleBuffer(gpuBuffer + writeIdx*pageSize,0,pageSize*slotsToSkip);
+        cudaSetDoubleBuffer(buffer.getGPUPtr() + writeIdx*pageSize,0,pageSize*slotsToSkip);
     }
     // Increase write and read pointer
     writeIdx = (writeIdx+slotsToSkip) % buffer.getSizeZ();
@@ -73,10 +69,11 @@ QImage Convolution3D::toOrderedImageXZ(int orderStart, int slicePos, float min, 
     int sz = buffer.getSizeZ();
     assert(slicePos >= 0 && slicePos < sy);
     assert(orderStart >= 0 && orderStart < sz);
+    qWarning("Don't use! Port to GPU");
     QImage img(sx,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    double* buff = buffer.getBuff();
+    double* buff = buffer.getCPUPtr();
     if(min == 0 && max == 0){
         mx = *std::max_element(buff,buff+sz*sx*sy);
         mn = *std::min_element(buff,buff+sz*sx*sy);
@@ -106,10 +103,11 @@ QImage Convolution3D::toOrderedImageYZ(int orderStart, int slicePos, float min, 
     int sz = buffer.getSizeZ();
     assert(slicePos >= 0 && slicePos < sx);
     assert(orderStart >= 0 && orderStart < sz);
+    qWarning("Don't use! Port to GPU");
     QImage img(sy,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    double* buff = buffer.getBuff();
+    double* buff = buffer.getCPUPtr();
     if(min == 0 && max == 0){
         mx = *std::max_element(buff,buff+sz*sx*sy);
         mn = *std::min_element(buff,buff+sz*sx*sy);

@@ -21,8 +21,6 @@ public:
     float orientation;
     FilterSettings fs;
 
-    double * gpuSpatialTemporal[CNT];
-
     int sx,sy,sz;
 };
 

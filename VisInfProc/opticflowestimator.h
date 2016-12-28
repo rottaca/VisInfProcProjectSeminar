@@ -22,13 +22,12 @@ public:
         filterThresholds[filterNr] = threshold;
     }
 
-    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &energyLeft, Buffer2D &energyRight){
+    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         assert(orientationIdx >= 0);
         assert(orientationIdx < orientations.length());
-        energyLeft = motionEnergiesLeft[filterNr*orientations.length() + orientationIdx];
-        energyRight = motionEnergiesRight[filterNr*orientations.length() + orientationIdx];
+        opponentMotionEnergy = opponentMotionEnergies[filterNr*orientations.length() + orientationIdx];
         return updateTimeStamps[filterNr];
     }
 
@@ -42,7 +41,7 @@ public:
 private:
     int energyEstimatorCnt;
     MotionEnergyEstimator **motionEnergyEstimators;
-    Buffer2D *motionEnergiesLeft,*motionEnergiesRight;
+    Buffer2D *opponentMotionEnergies;
     long *updateTimeStamps;
     double *filterThresholds;
     QList<float> orientations;

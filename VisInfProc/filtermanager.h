@@ -6,6 +6,13 @@
 #include "buffer2d.h"
 #include "buffer3d.h"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
+extern void cudaCombineFilters(int sx, int sy, int sz,
+                               double* gpuTemp, double* gpuSpatial,
+                               double* gpuCombined);
+
 class FilterManager
 {
 public:
@@ -27,7 +34,7 @@ public:
      * @param type
      * @return
      */
-    static Buffer2D constructSpatialFilter(FilterSettings& s, float orientation, enum SpatialFilter type);
+    static Buffer2D constructSpatialFilter(FilterSettings& s, double orientation, enum SpatialFilter type);
     /**
      * @brief combineFilters Combines a temporal 1D and a spatial 2D filter into a spatial temporal 3D filter
      * @param temporal
@@ -38,8 +45,8 @@ public:
 
 
 private:
-    static inline float gaussTemporal(float sigma, float mu, float t);
-    static inline float gaussSpatial(float sigma, float x, float y);
+    static inline float gaussTemporal(double sigma, double mu, double t);
+    static inline float gaussSpatial(double sigma, double x, double y);
 };
 
 #endif // FILTERMANAGER_H

@@ -23,12 +23,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
        exit(-1);\
      }\
 }
-
-extern double* cudaCreateDoubleBuffer(long size);
-extern void cudaUploadDoubleBuffer(double* cpuBuffPtr, double * gpuBuffPtr,long size);
+extern void* cudaCreateBuffer(long size);
+extern void cudaUploadBuffer(void* cpuBuffPtr, void * gpuBuffPtr,long size);
+extern void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size);
+extern void cudaFreeBuffer(void* gpuBuffPtr);
+extern void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size);
 extern void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size);
-extern void cudaDownloadDoubleBuffer(double* gpuBuffPtr, double * cpuBuffPtr, long size);
-extern void cudaFreeDoubleBuffer(double* gpuBuffPtr);
 
 #endif // CUDA_HELPER_H
 

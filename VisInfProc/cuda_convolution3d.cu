@@ -1,5 +1,3 @@
-#ifndef _CU_CONVOLUTE3D_
-#define _CU_CONVOLUTE3D_
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -32,6 +30,7 @@ __global__ void kernelConvolute3D(double* gpuBuffer,
 
             int bufferIdx = bz*bsy*bsx + by*bsx + bx;
             gpuBuffer[bufferIdx] += gpuFilter[filterIdx];
+            //gpuBuffer[bufferIdx] = fz*100/fsz;
         }
     }
 }
@@ -47,5 +46,3 @@ __host__ void cudaConvolution3D(double* gpuBuffer,
                                                     px,py);
 }
 
-
-#endif

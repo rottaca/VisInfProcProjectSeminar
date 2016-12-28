@@ -29,9 +29,9 @@ public:
         ofeMutex.unlock();
     }
 
-    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &energyLeft, Buffer2D &energyRight){
+    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
         ofeMutex.lock();
-        long time = ofe->getMotionEnergy(filterNr,orientationIdx,energyLeft,energyRight);
+        long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
         ofeMutex.unlock();
         return time;
     }

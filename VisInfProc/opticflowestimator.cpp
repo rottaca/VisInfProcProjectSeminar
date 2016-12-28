@@ -6,8 +6,7 @@ OpticFlowEstimator::OpticFlowEstimator(QList<FilterSettings> settings, QList<flo
     this->settings = settings;
     energyEstimatorCnt = settings.length();
     motionEnergyEstimators = new MotionEnergyEstimator*[energyEstimatorCnt];
-    motionEnergiesLeft = new Buffer2D[energyEstimatorCnt*orientations.length()];
-    motionEnergiesRight = new Buffer2D[energyEstimatorCnt*orientations.length()];
+    opponentMotionEnergies = new Buffer2D[energyEstimatorCnt*orientations.length()];
     updateTimeStamps = new long[energyEstimatorCnt];
     filterThresholds = new double[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++){
@@ -25,10 +24,8 @@ OpticFlowEstimator::~OpticFlowEstimator()
 
     delete[] motionEnergyEstimators;
     motionEnergyEstimators = NULL;
-    delete[] motionEnergiesLeft;
-    motionEnergiesLeft = NULL;
-    delete[] motionEnergiesRight;
-    motionEnergiesRight = NULL;
+    delete[] opponentMotionEnergies;
+    opponentMotionEnergies = NULL;
     delete[] updateTimeStamps;
     updateTimeStamps = NULL;
     delete[] filterThresholds;
@@ -43,8 +40,7 @@ void OpticFlowEstimator::processEvent(DVSEventHandler::DVSEvent event)
         if(motionEnergyEstimators[i]->isEnergyReady()){
             for(int j = 0; j < orientations.length(); j++){
                 motionEnergyEstimators[i]->getMotionEnergy(j,
-                            motionEnergiesLeft[i*orientations.length() + j],
-                        motionEnergiesRight[i*orientations.length() + j]);
+                            opponentMotionEnergies[i*orientations.length() + j]);
             }
             updateTimeStamps[i] = event.timestamp;
         }

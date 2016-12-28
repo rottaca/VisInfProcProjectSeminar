@@ -21,7 +21,7 @@ public:
      * @param filter The spatial temporal filter is centered in the spatial dimensions and at t=0 in the temporal dimension
      * @param pos The spatial position where the filter is placed in the buffer at the current time slice.
      */
-    void convolute3D(double *gpuFilter, int fs_x, int fs_y, int fs_z, QVector2D pos);
+    void convolute3D(Buffer3D &filter, QVector2D pos);
     /**
      * @brief nextTimeSlot Returns the spatial filter response for the current time and increases the read and write indices
      * @param output
@@ -42,7 +42,6 @@ public:
 public:
     Buffer3D buffer;
     int writeIdx;
-    double * gpuBuffer;
 };
 
 #endif // CONVOLUTION3D_H

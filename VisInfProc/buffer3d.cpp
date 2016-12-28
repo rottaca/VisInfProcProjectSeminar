@@ -6,40 +6,36 @@
 #include "helper.h"
 #include <assert.h>
 
-Buffer3D::Buffer3D()
+Buffer3D::Buffer3D():BaseBuffer()
 {
     sx = sy = sz = 0;
-    buffer = NULL;
 }
 
-Buffer3D::Buffer3D(int sx, int sy, int sz)
+Buffer3D::Buffer3D(int sx, int sy, int sz):BaseBuffer()
 {
     this->sx = sx;
     this->sy = sy;
     this->sz = sz;
 
-    size_t s = sx*sy*sz;
-    buffer = new double[s];
-    memset(buffer,0,s*sizeof(double));
+    itemCnt = sx*sy*sz;
+    createCPUBuffer(itemCnt);
+    memset(cpuBuffer,0,itemCnt*sizeof(double));
+    cpuValid = true;
 }
-Buffer3D::Buffer3D(const Buffer3D& other)
+Buffer3D::Buffer3D(const Buffer3D& other):BaseBuffer()
 {
+    copyFrom(other);
     sx = other.getSizeX();
     sy = other.getSizeY();
     sz = other.getSizeZ();
-
-    size_t s = sx*sy*sz;
-    buffer = new double[s];
-    memcpy(buffer,other.getBuff(),s*sizeof(double));
 }
 
 Buffer3D &Buffer3D::operator=(const Buffer3D& other)
 {
-    if(this != &other){
-        resize(other.getSizeX(),other.getSizeY(),other.getSizeZ());
-        memcpy(buffer,other.getBuff(),sx*sy*sz*sizeof(double));
-    }
-
+    BaseBuffer::operator=(other);
+    sx = other.getSizeX();
+    sy = other.getSizeY();
+    sz = other.getSizeZ();
     return *this;
 }
 
@@ -48,76 +44,49 @@ double& Buffer3D::operator()(int x, int y, int z)
     assert(x >= 0 && x < sx);
     assert(y >= 0 && y < sy);
     assert(z >= 0 && z < sz);
-    return buffer[z*sx*sy + y*sx + x];
+
+    if(!cpuValid)
+        downloadBuffer();
+
+    gpuValid = false;
+
+    return cpuBuffer[z*sx*sy + y*sx + x];
 }
 
-double Buffer3D::operator()(int x, int y, int z) const
-{
-    assert(x >= 0 && x < sx);
-    assert(y >= 0 && y < sy);
-    assert(z >= 0 && z < sz);
-    return buffer[z*sx*sy + y*sx + x];
-}
-
-Buffer3D Buffer3D::operator-(Buffer3D& b) const
-{
-    assert(sx == b.getSizeX() && sy == b.getSizeY() && sz == b.getSizeZ());
-    Buffer3D buff(sx,sy,sz);
-    double *ptrRes = buff.getBuff();
-    double *ptrB = b.getBuff();
-    for(int i = 0; i < sx*sy*sz; i++){
-        ptrRes[i] = buffer[i]-ptrB[i];
-    }
-
-    return buff;
-}
-
-Buffer3D Buffer3D::operator+(Buffer3D& b) const
-{
-    assert(sx == b.getSizeX() && sy == b.getSizeY() && sz == b.getSizeZ());
-    Buffer3D buff(sx,sy,sz);
-    double *ptrRes = buff.getBuff();
-    double *ptrB = b.getBuff();
-    for(int i = 0; i < sx*sy*sz; i++){
-        ptrRes[i] = buffer[i]+ptrB[i];
-    }
-    return buff;
-}
-
-Buffer3D::~Buffer3D()
-{
-    if(buffer != NULL){
-        delete[] buffer;
-        buffer = NULL;
-    }
-}
 void Buffer3D::resize(int sx, int sy, int sz)
 {
-    if(sx == this->sx && sy == this->sy && sz == this->sz)
+    if(sx == this->sx
+            && sy == this->sy
+             && sz == this->sz)
         return;
-
-    if(buffer != NULL)
-        delete[] buffer;
 
     this->sx = sx;
     this->sy = sy;
     this->sz = sz;
-    size_t s = sx*sy*sz;
-    buffer = new double[s];
+    itemCnt = sx*sy*sz;
+    createCPUBuffer(itemCnt);
+    createGPUBuffer(itemCnt);
+    cpuValid = true;
+    gpuValid = true;
 }
 QImage Buffer3D::toImageXY(int pos, double min, double max) const
 {
     assert(pos >= 0 && pos < sz);
+    qWarning("Don't use ! Port to GPU");
+
+    if(!cpuValid)
+        downloadBuffer();
+
     QImage img(sx,sy,QImage::Format_RGB888);
 
     double mx = max;
     double mn = min;
     if(min == 0 && max == 0){
-        mx = *std::max_element(buffer,buffer+sz*sx*sy);
-        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
     }
 
-    double* buffPtr = buffer+pos*sx*sy;
+    double* buffPtr = cpuBuffer+pos*sx*sy;
 
 #pragma omp parallel for
     for(int y = 0; y < sy; y++){
@@ -135,19 +104,23 @@ QImage Buffer3D::toImageXY(int pos, double min, double max) const
 QImage Buffer3D::toImageXZ(int pos, double min, double max ) const
 {
     assert(pos >= 0 && pos < sy);
+    qWarning("Don't use ! Port to GPU");
+    if(!cpuValid)
+        downloadBuffer();
+
     QImage img(sx,sz,QImage::Format_RGB888);
     double mx = max;
     double mn = min;
     if(min == 0 && max == 0){
-        mx = *std::max_element(buffer,buffer+sz*sx*sy);
-        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
     }
 
     int sxy = sx*sy;
 #pragma omp parallel for
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
-        double* buffPtr = buffer + z*sxy + pos*sx;
+        double* buffPtr = cpuBuffer + z*sxy + pos*sx;
         for(int x = 0; x < sx*3; x+=3){
             Helper::pseudoColor(buffPtr[x/3],mn,mx,
                     &ptr[x+0],&ptr[x+1],&ptr[x+2]);
@@ -159,19 +132,24 @@ QImage Buffer3D::toImageXZ(int pos, double min, double max ) const
 QImage Buffer3D::toImageYZ(int pos, double min, double max) const
 {
     assert(pos >= 0 && pos < sx);
+    qWarning("Don't use ! Port to GPU");
+
+    if(!cpuValid)
+        downloadBuffer();
+
     QImage img(sy,sz,QImage::Format_RGB888);
     double mx = max;
     double mn = min;
     if(min == 0 && max == 0){
-        mx = *std::max_element(buffer,buffer+sz*sx*sy);
-        mn = *std::min_element(buffer,buffer+sz*sx*sy);
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
     }
     int sxy = sx*sy;
 
 #pragma omp parallel for
     for(int z = 0; z < sz; z++){
         uchar* ptr = img.scanLine(z);
-        double* buffPtr = buffer + z*sxy + pos;
+        double* buffPtr = cpuBuffer + z*sxy + pos;
         for(int y = 0; y< sy*3; y+=3){
 
             Helper::pseudoColor(buffPtr[y/3*sx],mn,mx,
