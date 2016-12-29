@@ -3,8 +3,13 @@
 #include <QTimer>
 #include <QVector>
 #include <QTime>
+#include <QThread>
+#include <QMutex>
 
-class DVSEventHandler: public QObject
+// Forward declaration
+class Worker;
+
+class DVSEventHandler: public QThread
 {
     Q_OBJECT
 public:
@@ -16,27 +21,34 @@ public:
     } DVSEvent;
 
     DVSEventHandler(QObject* parent = 0);
+    ~DVSEventHandler();
 
-    bool PlayBackFile(QString fileName, int speedMs = 0);
+    void setWorker(Worker* worker){
+        operationMutex.lock();
+        this->worker = worker;
+        operationMutex.unlock();
+    }
+
+    void run();
 
 signals:
-    void OnNewEvent(DVSEventHandler::DVSEvent e);
     void OnPlaybackFinished();
 
 public slots:
-    void onTimePlayback();
+    void PlayBackFile(QString fileName, int speedus = -1);
 
 private:
-    QTimer timer;
-    bool playBackRealTime;
-    bool streamStartTime;
+    QVector<DVSEvent> parseFile(QByteArray &buff);
+    void playbackFile();
 
-    QVector<DVSEvent> eventList;
-    int eventIdx;
-    QTime timeMeasure;
+private:
+    QString playbackFileName;
+    int playbackSpeed;
+    QMutex playbackDataMutex;
 
+    typedef enum OperationMode{IDLE,PLAYBACK,ONLINE} OperationMode;
+    OperationMode operationMode;
+    Worker *worker;
+    QMutex operationMutex;
 };
-
-Q_DECLARE_METATYPE(DVSEventHandler::DVSEvent)
-
 #endif // DVSEVENTHANDLER_H

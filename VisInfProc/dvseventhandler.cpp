@@ -1,30 +1,111 @@
 #include "dvseventhandler.h"
 #include <QFile>
+#include <QElapsedTimer>
+#include "worker.h"
 
 DVSEventHandler::DVSEventHandler(QObject *parent)
 {
-    connect(&timer,SIGNAL(timeout()),this,SLOT(onTimePlayback()));
-    eventList.clear();
-    eventIdx = 0;
+    operationMutex.lock();
+    operationMode = IDLE;
+    operationMutex.unlock();
+    playbackSpeed = -1;
+    worker = NULL;
 }
-
-bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
+DVSEventHandler::~DVSEventHandler()
 {
-    timer.stop();
-    eventIdx = 0;
-    eventList.clear();
+    operationMutex.lock();
+    operationMode = IDLE;
+    operationMutex.unlock();
+    wait();
+}
+void DVSEventHandler::run(){
 
-    QFile f(fileName);
+    operationMutex.lock();
+    OperationMode opModeLocal = operationMode;
+    operationMutex.unlock();
+
+    switch (opModeLocal) {
+    case PLAYBACK:
+        playbackFile();
+        break;
+    case ONLINE:
+
+        break;
+    default:
+        break;
+    }
+
+}
+void DVSEventHandler::playbackFile()
+{
+    playbackDataMutex.lock();
+    QFile f(playbackFileName);
     if(!f.open(QIODevice::ReadOnly)){
         qDebug("Can't open file!");
-        return false;
+        return;
     }
+
     QByteArray buff = f.readAll();
+    f.close();
+    int playSpeed = playbackSpeed;
+    playbackDataMutex.unlock();
 
     if(buff.size() == 0){
         qDebug("File is empty");
-        return false;
+        return;
     }
+
+    QVector<DVSEvent> eventList = parseFile(buff);
+
+    QElapsedTimer timeMeasure;
+    int eventIdx = 0;
+    operationMutex.lock();
+    OperationMode opModeLocal = operationMode;
+    operationMutex.unlock();
+
+    long startTimestamp = eventList.first().timestamp;
+    timeMeasure.start();
+
+    while(opModeLocal == PLAYBACK && eventIdx < eventList.size()){
+
+        DVSEvent e = eventList.at(eventIdx++);
+        worker->setNextEvent(e);
+
+        //emit OnNewEvent(e);
+        if(playSpeed == -1){
+            if(eventIdx < eventList.size()){
+                int deltaEt = eventList.at(eventIdx).timestamp - startTimestamp;
+                int elapsedTime = timeMeasure.nsecsElapsed()/1000;
+                int sleepTime = deltaEt - elapsedTime;
+
+                sleepTime = qMax(0,sleepTime);
+                usleep(sleepTime);
+            }
+        }else if(playSpeed == 0){
+            usleep(10);
+        }else{
+            usleep(playSpeed);
+        }
+
+        operationMutex.lock();
+        opModeLocal = operationMode;
+        operationMutex.unlock();
+    }
+    int nMillis = timeMeasure.elapsed();
+    int dtUs = eventList.last().timestamp - eventList.first().timestamp;
+    qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
+           arg(nMillis).
+           arg(dtUs/1000).
+           arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
+
+
+    if(eventIdx == eventList.size()){
+        emit OnPlaybackFinished();
+    }
+}
+
+QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
+    QVector<DVSEvent> events;
 
     // Parse events from file
     QString versionToken = "#!AER-DAT";
@@ -90,33 +171,21 @@ bool DVSEventHandler::PlayBackFile(QString fileName, int speedMs)
         e.posX = ((ad >> 0x01) & 0x7F);  // X: 0 - 127
         e.posY = ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
         e.timestamp = time;
-        eventList.append(e);
-        //qDebug(QString("%1 %2 %3 %4").arg(e.On).arg(e.posX).arg(e.posY).arg(e.timestamp).toLocal8Bit());
+        events.append(e);
     }
-
-    timeMeasure.start();
-    timer.start(speedMs);
-    return true;
+    return events;
 }
 
-void DVSEventHandler::onTimePlayback()
+void DVSEventHandler::PlayBackFile(QString fileName, int speedus)
 {
-    if(eventIdx < eventList.size()){
-        DVSEvent e = eventList.at(eventIdx++);
-        emit OnNewEvent(e);
-    }
+    playbackDataMutex.lock();
+    playbackFileName = fileName;
+    playbackSpeed = speedus;
+    playbackDataMutex.unlock();
 
-    if(eventIdx >= eventList.size())
-    {
-        eventIdx = 0;
-        timer.stop();
-        int nMillis = timeMeasure.elapsed();
-        int dtUs = eventList.last().timestamp - eventList.first().timestamp;
-        qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
-               arg(nMillis).
-               arg(dtUs/1000).
-               arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
-        eventList.clear();
-        emit OnPlaybackFinished();
-    }
+    operationMutex.lock();
+    operationMode = PLAYBACK;
+    operationMutex.unlock();
+
+    start();
 }

@@ -37,7 +37,6 @@ public:
         return motionEnergyEstimators[filterNr]->getEventsInWindow();
     }
 
-
 private:
     int energyEstimatorCnt;
     MotionEnergyEstimator **motionEnergyEstimators;

@@ -21,6 +21,7 @@ MainWindow::MainWindow(QWidget *parent) :
     gpuErrchk(cudaSetDevice(0));
 
     worker = new Worker();
+    dvsEventHandler.setWorker(worker);
     FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
 
     QList<float> orients;
@@ -29,11 +30,6 @@ MainWindow::MainWindow(QWidget *parent) :
     orients.append(qDegreesToRadians(0.0f));
     orients.append(qDegreesToRadians(90.0f));
     worker->createOpticFlowEstimator(fsettings,orients);
-
-    qRegisterMetaType<DVSEventHandler::DVSEvent>("DVSEventHandler::DVSEvent");
-    connect(&dvsEventHandler,SIGNAL(OnNewEvent(DVSEventHandler::DVSEvent)),this,SLOT(OnNewEvent(DVSEventHandler::DVSEvent)));
-//    connect(ui->verticalSlider,SIGNAL(valueChanged(int)),this,SLOT(OnChangeSlider(int)));
-//    connect(opticFlowEstim,SIGNAL(ImageReady(QImage,QImage)),this,SLOT(OnImageReady(QImage,QImage)));
 
     connect(&updateTimer,SIGNAL(timeout()),this,SLOT(OnUpdate()));
     connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
@@ -59,13 +55,16 @@ void MainWindow::OnUpdate()
         worker->getMotionEnergy(0,1,oppMoEnergy2);
 
         if(time != -1){
-            QImage img1 = oppMoEnergy1.toImage(-0.4,0.4);
+            QImage img1 = oppMoEnergy1.toImage(-0.5,0.5);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
-            QImage img2 = oppMoEnergy2.toImage(-0.4,0.4);
+            QImage img2 = oppMoEnergy2.toImage(-0.5,0.5);
             ui->label_2->setPixmap(QPixmap::fromImage(img2));
 
             ui->l_timestamp->setText(QString("%1").arg(time));
+        }else{
+            qDebug("No new data available!");
         }
+
         QVector<DVSEventHandler::DVSEvent> ev = worker->getEventsInWindow(0);
         QPoint points[ev.length()];
         for(int i = 0; i < ev.length(); i++){
