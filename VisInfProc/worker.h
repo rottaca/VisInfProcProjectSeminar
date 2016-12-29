@@ -36,14 +36,14 @@ public:
         return time;
     }
 
-    float getProcessingRatio(){
+    void getStats(int &recievedEvents, int &dischargedEvents){
+
         loggingEventMutex.lock();
-        float p = 0;
-        if(eventCnt > 0)
-            p = 1 - (float)dischargedEventCnt/eventCnt;
+        recievedEvents = eventCnt;
+        dischargedEvents = dischargedEventCnt;
         loggingEventMutex.unlock();
-        return p;
     }
+
     bool getIsProcessing(){
         return isProcessing;
     }

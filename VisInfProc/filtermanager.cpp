@@ -76,15 +76,7 @@ Buffer3D FilterManager::combineFilters(Buffer1D &temporal, Buffer2D &spatial)
                 spatial.getSizeX(),
                 spatial.getSizeY(),
                 temporal.getSize());
-    // TODO Speed up
-//    for(int t = 0; t < temporal.getSize(); t++){
-//        double vt = temporal(t);
-//        for(int y = 0; y < spatial.getSizeY(); y++){
-//            for(int x = 0; x < spatial.getSizeX(); x++){
-//                buff(x,y,t) = spatial(x,y)*vt;
-//            }
-//        }
-//    }
+
     cudaCombineFilters(spatial.getSizeX(),spatial.getSizeY(),temporal.getSize(),
                        temporal.getGPUPtr(),spatial.getGPUPtr(),buff.getGPUPtr());
 

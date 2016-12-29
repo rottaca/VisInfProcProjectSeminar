@@ -57,7 +57,8 @@ CUDA_SOURCES =  cuda_helper.cu \
                 cuda_convolution3d.cu \
                 filter_manager.cu \
                 buffer.cu \
-                cuda_motionenergy.cu
+                cuda_motionenergy.cu \
+                cuda_opticflow.cu
 
 CUDA_DIR = /usr/local/cuda-7.5
 CUDA_ARCH = sm_50 # as supported by the Tegra K1
@@ -78,4 +79,5 @@ DISTFILES += \
     cuda_convolution3d.cu \
     filter_manager.cu \
     buffer.cu \
-    cuda_motionenergy.cu
+    cuda_motionenergy.cu \
+    cuda_opticflow.cu

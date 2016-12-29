@@ -34,19 +34,19 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
     spatialTemporal[ODD_BI] = FilterManager::combineFilters(tempBi,gaborOdd);
 
     // Construct differences
-    spatialTemporal[LEFT1]  = spatialTemporal[ODD_BI];
-    spatialTemporal[LEFT1]  += spatialTemporal[EVEN_MONO];
-    spatialTemporal[RIGHT1] = spatialTemporal[ODD_BI];
-    spatialTemporal[RIGHT1] -= spatialTemporal[EVEN_MONO];
-    spatialTemporal[RIGHT2] = spatialTemporal[ODD_MONO];
-    spatialTemporal[RIGHT2] += spatialTemporal[EVEN_BI];
+    spatialTemporal[LEFT1] = spatialTemporal[ODD_BI];
+    spatialTemporal[LEFT1] -= spatialTemporal[EVEN_MONO];
     spatialTemporal[LEFT2] = spatialTemporal[ODD_MONO];
-    spatialTemporal[LEFT2] -= spatialTemporal[EVEN_BI];
+    spatialTemporal[LEFT2] += spatialTemporal[EVEN_BI];
+    spatialTemporal[RIGHT1] = spatialTemporal[ODD_BI];
+    spatialTemporal[RIGHT1] += spatialTemporal[EVEN_MONO];
+    spatialTemporal[RIGHT2] = spatialTemporal[ODD_MONO];
+    spatialTemporal[RIGHT2] -= spatialTemporal[EVEN_BI];
 
-    //QFile file("even.png");
-    //file.open(QIODevice::WriteOnly);
-    //spatialTemporal[RIGHT2].toImageXZ(12).save(&file,"PNG");
-    //gaborOdd.toImage().save(&file,"PNG");
+//    QFile file("even.png");
+//    file.open(QIODevice::WriteOnly);
+//    spatialTemporal[LEFT1].toImageXZ(12).save(&file,"PNG");
+//    gaborOdd.toImage().save(&file,"PNG");
 
 }
 FilterSet::~FilterSet(){

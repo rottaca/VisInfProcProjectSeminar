@@ -14,6 +14,8 @@ OpticFlowEstimator::OpticFlowEstimator(QList<FilterSettings> settings, QList<flo
         updateTimeStamps[i] = -1;
         filterThresholds[i] = 1;   // Default
     }
+    opticFlowVec1.resize(128,128);
+    opticFlowVec2.resize(128,128);
 }
 
 OpticFlowEstimator::~OpticFlowEstimator()
@@ -34,10 +36,12 @@ OpticFlowEstimator::~OpticFlowEstimator()
 
 void OpticFlowEstimator::processEvent(DVSEventHandler::DVSEvent event)
 {
+    bool updates = false;
     for(int i = 0; i < energyEstimatorCnt; i++){
         motionEnergyEstimators[i]->processEvent(event);
         // New motion energy ready ?
         if(motionEnergyEstimators[i]->isEnergyReady()){
+            updates = true;
             for(int j = 0; j < orientations.length(); j++){
                 motionEnergyEstimators[i]->getMotionEnergy(j,
                             opponentMotionEnergies[i*orientations.length() + j]);

@@ -17,6 +17,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
     conv = new Convolution3D*[orientations.length()*4];
     opponentMotionEnergy = new Buffer2D[orientations.length()];
     for(int i = 0; i < orientations.length(); i++){
+        opponentMotionEnergy[i].resize(128,128);
         fset[i] = new FilterSet(fs,orientations.at(i));
         for(int j = 0; j < 4; j++){
             conv[i*4+j] = new Convolution3D(128,128,fset[i]->sz);
@@ -72,8 +73,6 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
 
             int sx = left1.getSizeX();
             int sy = left1.getSizeY();
-
-            opponentMotionEnergy[i].resize(sx,sy);
 
             cudaComputeOpponentMotionEnergy(sx,sy,
                                     left1.getGPUPtr(),left2.getGPUPtr(),

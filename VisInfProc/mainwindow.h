@@ -15,7 +15,7 @@
 #include "opticflowestimator.h"
 #include "worker.h"
 
-#define FPS 30
+#define FPS 40
 
 
 namespace Ui {
@@ -44,6 +44,8 @@ private:
     DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
+    QList<float> orientations;
+    QList<FilterSettings> settings;
 };
 
 #endif // MAINWINDOW_H

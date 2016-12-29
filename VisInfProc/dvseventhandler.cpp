@@ -82,7 +82,7 @@ void DVSEventHandler::playbackFile()
                 usleep(sleepTime);
             }
         }else if(playSpeed == 0){
-            usleep(10);
+            usleep(1);
         }else{
             usleep(playSpeed);
         }
@@ -97,7 +97,7 @@ void DVSEventHandler::playbackFile()
            arg(nMillis).
            arg(dtUs/1000).
            arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
-
+    //qDebug(QString("Events per second: %1").arg((float)worker->getProcessedEventCnt()/nMillis*1000).toLocal8Bit());
 
     if(eventIdx == eventList.size()){
         emit OnPlaybackFinished();

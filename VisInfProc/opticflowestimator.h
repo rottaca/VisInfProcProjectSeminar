@@ -45,6 +45,8 @@ private:
     double *filterThresholds;
     QList<float> orientations;
     QList<FilterSettings> settings;
+
+    Buffer2D opticFlowVec1,opticFlowVec2;
 };
 
 #endif // OPTICFLOWESTIMATOR_H
