@@ -12,6 +12,8 @@ Buffer2D::Buffer2D():BaseBuffer()
 
 Buffer2D::Buffer2D(int sx, int sy):BaseBuffer()
 {
+    assert(sx > 0);
+    assert(sy > 0);
     this->sx = sx;
     this->sy = sy;
     itemCnt = sx*sy;

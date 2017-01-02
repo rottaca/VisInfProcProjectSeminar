@@ -25,11 +25,12 @@ Worker::~Worker(){
     eventSemaphoreW = NULL;
 }
 
-void Worker::createOpticFlowEstimator(QList<FilterSettings> settings, QList<float> orientations)
+void Worker::createOpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations)
 {
     ofeMutex.lock();
     if(ofe != NULL)
         delete ofe;
+
     ofe = new OpticFlowEstimator(settings,orientations);
     ofeMutex.unlock();
 
@@ -82,14 +83,13 @@ void Worker::setNextEvent(DVSEventHandler::DVSEvent event)
     loggingEventMutex.lock();
     eventCnt++;
 
-    if(!eventSemaphoreW->tryAcquire(1,1)){
+    if(!eventSemaphoreW->tryAcquire(1)){
         dischargedEventCnt++;
         loggingEventMutex.unlock();
         return;
     }
     loggingEventMutex.unlock();
 
-    //eventSemaphoreW->acquire(1);
     currEvent = event;
     eventSemaphoreR->release(1);
 }

@@ -5,8 +5,9 @@
 #include <assert.h>
 #include <iostream>
 #include <QFile>
+#include "settings.h"
 
-MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> orientations)
+MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> orientations)
 {
     this->fsettings = fs;
     this->orientations = orientations;
@@ -17,10 +18,10 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<float> ori
     conv = new Convolution3D*[orientations.length()*4];
     opponentMotionEnergy = new Buffer2D[orientations.length()];
     for(int i = 0; i < orientations.length(); i++){
-        opponentMotionEnergy[i].resize(128,128);
+        opponentMotionEnergy[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
         fset[i] = new FilterSet(fs,orientations.at(i));
         for(int j = 0; j < 4; j++){
-            conv[i*4+j] = new Convolution3D(128,128,fset[i]->sz);
+            conv[i*4+j] = new Convolution3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
         }
     }
     // Time per timeslot
@@ -48,9 +49,6 @@ void MotionEnergyEstimator::processEvent(DVSEventHandler::DVSEvent e)
 {
     if(startTime == -1)
         startTime = e.timestamp;
-
-    if(e.On)
-        return;
 
     // Events are sorted by time
     assert(timeWindowEvents.size() == 0 || e.timestamp >= timeWindowEvents.back().timestamp);

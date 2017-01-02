@@ -16,7 +16,7 @@ public:
     explicit Worker(QObject *parent = 0);
     ~Worker();
 
-    void createOpticFlowEstimator(QList<FilterSettings> settings, QList<float> orientations);
+    void createOpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations);
 
     void stopProcessing();
 
@@ -35,7 +35,11 @@ public:
         ofeMutex.unlock();
         return time;
     }
-
+    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
+        ofeMutex.lock();
+        ofe->getOpticFlow(flowX,flowY);
+        ofeMutex.unlock();
+    }
     void getStats(int &recievedEvents, int &dischargedEvents){
 
         loggingEventMutex.lock();

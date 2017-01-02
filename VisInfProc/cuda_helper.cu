@@ -7,11 +7,13 @@
 #include <iostream>
 
 __host__ void* cudaCreateBuffer(long size){
+    if(size == 0)
+        return NULL;
     void* gpuPtr;
     gpuErrchk(cudaMalloc(&gpuPtr,size));
     if(gpuPtr == 0)
     {
-        fprintf(stderr,"Cuda malloc failed!\n");
+        fprintf(stderr,"Cuda malloc failed! Can't create buffer of size: %d\n",size);
         exit(-1);
     }
     return gpuPtr;

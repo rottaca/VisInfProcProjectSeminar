@@ -23,7 +23,7 @@ extern void cudaComputeOpponentMotionEnergy(int sx, int sy,
 class MotionEnergyEstimator
 {
 public:
-    MotionEnergyEstimator(FilterSettings fs, QList<float> orientations);
+    MotionEnergyEstimator(FilterSettings fs, QList<double> orientations);
     ~MotionEnergyEstimator();
 
     FilterSettings getSettings(){
@@ -56,7 +56,7 @@ private:
     FilterSettings fsettings;
     FilterSet** fset;
     Convolution3D** conv;
-    QList<float> orientations;
+    QList<double> orientations;
     long currentSlotStartTime;
     int startTime;
     float timeRes;

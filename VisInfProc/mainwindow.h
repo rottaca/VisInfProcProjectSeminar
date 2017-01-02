@@ -44,8 +44,10 @@ private:
     DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
-    QList<float> orientations;
+    QList<double> orientations;
     QList<FilterSettings> settings;
+
+    Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
 };
 
 #endif // MAINWINDOW_H

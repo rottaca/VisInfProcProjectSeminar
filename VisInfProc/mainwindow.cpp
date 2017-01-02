@@ -50,43 +50,28 @@ MainWindow::~MainWindow()
 void MainWindow::OnUpdate()
 {
     if(worker->getIsProcessing()){
-        Buffer2D oppMoEnergy1,oppMoEnergy2;
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
-        worker->getMotionEnergy(0,1,oppMoEnergy2);
-
         if(time != -1){
-            QImage img1 = oppMoEnergy1.toImage(-0.5,0.5);
+            worker->getMotionEnergy(0,1,oppMoEnergy2);
+            worker->getOpticFlow(flowX,flowY);
+
+            QImage img1 = oppMoEnergy1.toImage(-0.3,0.3);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
-            QImage img2 = oppMoEnergy2.toImage(-0.5,0.5);
+            QImage img2 = oppMoEnergy2.toImage(-0.3,0.3);
             ui->label_2->setPixmap(QPixmap::fromImage(img2));
 
             ui->l_timestamp->setText(QString("%1").arg(time));
 
             // TODO Move to GPU
-            Buffer2D opticFlowVec1(128,128),opticFlowVec2(128,128);
-
-            opticFlowVec1.fill(0);
-            opticFlowVec2.fill(0);
-
-            double* ptrOfV1 = opticFlowVec1.getCPUPtr();
-            double* ptrOfV2 = opticFlowVec2.getCPUPtr();
-            double* ptrOE1 = oppMoEnergy1.getCPUPtr();
-            double* ptrOE2 = oppMoEnergy2.getCPUPtr();
-
-            for(int i = 0; i  < opticFlowVec1.getBufferItemCnt();i++){
-                ptrOfV1[i] += ptrOE1[i]*qCos(orientations.at(0));
-                ptrOfV2[i] += ptrOE1[i]*qSin(orientations.at(0));
-
-                ptrOfV1[i] += ptrOE2[i]*qCos(orientations.at(1));
-                ptrOfV2[i] += ptrOE2[i]*qSin(orientations.at(1));
-            }
+            double* ptrOfV1 = flowX.getCPUPtr();
+            double* ptrOfV2 = flowY.getCPUPtr();
 
             int sz = 128;
             int imgScale = 4;
-            double maxL = 0.5;
+            double maxL = 0.3;
             int spacing = 2;
             int length = 10;
-            double minPercentage = 0.2;
+            double minPercentage = 0.1;
 
             QVector<QLine> lines;
             QVector<QPoint> points;
@@ -98,8 +83,6 @@ void MainWindow::OnUpdate()
                     double percentage = qMin(1.0,l/maxL);
 
                     if(percentage > minPercentage){
-                       //percentage = (percentage-minPercentage)/(1-minPercentage);
-
                         int x2 = x + percentage*length*ptrOfV1[i];
                         int y2 = y + percentage*length*ptrOfV2[i];
                         //qDebug(QString("%1 %2 %3 %4 %5 %6").arg(x).arg(y).arg(x2).arg(y2).arg(percentage).arg(l).toLocal8Bit());
@@ -109,7 +92,7 @@ void MainWindow::OnUpdate()
                     }
                 }
             }
-            qDebug(QString("%1").arg(lines.length()).toLocal8Bit());
+            //qDebug(QString("%1").arg(lines.length()).toLocal8Bit());
 
             QImage imgFlow(imgScale*sz,imgScale*sz,QImage::Format_RGB888);
             imgFlow.fill(Qt::white);
@@ -124,9 +107,8 @@ void MainWindow::OnUpdate()
             painter1.end();
             ui->label_3->setPixmap(QPixmap::fromImage(imgFlow));
         }else{
-            qDebug("No new data available!");
+            //qDebug("No new data available!");
         }
-
 
         QVector<DVSEventHandler::DVSEvent> ev = worker->getEventsInWindow(0);
         QPoint points[ev.length()];
@@ -162,5 +144,5 @@ void MainWindow::OnPlaybackFinished()
     worker->createOpticFlowEstimator(settings,orientations);
     worker->start();
 
-    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat",0);
+    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat");
 }

@@ -13,6 +13,9 @@ Buffer3D::Buffer3D():BaseBuffer()
 
 Buffer3D::Buffer3D(int sx, int sy, int sz):BaseBuffer()
 {
+    assert(sx > 0);
+    assert(sy > 0);
+    assert(sz > 0);
     this->sx = sx;
     this->sy = sy;
     this->sz = sz;

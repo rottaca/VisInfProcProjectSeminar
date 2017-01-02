@@ -14,6 +14,8 @@ TEMPLATE = app
 QMAKE_CXXFLAGS += -fopenmp
 LIBS += -fopenmp
 
+CONFIG += c++11
+
 SOURCES += main.cpp\
         mainwindow.cpp \
     filtersettings.cpp \
@@ -48,15 +50,16 @@ HEADERS  += mainwindow.h \
     cuda_settings.h \
     worker.h \
     aspectratiopixmaplabel.h \
-    basebuffer.h
+    basebuffer.h \
+    settings.h
 
 FORMS    += mainwindow.ui
 
 # CUDA Settings
 CUDA_SOURCES =  cuda_helper.cu \
                 cuda_convolution3d.cu \
-                filter_manager.cu \
-                buffer.cu \
+                cuda_filtermanager.cu \
+                cuda_buffer.cu \
                 cuda_motionenergy.cu \
                 cuda_opticflow.cu
 
@@ -77,7 +80,7 @@ QMAKE_EXTRA_COMPILERS += cuda
 DISTFILES += \
     cuda_helper.cu \
     cuda_convolution3d.cu \
-    filter_manager.cu \
-    buffer.cu \
     cuda_motionenergy.cu \
-    cuda_opticflow.cu
+    cuda_opticflow.cu \
+    cuda_filtermanager.cu \
+    cuda_buffer.cu

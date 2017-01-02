@@ -8,10 +8,14 @@
 #include <assert.h>
 #include <QVector>
 
+extern void cudaComputeOpticFlow(int sx, int sy,
+                                 double* gpuFlowX,double* gpuFlowY,
+                                 double** gpuEnergy,double* orientations, int orientationCnt);
+
 class OpticFlowEstimator
 {
 public:
-    OpticFlowEstimator(QList<FilterSettings> settings, QList<float> orientations);
+    OpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations);
     ~OpticFlowEstimator();
 
     void processEvent(DVSEventHandler::DVSEvent event);
@@ -31,6 +35,12 @@ public:
         return updateTimeStamps[filterNr];
     }
 
+    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
+        flowX = opticFlowVec[0];
+        flowY = opticFlowVec[1];
+    }
+
+
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(int filterNr){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
@@ -38,15 +48,18 @@ public:
     }
 
 private:
+    void computeOpticFlow();
+
+private:
     int energyEstimatorCnt;
     MotionEnergyEstimator **motionEnergyEstimators;
     Buffer2D *opponentMotionEnergies;
     long *updateTimeStamps;
     double *filterThresholds;
-    QList<float> orientations;
+    QList<double> orientations;
     QList<FilterSettings> settings;
 
-    Buffer2D opticFlowVec1,opticFlowVec2;
+    Buffer2D opticFlowVec[2];
 };
 
 #endif // OPTICFLOWESTIMATOR_H

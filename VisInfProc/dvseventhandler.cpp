@@ -69,37 +69,38 @@ void DVSEventHandler::playbackFile()
     while(opModeLocal == PLAYBACK && eventIdx < eventList.size()){
 
         DVSEvent e = eventList.at(eventIdx++);
+        if(e.On)
+            continue;
         worker->setNextEvent(e);
 
-        //emit OnNewEvent(e);
-        if(playSpeed == -1){
-            if(eventIdx < eventList.size()){
-                int deltaEt = eventList.at(eventIdx).timestamp - startTimestamp;
-                int elapsedTime = timeMeasure.nsecsElapsed()/1000;
-                int sleepTime = deltaEt - elapsedTime;
+        if(eventIdx < eventList.size()){
+            if(playSpeed == -1){
+                    int deltaEt = eventList.at(eventIdx).timestamp - startTimestamp;
+                    int elapsedTime = timeMeasure.nsecsElapsed()/1000;
+                    int sleepTime = deltaEt - elapsedTime;
 
-                sleepTime = qMax(0,sleepTime);
-                usleep(sleepTime);
+                    sleepTime = qMax(0,sleepTime);
+                    if(sleepTime > 0){
+                        usleep(sleepTime);
+                    }
+            }else{
+                usleep(playSpeed);
             }
-        }else if(playSpeed == 0){
-            usleep(1);
-        }else{
-            usleep(playSpeed);
         }
 
         operationMutex.lock();
         opModeLocal = operationMode;
         operationMutex.unlock();
     }
-    int nMillis = timeMeasure.elapsed();
-    int dtUs = eventList.last().timestamp - eventList.first().timestamp;
-    qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
-           arg(nMillis).
-           arg(dtUs/1000).
-           arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
-    //qDebug(QString("Events per second: %1").arg((float)worker->getProcessedEventCnt()/nMillis*1000).toLocal8Bit());
 
     if(eventIdx == eventList.size()){
+        int nMillis = timeMeasure.elapsed();
+        int dtUs = eventList.last().timestamp - eventList.first().timestamp;
+        qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
+               arg(nMillis).
+               arg(dtUs/1000).
+               arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
+        //qDebug(QString("Events per second: %1").arg((float)worker->getProcessedEventCnt()/nMillis*1000).toLocal8Bit());
         emit OnPlaybackFinished();
     }
 }
@@ -123,7 +124,7 @@ QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
             b.chop(3);
             version = b.toInt();
         }
-        qDebug(lines.at(lineIdx).toStdString().c_str());
+        //qDebug(lines.at(lineIdx).toStdString().c_str());
     }
     qDebug(QString("Version: %1").arg(version).toLocal8Bit());
 

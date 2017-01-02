@@ -9,6 +9,7 @@ Buffer1D::Buffer1D():BaseBuffer()
 
 Buffer1D::Buffer1D(int size):BaseBuffer()
 {
+    assert(size > 0);
     itemCnt = size;
     createCPUBuffer(itemCnt);
     memset(cpuBuffer,0,itemCnt*sizeof(double));
