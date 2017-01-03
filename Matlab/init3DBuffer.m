@@ -3,6 +3,5 @@ function [ Buffer ] = init3DBuffer( w,h,t )
     
     Buffer.buff = zeros(h,w,t);
     
-    Buffer.R = 1;
-    Buffer.W = 1;
+    Buffer.W = 0;
 end

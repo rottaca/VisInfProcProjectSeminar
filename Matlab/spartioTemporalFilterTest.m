@@ -23,10 +23,10 @@ for f = filters
     combined = f.combined.OddBi - f.combined.EvenMono;
     %combined = f.combined.OddMono + f.combined.EvenBi;
     
-    s = slice(X,Y,Z,combined/max(combined(:)),-halfGarborRange:halfGarborRange,-halfGarborRange:halfGarborRange,1:2:length(times));
+    s = slice(X,Y,Z,combined/max(combined(:)),-halfGarborRange:halfGarborRange,-halfGarborRange:halfGarborRange,times(1:2:end));
     for n=1:length(s)
         set(s(n), 'EdgeColor', 'none');
-        set(s(n),'alphadata',(abs(get(s(n),'cdata'))>0.1)*0.6,'facealpha','flat')
+        set(s(n),'alphadata',(abs(get(s(n),'cdata'))>0.05)*0.6,'facealpha','flat')
     end
     title(['Spartial-temporal filter, angle=' num2str(f.G.angle*360/(2*pi()))]);
     xlabel('x');

@@ -20,7 +20,7 @@ function [ Buffer ] = convolute3D( Buffer, Filter, posX, posY)
             for t = 1:tFilter
                 % Take value from filter and add to buffer
                % tBuff = mod(-t + Buffer.W - 2  + tFilter - 1,tFilter)+ 1;
-                tBuff = mod(tFilter - t + Buffer.W , tFilter)+1;
+                tBuff = mod(tFilter - t + Buffer.W, tFilter)+1;
                 Buffer.buff(yBuff,xBuff,tBuff) = Buffer.buff(yBuff,xBuff,tBuff) + Filter(hFilter-y+1,wFilter-x+1,t);
             end
         end

@@ -5,11 +5,11 @@ Buffer1 = init3DBuffer(128,128,length(times));
 Buffer2 = init3DBuffer(128,128,length(times));
 
 % Rightwards
-%combined1 = filters(1).combined.OddMono - filters(1).combined.EvenBi;
-%combined2 = filters(1).combined.OddBi + filters(1).combined.EvenMono;
+combined2 = filters(1).combined.OddMono - filters(1).combined.EvenBi;
+combined1 = filters(1).combined.OddBi + filters(1).combined.EvenMono;
 % Leftwards
-combined1 = filters(1).combined.OddBi - filters(1).combined.EvenMono;
-combined2 = filters(1).combined.OddMono + filters(1).combined.EvenBi;
+%combined1 = filters(1).combined.OddBi - filters(1).combined.EvenMono;
+%combined2 = filters(1).combined.OddMono + filters(1).combined.EvenBi;
 
 % Buffer = convolute3D(Buffer,filter,10,10); 
 % Buffer.W = mod(Buffer.W,size(Buffer.buff,3))+1;
@@ -28,36 +28,34 @@ file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
 % Convert to coordinates, time and event type
 [x_coord, y_coord, allTsnew, on_off] = dvsAER2coordinates(allTs, allAddr);
 
-% Iterate over events
-timewindow_us = 135000;
-
 slotTime = allTsnew(1);
 timeRes = timewindow_us/length(times);
 maxEnergy = [];%zeros(1,length(x_coord));
 for i=1:length(x_coord)
-    
     % Current Event
-    currX = x_coord(i);
-    currY = y_coord(i);
+    currX = 129-x_coord(i);
+    currY = 129-y_coord(i);
     currT = allTsnew(i);
     currOF = on_off(i);
+    %disp(['Event ' num2str(i) ' time: ' num2str(currT)]);
     
     % ON: 0, OFF: 1
     signal = 0;
     if(currOF == 0)
         signal = 1;
+%         disp('Taken');
     else
+%         disp('Discharged');
         continue;
     end
     
-    disp(['Done: ' num2str(100*double(i)/length(x_coord)) '%']);
+    
+    %disp(['Done: ' num2str(100*double(i)/length(x_coord)) '%']);
         
     deltaT = currT - slotTime;
     timeSlotsToSkip = floor(double(deltaT)/timeRes);
     for j = 1:timeSlotsToSkip
-        Buffer1.W = mod(Buffer1.W,size(Buffer1.buff,3))+1;
-        Buffer2.W = mod(Buffer2.W,size(Buffer2.buff,3))+1;
-        
+%         disp(['Slots to skip: ' num2str(timeSlotsToSkip) ' startTime: ' num2str(slotTime) ' delta: ' num2str(deltaT)]);
         [Buffer1, res1] = read3DConvolutionRes(Buffer1);
         [Buffer2, res2] = read3DConvolutionRes(Buffer2);
     % Display every nth frame
@@ -67,11 +65,11 @@ for i=1:length(x_coord)
         imagesc(energy);
         caxis([0 2]);
         maxEnergy(end+1) = max(energy(:));
-        max(energy(:))
+        max(energy(:));
         colormap jet;
         hold on;
-        windowIdices = allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i;
-        disp(['events visible: ' num2str(sum(windowIdices))]);
+        windowIdices = allTsnew <= currT & allTsnew >= currT-timewindow_us & 1:length(x_coord) <= i & on_off == currOF;
+        %disp(['events visible: ' num2str(sum(windowIdices))]);
         xSlot = x_coord(windowIdices);
         ySlot = y_coord(windowIdices);
         c = allTsnew(windowIdices);
@@ -82,13 +80,13 @@ for i=1:length(x_coord)
         axis([1 128 1 128]);
         set(gca,'Ydir','reverse');
         figure(2);
-        imagesc(squeeze(Buffer1.buff(64,:,[Buffer1.R:size(Buffer1.buff,3) 1:Buffer1.R-1])));
+        imagesc(squeeze(Buffer1.buff(64,:,[Buffer1.W+1:size(Buffer1.buff,3) 1:Buffer1.W])),[-0.02 0.02]);
         title('Buffer 1');
         axis equal;
         axis tight;
         %caxis([-1 1]);
         figure(3);
-        imagesc(squeeze(Buffer2.buff(64,:,[Buffer2.R:size(Buffer2.buff,3) 1:Buffer2.R-1])));
+        imagesc(squeeze(Buffer2.buff(64,:,[Buffer2.W+1:size(Buffer2.buff,3) 1:Buffer2.W])),[-0.02 0.02]);
         title('Buffer 2');
         axis equal;
         axis tight;

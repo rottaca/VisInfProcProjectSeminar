@@ -9,7 +9,7 @@ file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
 disp(['Event timeframe: ' num2str(double(allTsnew(end))/1000000) ' sek']);
 
 timewindow_us = 30000;
-viewdelta = 500;
+viewdelta = 100;
 time = allTsnew(1);
 while(time < allTsnew(end))
     idx = allTsnew <= time & allTsnew > time-timewindow_us;

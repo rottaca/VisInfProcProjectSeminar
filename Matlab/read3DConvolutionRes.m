@@ -1,6 +1,6 @@
 function [ Buffer, res ] = read3DConvolutionRes( Buffer )
-    res = Buffer.buff(:,:,Buffer.R);
-    Buffer.buff(:,:,Buffer.R) = zeros(size(Buffer.buff(:,:,Buffer.R)));
-    Buffer.R = mod(Buffer.R,size(Buffer.buff,3))+1;
+    res = Buffer.buff(:,:,Buffer.W+1);
+    Buffer.buff(:,:,Buffer.W+1) = zeros(size(Buffer.buff(:,:,Buffer.W+1)));
+    Buffer.W = mod(Buffer.W+1,size(Buffer.buff,3));
     
 end
