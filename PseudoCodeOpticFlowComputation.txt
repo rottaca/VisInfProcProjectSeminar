@@ -1,0 +1,83 @@
+// TODO Merge all computations for ALL filtersets into this class to parallelize the kernels and memcopies
+
+
+// Computes the optic flow for a single filterset and all its orientations
+Class PerFilterSetOpticFlow
+
+Global:
+  slotStartTime[m]
+  timePerSlot[m]
+  eventsInSlot[m][2]; w,r
+  semW[m](1),semR[m](0), semaphoreSize = 1
+
+
+// Called for every new event
+// Stores new events in double buffered event list
+// When next event is from next time slot, flip event lists, and add new event to other list
+OnNewEvent(Event e)
+  Lock necessary data
+  If e.time - slotStartTime < timePerSlot 
+    eventsInSlot[w].add(e)
+  Else
+    semW.aquire(1)
+    flip eventsInSlot[w] and eventsInSlot[r]
+    eventsInSlot[w].add(e)
+    semR.release(1)
+  End
+  Unlock necessary data
+End
+
+
+// Asynchronous Worker thread
+// Runs parallel and processes the incoming event lists for all filter orientations and filter sets
+Run()
+  SemR.aquire(1);
+  For i = 0 to m
+    uploadEventsInSlot async
+    cudaProcessEventsBatch(eventsInSlot[r],eventsInSlot[r].size(),
+				Filters,orientations, orientations.size(),
+				ConvBuffers, ringBufferIdx,
+				cudaStream[i])
+  End
+  SemW.release(1);
+  
+  For i = 0 to m
+    cudaCompPerFilterSetFlow(ConvBuffers,ringBufferIdx,FlowX,FlowY,cudaStream[i]);
+  End
+  
+  // TODO: continue processing, normalize, merge, ...
+
+  For i = 0 to m
+    cudaMemCopyAsync(...,cudaStream[i])		// Save optic flow to persistent buffer device2device
+  End
+  
+  CudaSyncAllStreams()
+  
+  EventsInSlot[r].clear()
+  slotStartStime += timePerSlot
+  WriteIdx = 0;
+  
+End
+
+// Convolutes all events in one slot at once
+cudaProcessEventsBatch(...)
+  // TODO Loop over multibles of j, if shared memory too small to keep all filter values
+  Compute PosF in filter
+  Read filtervalue[j][k] for all orientations j and all filters per orientataions k in parallel into shared memory
+  Synchronize cuda threads
+  
+  For l=0 to eventsInSlot.size()
+    If eventsInSlot[i] + posF valid position
+      For j=0 to n
+        for k = 0 to 3
+          convBuffer[j][k](eventsInSlot[i] + posF) += filterVal[j][k](posF)
+        End
+      End
+    End
+  End
+End
+
+// Computes the optic flow for a given filterset and its buffers 
+cudaCompPerFilterSetFlow(...)
+  ... Should be simple
+End
