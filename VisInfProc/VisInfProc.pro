@@ -71,7 +71,7 @@ INCLUDEPATH += $$CUDA_DIR/include
 LIBS += -L $$CUDA_DIR/lib64 -lcuda -lcudart
 osx: LIBS += -F/Library/Frameworks -framework CUDA
 
-cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
+cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME} -lineinfo
 cuda.dependency_type = TYPE_C
 cuda.depend_command = $$CUDA_DIR/bin/nvcc -M ${QMAKE_FILE_NAME}
 cuda.input = CUDA_SOURCES

@@ -20,15 +20,20 @@
 
 // External defined cuda functions
 extern void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
-                                        double** gpuFilters, int fsx, int fsy, int fsz,
-                                        double** gpuBuffers, int ringBufferIdx,
+                                        double* gpuFilter, int fsx, int fsy, int fsz,
+                                        double* gpuBuffer, int ringBufferIdx,
                                         int bsx, int bsy, int bsz,
                                         cudaStream_t cudaStream);
 
-extern void cudaReadOpponentMotionEnergyAsync(double** gpuConvBuffers,int bufferFilterCount,int ringBufferIdx,
+extern void cudaReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
+                                              double* gpuConvBufferl2,
+                                              double* gpuConvBufferr1,
+                                              double* gpuConvBufferr2,
+                                              int ringBufferIdx,
                                               int bsx, int bsy, int bsz,
-                                         double** gpuEnergyBuffers, int cnt,
-                                         cudaStream_t cudaStream);
+                                              double* gpuEnergyBuffer,
+                                              cudaStream_t cudaStream);
+
 extern void cudaComputeOpponentMotionEnergy(int sx, int sy,
                                     double* gpul1,double* gpul2,
                                     double* gpur1,double* gpur2,
@@ -55,10 +60,10 @@ public:
 
     void startUploadEventsAsync();
     void startProcessEventsBatchAsync();
-    long startReadMotionEnergyAsync(double** gpuEnergyBuffers, int cnt);
+    long startReadMotionEnergyAsync(double** gpuEnergyBuffers);
 
     void syncStreams(){
-        for(int i = 0; i < orientations.length(); i ++)
+        for(int i = 0; i < orientations.length()*4; i ++)
             cudaStreamSynchronize(cudaStreams[i]);
     }
 

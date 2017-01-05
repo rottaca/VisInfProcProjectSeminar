@@ -14,29 +14,20 @@ OpticFlowEstimator::OpticFlowEstimator(QList<FilterSettings> settings, QList<dou
     opponentMotionEnergies = new Buffer2D*[energyEstimatorCnt*orientations.length()];
     updateTimeStamps = new long[energyEstimatorCnt];
 
-    double *cpuOpponentMotionEnergies[energyEstimatorCnt*orientations.length()];
+    gpuOpponentMotionEnergies = new double *[energyEstimatorCnt*orientations.length()];
     for(int i = 0; i < energyEstimatorCnt; i++){
         motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
         updateTimeStamps[i] = -1;
         for(int j= 0; j < orientations.length();j++){
             int idx = i*orientations.length() + j;
             opponentMotionEnergies[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-            cpuOpponentMotionEnergies[idx] = opponentMotionEnergies[idx]->getGPUPtr();
+            gpuOpponentMotionEnergies[idx] = opponentMotionEnergies[idx]->getGPUPtr();
         }
     }
     opticFlowVec[0].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowVec[0].fill(0);
     opticFlowVec[1].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowVec[1].fill(0);
-
-    gpuOpponentMotionEnergies = NULL;
-    // Move opponent motion energy pointers to gpu
-    int cnt = sizeof(double*)*energyEstimatorCnt*orientations.length();
-    // Allocate buffer for energy pointers
-    gpuErrchk(cudaMalloc((void**)&gpuOpponentMotionEnergies,cnt));
-    // memcpy
-    gpuErrchk(cudaMemcpy((void*)gpuOpponentMotionEnergies,(void*)cpuOpponentMotionEnergies,
-                              cnt,cudaMemcpyHostToDevice));
 }
 
 OpticFlowEstimator::~OpticFlowEstimator()
@@ -53,8 +44,8 @@ OpticFlowEstimator::~OpticFlowEstimator()
     motionEnergyEstimators = NULL;
     delete[] updateTimeStamps;
     updateTimeStamps = NULL;
-
-    gpuErrchk(cudaFree(gpuOpponentMotionEnergies));
+    delete[] gpuOpponentMotionEnergies;
+    gpuOpponentMotionEnergies = NULL;
 }
 
 void OpticFlowEstimator::onNewEvent(const DVSEventHandler::DVSEvent& e)
@@ -101,7 +92,7 @@ void OpticFlowEstimator::process()
     for(int i = 0; i < energyEstimatorCnt; i++){
         if(somethingToDo[i]){
             updateTimeStamps[i] = motionEnergyEstimators[i]->startReadMotionEnergyAsync(
-                        &gpuOpponentMotionEnergies[i*orientations.length()],orientations.length());
+                        &gpuOpponentMotionEnergies[i*orientations.length()]);
         }
     }
 

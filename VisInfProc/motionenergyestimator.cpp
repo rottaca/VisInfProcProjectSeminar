@@ -32,23 +32,23 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> or
     fset = new FilterSet*[orientations.length()];
     convBuffer = new Buffer3D*[bufferFilterCount];
 
-    double* cpuFilters[bufferFilterCount];
-    double* cpuBuffers[bufferFilterCount];
-
-    cudaStreams = new cudaStream_t[orientations.length()];
+    gpuFilters = new double* [bufferFilterCount];
+    gpuConvBuffers = new double* [bufferFilterCount];
+    cudaStreams = new cudaStream_t[bufferFilterCount];
 
     for(int i = 0; i < orientations.length(); i++){
-        cudaStreamCreate(&cudaStreams[i]);
         fset[i] = new FilterSet(fs,orientations.at(i));
         for(int j = 0; j < 4; j++)
         {
+            cudaStreamCreate(&cudaStreams[i*4+j]);
+            //cudaStreams[i*4+j] = 0;
             convBuffer[i*4+j] = new Buffer3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
-            cpuBuffers[i*4+j] = convBuffer[i*4+j]->getGPUPtr();
+            gpuConvBuffers[i*4+j] = convBuffer[i*4+j]->getGPUPtr();
         }
-        cpuFilters[i*4    ] = fset[i]->spatialTemporal[FilterSet::LEFT1].getGPUPtr();
-        cpuFilters[i*4 + 1] = fset[i]->spatialTemporal[FilterSet::LEFT2].getGPUPtr();
-        cpuFilters[i*4 + 2] = fset[i]->spatialTemporal[FilterSet::RIGHT1].getGPUPtr();
-        cpuFilters[i*4 + 3] = fset[i]->spatialTemporal[FilterSet::RIGHT2].getGPUPtr();
+        gpuFilters[i*4    ] = fset[i]->spatialTemporal[FilterSet::LEFT1].getGPUPtr();
+        gpuFilters[i*4 + 1] = fset[i]->spatialTemporal[FilterSet::LEFT2].getGPUPtr();
+        gpuFilters[i*4 + 2] = fset[i]->spatialTemporal[FilterSet::RIGHT1].getGPUPtr();
+        gpuFilters[i*4 + 3] = fset[i]->spatialTemporal[FilterSet::RIGHT2].getGPUPtr();
     }
     // Extract buffer sizes
     fsx = fset[0]->spatialTemporal[FilterSet::LEFT1].getSizeX();
@@ -60,27 +60,15 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> or
 
     gpuEventList = NULL;
     gpuEventListSize = 0;
-    gpuFilters = NULL;
-    gpuConvBuffers = NULL;
-
-    int cnt = sizeof(double*)*bufferFilterCount;
-    // Allocate buffer for filter pointers
-    gpuErrchk(cudaMalloc(&gpuFilters,cnt));
-    // Start asynchonous memcpy
-    gpuErrchk(cudaMemcpyAsync(gpuFilters,cpuFilters,cnt,cudaMemcpyHostToDevice,cudaStreams[0]));
-    // Allocate buffer for buffer pointers
-    gpuErrchk(cudaMalloc(&gpuConvBuffers,cnt));
-    // Start asynchonous memcpy
-    gpuErrchk(cudaMemcpyAsync(gpuConvBuffers,cpuBuffers,cnt,cudaMemcpyHostToDevice,cudaStreams[0]));
 
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
     for(int i = 0; i < orientations.length(); i++){
-        gpuErrchk(cudaStreamDestroy(cudaStreams[i]));
         delete fset[i];
         for(int j = 0; j < 4; j++){
+            gpuErrchk(cudaStreamDestroy(cudaStreams[i]));
             delete convBuffer[i*4+j];
         }
     }
@@ -91,12 +79,13 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     fset = NULL;
     delete[] convBuffer;
     convBuffer = NULL;
+    delete[] gpuFilters;
+    gpuFilters = NULL;
+    delete[] gpuConvBuffers;
+    gpuConvBuffers = NULL;
 
     if(gpuEventList != NULL)
         gpuErrchk(cudaFree(gpuEventList));
-
-    gpuErrchk(cudaFree(gpuFilters));
-    gpuErrchk(cudaFree(gpuConvBuffers));
 }
 void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
     eventWriteMutex.lock();
@@ -176,68 +165,35 @@ void MotionEnergyEstimator::startUploadEventsAsync()
 void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
     gpuDataMutex.lock();
+    syncStreams();
     assert(gpuEventList != NULL);
 
-    for(int i = 0; i < orientations.length(); i++){
+    for(int i = 0; i < orientations.length()*4; i++){
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,
-                                    &gpuFilters[i*4],fsx,fsy,fsz,
-                                    &gpuConvBuffers[i*4],ringBufferIdx,
+                                    gpuFilters[i],fsx,fsy,fsz,
+                                    gpuConvBuffers[i],ringBufferIdx,
                                     bsx,bsy,bsz,
                                     cudaStreams[i]);
     }
     gpuDataMutex.unlock();
-//    // Events are sorted by time
-//    assert(timeWindowEvents.size() == 0 || e.timestamp >= timeWindowEvents.back().timestamp);
-
-//    timeWindowEvents.push_back(e);
-//    QVector2D ePos(e.posX,e.posY);
-
-//    int deltaT = (e.timestamp-startTime) - currentSlotStartTime;
-//    // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
-//    int timeSlotsToSkip = qFloor((float)deltaT/timePerSlot);
-
-//    for(int i = 0; i < orientations.length(); i++){
-
-//        // Skip time slots
-//        if(timeSlotsToSkip > 0){
-//            conv[i*4+0]->nextTimeSlot(&left1,timeSlotsToSkip);
-//            conv[i*4+1]->nextTimeSlot(&left2,timeSlotsToSkip);
-//            conv[i*4+2]->nextTimeSlot(&right1,timeSlotsToSkip);
-//            conv[i*4+3]->nextTimeSlot(&right2,timeSlotsToSkip);
-
-//            int sx = left1.getSizeX();
-//            int sy = left1.getSizeY();
-
-//            cudaComputeOpponentMotionEnergy(sx,sy,
-//                                    left1.getGPUPtr(),left2.getGPUPtr(),
-//                                    right1.getGPUPtr(),right2.getGPUPtr(),
-//                                    opponentMotionEnergy[i].getGPUPtr());
-
-//            isMotionEnergyReady = true;
-
-//            currentSlotStartTime += timePerSlot*timeSlotsToSkip;
-
-//            while(timeWindowEvents.size() > 0
-//                  && timeWindowEvents.front().timestamp - startTime < currentSlotStartTime - fsettings.timewindow_us)
-//                timeWindowEvents.pop_front();
-//        }
-//        // Convolute all four filters for this direction
-//        conv[i*4+0]->convolute3D(fset[i]->spatialTemporal[FilterSet::LEFT1],ePos);
-//        conv[i*4+1]->convolute3D(fset[i]->spatialTemporal[FilterSet::LEFT2],ePos);
-//        conv[i*4+2]->convolute3D(fset[i]->spatialTemporal[FilterSet::RIGHT1],ePos);
-//        conv[i*4+3]->convolute3D(fset[i]->spatialTemporal[FilterSet::RIGHT2],ePos);
-//    }
 }
 
-long MotionEnergyEstimator::startReadMotionEnergyAsync(double** gpuEnergyBuffers,int cnt)
+long MotionEnergyEstimator::startReadMotionEnergyAsync(double** gpuEnergyBuffers)
 {
     eventReadMutex.lock();
     gpuDataMutex.lock();
-    assert(cnt*4 == bufferFilterCount);
-    cudaReadOpponentMotionEnergyAsync(gpuConvBuffers,bufferFilterCount,ringBufferIdx,
-                                      bsx,bsy,bsz,
-                                      gpuEnergyBuffers,cnt,
-                                      cudaStreams[1]);
+
+    syncStreams();
+    for(int i = 0; i < orientations.length(); i++){
+        cudaReadOpponentMotionEnergyAsync(gpuConvBuffers[i*4],
+                                          gpuConvBuffers[i*4 + 1],
+                                          gpuConvBuffers[i*4 + 2],
+                                          gpuConvBuffers[i*4 + 3],
+                                          ringBufferIdx,
+                                          bsx,bsy,bsz,
+                                          gpuEnergyBuffers[i],
+                                          cudaStreams[i]);
+    }
     gpuDataMutex.unlock();
 
     // Go to next timeslice
