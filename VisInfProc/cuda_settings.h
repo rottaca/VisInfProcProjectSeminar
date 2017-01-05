@@ -6,6 +6,7 @@
 
 #define THREADS_PER_BLOCK 512
 
+
 #define GPU_LUT_COLORMAP_SZ 256
 __constant__ unsigned char GPUrgbColormapLUT[GPU_LUT_COLORMAP_SZ*3] = {
     0,0,255,

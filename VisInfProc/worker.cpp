@@ -27,28 +27,29 @@ Worker::~Worker(){
 
 void Worker::createOpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations)
 {
-    ofeMutex.lock();
+    if(isProcessing)
+        stopProcessing();
+
     if(ofe != NULL)
         delete ofe;
 
     ofe = new OpticFlowEstimator(settings,orientations);
-    ofeMutex.unlock();
 
     loggingEventMutex.lock();
     eventCnt = 0;
     dischargedEventCnt = 0;
     loggingEventMutex.unlock();
     // Save ??
-    delete eventSemaphoreR;
-    eventSemaphoreR = new QSemaphore(0);
-    delete eventSemaphoreW;
-    eventSemaphoreW = new QSemaphore(1);
+//    delete eventSemaphoreR;
+//    eventSemaphoreR = new QSemaphore(0);
+//    delete eventSemaphoreW;
+//    eventSemaphoreW = new QSemaphore(1);
 
 }
 
 void Worker::stopProcessing()
 {
-    qDebug("Stopping processing..");
+    qDebug("Stopping processing...");
     isProcessing = false;
 
     if(wait(2000))
@@ -63,33 +64,38 @@ void Worker::run()
     isProcessing = true;
 
     while(isProcessing){
-        // Try to lock event, don't block forever when we try to stop the processing
-        if(!eventSemaphoreR->tryAcquire(1,100))
-            continue;
+        // Semaphore to avoid busy waiting
+        ofe->process();
+        // TODO
+        usleep(1);
+//        // Try to lock event, don't block forever when we try to stop the processing
+//        if(!eventSemaphoreR->tryAcquire(1,100))
+//            continue;
 
-        // Copy event and release it
-        DVSEventHandler::DVSEvent e = currEvent;
-        eventSemaphoreW->release(1);
+//        // Copy event and release it
+//        DVSEventHandler::DVSEvent e = currEvent;
+//        eventSemaphoreW->release(1);
 
-        // Process the event
-        ofeMutex.lock();
-        ofe->processEvent(e);
-        ofeMutex.unlock();
+//        // Process the event
+//        ofeMutex.lock();
+//        ofe->processEvent(e);
+//        ofeMutex.unlock();
     }
 }
 
-void Worker::setNextEvent(DVSEventHandler::DVSEvent event)
+void Worker::nextEvent(DVSEventHandler::DVSEvent event)
 {
-    loggingEventMutex.lock();
-    eventCnt++;
+    ofe->onNewEvent(event);
+//    loggingEventMutex.lock();
+//    eventCnt++;
 
-    if(!eventSemaphoreW->tryAcquire(1)){
-        dischargedEventCnt++;
-        loggingEventMutex.unlock();
-        return;
-    }
-    loggingEventMutex.unlock();
+//    if(!eventSemaphoreW->tryAcquire(1)){
+//        dischargedEventCnt++;
+//        loggingEventMutex.unlock();
+//        return;
+//    }
+//    loggingEventMutex.unlock();
 
-    currEvent = event;
-    eventSemaphoreR->release(1);
+//    currEvent = event;
+//    eventSemaphoreR->release(1);
 }

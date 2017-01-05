@@ -3,7 +3,7 @@
 #include <QElapsedTimer>
 #include "worker.h"
 
-DVSEventHandler::DVSEventHandler(QObject *parent)
+DVSEventHandler::DVSEventHandler(QObject *parent):QThread(parent)
 {
     operationMutex.lock();
     operationMode = IDLE;
@@ -71,7 +71,7 @@ void DVSEventHandler::playbackFile()
         DVSEvent e = eventList.at(eventIdx++);
         if(e.On)
             continue;
-        worker->setNextEvent(e);
+        worker->nextEvent(e);
 
         if(eventIdx < eventList.size()){
             if(playSpeed == -1){

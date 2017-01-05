@@ -85,18 +85,7 @@ QImage Buffer2D::toImage(double min, double max) const
         gpuImage = static_cast<unsigned char*>(cudaCreateBuffer(itemCnt*3));
 
     cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage);
-
     cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3);
-
-//#pragma omp parallel for
-//    for(int y = 0; y < sy; y++){
-//        uchar* ptr = img.scanLine(y);
-//        double * buffPtr = cpuBuffer + y*sx;
-//        for(int x = 0; x < sx*3; x+=3){
-//            Helper::pseudoColor(buffPtr[x/3],mn,mx,
-//                    &ptr[x+0],&ptr[x+1],&ptr[x+2]);
-//        }
-//    }
 
     return img;
 }

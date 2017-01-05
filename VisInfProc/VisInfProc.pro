@@ -51,7 +51,8 @@ HEADERS  += mainwindow.h \
     worker.h \
     aspectratiopixmaplabel.h \
     basebuffer.h \
-    settings.h
+    settings.h \
+    datatypes.h
 
 FORMS    += mainwindow.ui
 
@@ -63,7 +64,7 @@ CUDA_SOURCES =  cuda_helper.cu \
                 cuda_motionenergy.cu \
                 cuda_opticflow.cu
 
-CUDA_DIR = /usr/local/cuda-7.5
+CUDA_DIR = /usr/local/cuda
 CUDA_ARCH = sm_50 # as supported by the Tegra K1
 
 INCLUDEPATH += $$CUDA_DIR/include

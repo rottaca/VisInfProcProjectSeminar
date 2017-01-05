@@ -12,9 +12,23 @@
 
 #include <assert.h>
 
+#include <QMutex>
+
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <datatypes.h>
 
+// External defined cuda functions
+extern void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
+                                        double** gpuFilters, int fsx, int fsy, int fsz,
+                                        double** gpuBuffers, int ringBufferIdx,
+                                        int bsx, int bsy, int bsz,
+                                        cudaStream_t cudaStream);
+
+extern void cudaReadOpponentMotionEnergyAsync(double** gpuConvBuffers,int bufferFilterCount,int ringBufferIdx,
+                                              int bsx, int bsy, int bsz,
+                                         double** gpuEnergyBuffers, int cnt,
+                                         cudaStream_t cudaStream);
 extern void cudaComputeOpponentMotionEnergy(int sx, int sy,
                                     double* gpul1,double* gpul2,
                                     double* gpur1,double* gpur2,
@@ -30,42 +44,92 @@ public:
         return fsettings;
     }
 
-    void processEvent(DVSEventHandler::DVSEvent e);
 
-    bool isEnergyReady(){
-        return isMotionEnergyReady;
+    void onNewEvent(const DVSEventHandler::DVSEvent &e);
+    bool isEventListReady(){
+        eventWriteMutex.lock();
+        bool cpy = eventListReady;
+        eventWriteMutex.unlock();
+        return cpy;
     }
 
-    void getMotionEnergy(int orientationIdx,Buffer2D &oppMoEnergy)
-    {
-        assert(orientationIdx < orientations.length());
-        oppMoEnergy = opponentMotionEnergy[orientationIdx];
-        isMotionEnergyReady = false;
+    void startUploadEventsAsync();
+    void startProcessEventsBatchAsync();
+    long startReadMotionEnergyAsync(double** gpuEnergyBuffers, int cnt);
+
+    void syncStreams(){
+        for(int i = 0; i < orientations.length(); i ++)
+            cudaStreamSynchronize(cudaStreams[i]);
     }
 
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(){
-        return timeWindowEvents;
+        eventsInWindowMutex.lock();
+        // TODO
+        QVector<DVSEventHandler::DVSEvent> tmp = QVector<DVSEventHandler::DVSEvent>(timeWindowEvents);
+        eventsInWindowMutex.unlock();
+        return tmp;
     }
 
-    long getWindowStartTime(){
-        return currentSlotStartTime;
-    }
-
+    // Struct contains all data for the given list of events
+    // -> Number of slots to skip after processing
+    // -> The starttime of the current time slot
+    // -> All event positions
+    typedef struct SlotEventData{
+        QVector<SimpleEvent> events;
+        int slotsToSkip;
+        long currWindowStartTime;
+    }SlotEventData;
 
 private:
-    FilterSettings fsettings;
-    FilterSet** fset;
-    Convolution3D** conv;
-    QList<double> orientations;
-    long currentSlotStartTime;
-    int startTime;
-    float timeRes;
-    QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
+    // Stream for concurrent execution
+    cudaStream_t* cudaStreams;
 
-    Buffer2D left1,left2,right1,right2;
-    Buffer2D energyL,energyR;
-    bool isMotionEnergyReady;
-    Buffer2D *opponentMotionEnergy;
+    // Amount of convolution filters and buffers (4*orientationCnt)
+    int bufferFilterCount;
+
+    // All orientations
+    QList<double> orientations;
+    // Filtersettings for the filter
+    FilterSettings fsettings;
+    // filterset for each orientation of the specified filter
+    FilterSet** fset;
+    double** gpuFilters;
+    int fsx,fsy,fsz;
+
+    // Convolution buffers for each filter orientation
+    Buffer3D** convBuffer;
+    double** gpuConvBuffers;
+    // Index into the convolution ring buffer
+    int ringBufferIdx;
+    int bsx,bsy,bsz;
+
+    QMutex gpuDataMutex;
+
+    // Starttime for the current time slot
+    //long currWindowStartTime;
+    // Overall stream start time TODO: Remove and start stream at 0
+    int startTime;
+    // Time per timeslot
+    double timePerSlot;
+
+    //QMutex sharedCpuDataMutex;
+    //int slotsToSkip;
+
+    // All events in the timewindow
+    QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
+    QMutex eventsInWindowMutex;
+    // All events in the current timeslot
+    SlotEventData timeSlotEvents[2];
+    // Pointer to both time slot event lists
+    SlotEventData* eventsR, *eventsW;
+    // Mutex for accessing event list write ptr
+    QMutex eventWriteMutex;
+    // Mutex for accessing event list read ptr
+    QMutex eventReadMutex;
+    // Gpu ptr for eventsR
+    SimpleEvent* gpuEventList;
+    int gpuEventListSize;
+    bool eventListReady;
 
 };
 

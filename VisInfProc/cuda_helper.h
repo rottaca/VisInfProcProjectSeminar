@@ -19,7 +19,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
      cudaError_t error = cudaGetLastError(); \
      if(error != cudaSuccess) \
      {\
-       printf("CUDA error: %s\n", cudaGetErrorString(error));\
+       printf("CUDA Kernel Error: %s\n", cudaGetErrorString(error));\
        exit(-1);\
      }\
 }

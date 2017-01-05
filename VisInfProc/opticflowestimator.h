@@ -18,20 +18,17 @@ public:
     OpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations);
     ~OpticFlowEstimator();
 
-    void processEvent(DVSEventHandler::DVSEvent event);
-
-    void setEnergyThreshold(int filterNr, double threshold){
-        assert(filterNr >= 0);
-        assert(filterNr < energyEstimatorCnt);
-        filterThresholds[filterNr] = threshold;
-    }
+    void onNewEvent(const DVSEventHandler::DVSEvent &e);
+    void process();
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         assert(orientationIdx >= 0);
         assert(orientationIdx < orientations.length());
-        opponentMotionEnergy = opponentMotionEnergies[filterNr*orientations.length() + orientationIdx];
+        motionEnergyMutex.lock();
+        opponentMotionEnergy = *(opponentMotionEnergies[filterNr*orientations.length() + orientationIdx]);
+        motionEnergyMutex.unlock();
         return updateTimeStamps[filterNr];
     }
 
@@ -53,13 +50,16 @@ private:
 private:
     int energyEstimatorCnt;
     MotionEnergyEstimator **motionEnergyEstimators;
-    Buffer2D *opponentMotionEnergies;
-    long *updateTimeStamps;
-    double *filterThresholds;
+
     QList<double> orientations;
     QList<FilterSettings> settings;
 
     Buffer2D opticFlowVec[2];
+
+    QMutex motionEnergyMutex;
+    Buffer2D **opponentMotionEnergies;
+    double **gpuOpponentMotionEnergies;
+    long *updateTimeStamps;
 };
 
 #endif // OPTICFLOWESTIMATOR_H

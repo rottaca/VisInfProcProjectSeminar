@@ -20,25 +20,14 @@ public:
 
     void stopProcessing();
 
-    void setNextEvent(DVSEventHandler::DVSEvent event);
-
-
-    void setEnergyThreshold(int filterNr, double threshold){
-        ofeMutex.lock();
-        ofe->setEnergyThreshold(filterNr,threshold);
-        ofeMutex.unlock();
-    }
+    void nextEvent(DVSEventHandler::DVSEvent event);
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
-        ofeMutex.lock();
         long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
-        ofeMutex.unlock();
         return time;
     }
     void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
-        ofeMutex.lock();
         ofe->getOpticFlow(flowX,flowY);
-        ofeMutex.unlock();
     }
     void getStats(int &recievedEvents, int &dischargedEvents){
 
@@ -54,9 +43,7 @@ public:
 
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(int filterNr){
         QVector<DVSEventHandler::DVSEvent> events;
-        ofeMutex.lock();
         events = ofe->getEventsInWindow(filterNr);
-        ofeMutex.unlock();
         return events;
     }
 
@@ -66,7 +53,6 @@ private:
     bool isProcessing;
 
     OpticFlowEstimator *ofe;
-    QMutex ofeMutex;
 
     // Semaphore for reading and writing new event
     QSemaphore *eventSemaphoreR;
