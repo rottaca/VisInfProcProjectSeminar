@@ -27,7 +27,7 @@ __host__ void cudaComputeOpponentMotionEnergy(int sx, int sy,
                          sx,sy,n,gpul1,gpul2,gpur1,gpur2,gpuEnergy);
 }
 
-
+#define MAX_SHARED_GPU_EVENTS 128
 __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
                             double* gpuFilter, int fsx, int fsy, int fsz,
                             double* gpuBuffer, int ringBufferIdx,
@@ -44,20 +44,37 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
         int fy = fxy / fsx;
         int fx = fxy % fsx;
 
-        // Iterate over every event in block
-        for(int eventIdx = 0; eventIdx < gpuEventListSize; eventIdx++){
-            // Compute corresponding buffer coordinate (flip filter x,y)
-            int bx = fsx / 2 - fx + gpuEventList[eventIdx].x;
-            int by = fsy / 2 - fy + gpuEventList[eventIdx].y;
+        // Convert buffer z index (flip z)
+        int bz = ((ringBufferIdx + (fsz - 1) - fz ) % bsz);
+        int bx_tmp = fsx / 2 - fx;
+        int by_tmp = fsy / 2 - fy;
+        int bPos_tmp = bz*bsy*bsx;
 
-            // Check for valid buffer position (filp buffer z)
-            if(bx >= 0 && bx < bsx && by >= 0 && by < bsy){
+        // Per block shared memory
+        __shared__ SimpleEvent gpuEventListShared[MAX_SHARED_GPU_EVENTS];
+        int eventGroupCnt = ceil(gpuEventListSize/(double)MAX_SHARED_GPU_EVENTS);
+        // Load events blockwise
+        for(int eventGroupIdx = 0; eventGroupIdx<eventGroupCnt; eventGroupIdx++){
+            int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+threadIdx.x;
+            // The first MAX_SHARED_GPU_EVENTS threads copy the event data into shared memory
+            if(threadIdx.x < MAX_SHARED_GPU_EVENTS && globalEventIdx < gpuEventListSize){
+                gpuEventListShared[threadIdx.x] = gpuEventList[globalEventIdx];
+            }
+            // Synchronize
+            __syncthreads();
 
-                // Convert buffer z index (flip z)
-                int bz = ((ringBufferIdx + (fsz - 1) - fz ) % bsz);
-                int bufferPos = bz*bsy*bsx + by*bsx + bx;
+            // Iterate over every event block in shared memory
+            for(int localEventIdx = 0; localEventIdx < MAX_SHARED_GPU_EVENTS &&
+                eventGroupIdx*MAX_SHARED_GPU_EVENTS+localEventIdx < gpuEventListSize; localEventIdx++){
+                // Compute corresponding buffer coordinate (flip filter x,y)
+                int bx = bx_tmp + gpuEventListShared[localEventIdx].x;
+                int by = by_tmp + gpuEventListShared[localEventIdx].y;
 
-                gpuBuffer[bufferPos] += gpuFilter[filterPos];
+                // Check for valid buffer position (filp buffer z)
+                if(bx >= 0 && bx < bsx && by >= 0 && by < bsy){
+                    int bufferPos = bPos_tmp + by*bsx + bx;
+                    gpuBuffer[bufferPos] += gpuFilter[filterPos];
+                }
             }
         }
     }
@@ -102,7 +119,7 @@ __global__ void kernelReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
         gpuConvBufferr2[bufferPosConv] = 0;
 
         // Compute opponent motion energy
-        gpuEnergyBuffer[bufferPos] = sqrt(r1*r1+r2*r2) - sqrt(l1*l1+l2*l2);
+        gpuEnergyBuffer[bufferPos] = l1;//sqrt(r1*r1+r2*r2) - sqrt(l1*l1+l2*l2);
     }
 }
 
