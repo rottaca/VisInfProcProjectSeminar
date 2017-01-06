@@ -11,8 +11,8 @@ __global__ void kernelCombineFilters(int sx, int sy, int sz,
     int s_xy = sx*sy;
     int z = combinedIdx / s_xy;
     int xy = combinedIdx % s_xy;
-
-    gpuCombined[combinedIdx] = gpuTemp[z]*gpuSpatial[xy];
+    if(combinedIdx < s_xy*sz)
+        gpuCombined[combinedIdx] = gpuTemp[z]*gpuSpatial[xy];
 }
 
 __host__ void cudaCombineFilters(int sx, int sy, int sz,

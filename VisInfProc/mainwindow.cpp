@@ -47,6 +47,7 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete worker;
 }
 void MainWindow::OnUpdate()
 {
@@ -142,9 +143,8 @@ void MainWindow::OnNewEvent(DVSEventHandler::DVSEvent e)
 void MainWindow::OnPlaybackFinished()
 {
     worker->stopProcessing();
-    //cudaProfilerStop();
-    //worker->createOpticFlowEstimator(settings,orientations);
-    //worker->start();
+//    worker->createOpticFlowEstimator(settings,orientations);
+//    worker->start();
 
     //dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat");
 }

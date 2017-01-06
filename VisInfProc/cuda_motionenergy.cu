@@ -119,7 +119,7 @@ __global__ void kernelReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
         gpuConvBufferr2[bufferPosConv] = 0;
 
         // Compute opponent motion energy
-        gpuEnergyBuffer[bufferPos] = l1;//sqrt(r1*r1+r2*r2) - sqrt(l1*l1+l2*l2);
+        gpuEnergyBuffer[bufferPos] = sqrt(r1*r1+r2*r2) - sqrt(l1*l1+l2*l2);
     }
 }
 

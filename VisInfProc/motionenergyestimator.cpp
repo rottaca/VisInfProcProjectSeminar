@@ -41,7 +41,6 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> or
         for(int j = 0; j < 4; j++)
         {
             cudaStreamCreate(&cudaStreams[i*4+j]);
-            //cudaStreams[i*4+j] = 0;
             convBuffer[i*4+j] = new Buffer3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
             gpuConvBuffers[i*4+j] = convBuffer[i*4+j]->getGPUPtr();
         }
@@ -65,10 +64,13 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> or
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
+    qDebug("Destroying motion energy estimator...");
+
+
     for(int i = 0; i < orientations.length(); i++){
         delete fset[i];
         for(int j = 0; j < 4; j++){
-            gpuErrchk(cudaStreamDestroy(cudaStreams[i]));
+            gpuErrchk(cudaStreamDestroy(cudaStreams[i*4+j]));
             delete convBuffer[i*4+j];
         }
     }
@@ -108,6 +110,7 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
         //qDebug("New Slot finished: %d events",eventsW->events.length());
         // Flip lists
         eventReadMutex.lock();
+        eventCnt.append(eventsW->events.length());
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;

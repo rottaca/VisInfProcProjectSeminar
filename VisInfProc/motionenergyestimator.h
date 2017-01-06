@@ -136,6 +136,7 @@ private:
     int gpuEventListSize;
     bool eventListReady;
 
+    QVector<int> eventCnt;
 };
 
 #endif // MOTIONENERGYESTIMATOR_H
