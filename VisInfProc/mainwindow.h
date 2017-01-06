@@ -44,8 +44,8 @@ private:
     DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
-    QList<double> orientations;
-    QList<FilterSettings> settings;
+    QVector<double> orientations;
+    QVector<FilterSettings> settings;
 
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
 };

@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define THREADS_PER_BLOCK 512
+#define THREADS_PER_BLOCK 1024
 
 
 #define GPU_LUT_COLORMAP_SZ 256

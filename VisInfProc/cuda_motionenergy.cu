@@ -6,28 +6,7 @@
 #include "datatypes.h"
 #include <assert.h>
 
-__global__ void kernelComputeOpponentMotionEnergy(int sx, int sy,int n,
-                                                  double* gpul1,double* gpul2,
-                                                  double* gpur1,double* gpur2,
-                                                 double* gpuEnergy){
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-    if(idx < n)
-        gpuEnergy[idx] = sqrt(gpur1[idx]*gpur1[idx] + gpur2[idx]*gpur2[idx])
-                -sqrt(gpul1[idx]*gpul1[idx] + gpul2[idx]*gpul2[idx]);
-}
-
-__host__ void cudaComputeOpponentMotionEnergy(int sx, int sy,
-                                  double* gpul1,double* gpul2,
-                                  double* gpur1,double* gpur2,
-                                 double* gpuEnergy)
-{
-    int n = sx*sy;
-    long blocks = ceil((float)n/THREADS_PER_BLOCK);
-    kernelComputeOpponentMotionEnergy<<<blocks,THREADS_PER_BLOCK>>>(
-                         sx,sy,n,gpul1,gpul2,gpur1,gpur2,gpuEnergy);
-}
-
-#define MAX_SHARED_GPU_EVENTS 128
+#define MAX_SHARED_GPU_EVENTS 256
 __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
                             double* gpuFilter, int fsx, int fsy, int fsz,
                             double* gpuBuffer, int ringBufferIdx,
@@ -55,10 +34,15 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
         int eventGroupCnt = ceil(gpuEventListSize/(double)MAX_SHARED_GPU_EVENTS);
         // Load events blockwise
         for(int eventGroupIdx = 0; eventGroupIdx<eventGroupCnt; eventGroupIdx++){
-            int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+threadIdx.x;
+            int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+threadIdx.x/2;
             // The first MAX_SHARED_GPU_EVENTS threads copy the event data into shared memory
-            if(threadIdx.x < MAX_SHARED_GPU_EVENTS && globalEventIdx < gpuEventListSize){
-                gpuEventListShared[threadIdx.x] = gpuEventList[globalEventIdx];
+            if(threadIdx.x/2 < MAX_SHARED_GPU_EVENTS && globalEventIdx < gpuEventListSize){
+                // even threads load x, odd threads load y
+                if(threadIdx.x % 2 == 0){
+                    gpuEventListShared[threadIdx.x/2].x = gpuEventList[globalEventIdx].x;
+                }else{
+                    gpuEventListShared[threadIdx.x/2].y = gpuEventList[globalEventIdx].y;
+                }
             }
             // Synchronize
             __syncthreads();

@@ -26,8 +26,10 @@ MainWindow::MainWindow(QWidget *parent) :
     worker = new Worker();
     dvsEventHandler.setWorker(worker);
     FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
+    FilterSettings fset2 = FilterSettings::getSettings(FilterSettings::SPEED_25);
 
     settings.append(fset);
+    //settings.append(fset2);
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(90.0f));
     worker->createOpticFlowEstimator(settings,orientations);
@@ -55,7 +57,7 @@ void MainWindow::OnUpdate()
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
         if(time != -1){
             worker->getMotionEnergy(0,1,oppMoEnergy2);
-            //worker->getOpticFlow(flowX,flowY);
+            worker->getOpticFlow(flowX,flowY);
 
             QImage img1 = oppMoEnergy1.toImage(-0.3,0.3);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
@@ -64,7 +66,7 @@ void MainWindow::OnUpdate()
 
             ui->l_timestamp->setText(QString("%1").arg(time));
 
-//            // TODO Move to GPU
+            // TODO Move to GPU
 //            double* ptrOfV1 = flowX.getCPUPtr();
 //            double* ptrOfV2 = flowY.getCPUPtr();
 

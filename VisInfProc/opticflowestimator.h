@@ -9,18 +9,32 @@
 #include <QVector>
 
 extern void cudaComputeOpticFlow(int sx, int sy,
-                                 double* gpuFlowX,double* gpuFlowY,
-                                 double** gpuEnergy,double* orientations, int orientationCnt);
+                                 double* gpuFlowX, double* gpuFlowY,
+                                 double** gpuArrGpuEnergy, double* gpuArrOrientations, int orientationCnt, cudaStream_t stream);
 
 class OpticFlowEstimator
 {
 public:
-    OpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations);
+    OpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations);
     ~OpticFlowEstimator();
 
+    /**
+     * @brief onNewEvent
+     * @param e
+     */
     void onNewEvent(const DVSEventHandler::DVSEvent &e);
+    /**
+     * @brief process Computes the motion energy in parallel and reads the result
+     */
     void process();
 
+    /**
+     * @brief getMotionEnergy Provides the raw motion energy for a given orientation and filter number
+     * @param filterNr
+     * @param orientationIdx
+     * @param opponentMotionEnergy Reference to the destination buffer
+     * @return Returns the timestamp of the provided data
+     */
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
@@ -32,12 +46,27 @@ public:
         return updateTimeStamps[filterNr];
     }
 
+    /**
+     * @brief getOpticFlow Returns the optic flow in x and y direction
+     * @param flowX
+     * @param flowY
+     */
     void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
+
+        motionEnergyMutex.lock();
+        if(!opticFlowUpToDate)
+            computeOpticFlow();
+
         flowX = opticFlowVec[0];
         flowY = opticFlowVec[1];
+        motionEnergyMutex.unlock();
     }
 
-
+    /**
+     * @brief getEventsInWindow Passes the events from the corresonding motion energy estimator to the caller
+     * @param filterNr Index of motion energy estimator
+     * @return
+     */
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(int filterNr){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
@@ -45,21 +74,37 @@ public:
     }
 
 private:
+    /**
+     * @brief computeOpticFlow Computes the optic flow based on the currently stored information
+     */
     void computeOpticFlow();
 
 private:
+    // Cuda stream for concurrent operations
+    cudaStream_t* cudaStreams;
+    // Number of created motion energy estimators
     int energyEstimatorCnt;
+    // Pointer to array of motion energy estimators
     MotionEnergyEstimator **motionEnergyEstimators;
-
-    QList<double> orientations;
-    QList<FilterSettings> settings;
-
+    // All covered orientations
+    QVector<double> orientations;
+    double * gpuOrientations;
+    // All covered filter settings
+    QVector<FilterSettings> settings;
+    // Contains the optic flow in x and y direction for each pixel
     Buffer2D opticFlowVec[2];
-
+    // Mutex for accessing the stored opponent motion energies
     QMutex motionEnergyMutex;
+    // Pointer to array of 2d buffer pointers
     Buffer2D **opponentMotionEnergies;
+    // CPU array of GPU pointers
     double **gpuOpponentMotionEnergies;
+    // GPU array of GPU pointers
+    double **gpuArrgpuOpponentMotionEnergies;
+    // Array of timestamps of last opponent motion energy updates
     long *updateTimeStamps;
+
+    bool opticFlowUpToDate;
 };
 
 #endif // OPTICFLOWESTIMATOR_H

@@ -16,7 +16,7 @@ public:
     explicit Worker(QObject *parent = 0);
     ~Worker();
 
-    void createOpticFlowEstimator(QList<FilterSettings> settings, QList<double> orientations);
+    void createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations);
 
     void stopProcessing();
 

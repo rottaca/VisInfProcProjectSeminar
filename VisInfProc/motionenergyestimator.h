@@ -34,15 +34,12 @@ extern void cudaReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
                                               double* gpuEnergyBuffer,
                                               cudaStream_t cudaStream);
 
-extern void cudaComputeOpponentMotionEnergy(int sx, int sy,
-                                    double* gpul1,double* gpul2,
-                                    double* gpur1,double* gpur2,
-                                   double* gpuEnergy);
+#define DEFAULT_STREAM_ID 0
 
 class MotionEnergyEstimator
 {
 public:
-    MotionEnergyEstimator(FilterSettings fs, QList<double> orientations);
+    MotionEnergyEstimator(FilterSettings fs, QVector<double> orientations);
     ~MotionEnergyEstimator();
 
     FilterSettings getSettings(){
@@ -57,19 +54,37 @@ public:
         eventWriteMutex.unlock();
         return cpy;
     }
-
+    /**
+     * @brief startUploadEventsAsync Starts the async uploading of the new event list into gpu memory
+     */
     void startUploadEventsAsync();
+    /**
+     * @brief startProcessEventsBatchAsync Starts the async processing of events (convolution)
+     *        after syncronizing related streams
+     */
     void startProcessEventsBatchAsync();
+    /**
+     * @brief startReadMotionEnergyAsync Starts the async computation and reading of the motion energy.
+     *        The resulting energy for every direction is stored in the provided buffers.
+     * @param gpuEnergyBuffers cpu Pointer to an cpu array of gpu buffer pointers (amount == orientations.length()
+     * @return Returns the start time for the current time slot
+     */
     long startReadMotionEnergyAsync(double** gpuEnergyBuffers);
 
+    /**
+     * @brief syncStreams Synchronizes all streams of this motion energy estimator
+     */
     void syncStreams(){
         for(int i = 0; i < orientations.length()*4; i ++)
             cudaStreamSynchronize(cudaStreams[i]);
     }
 
+    /**
+     * @brief getEventsInWindow Returns a vector with all events in the current time window
+     * @return
+     */
     QVector<DVSEventHandler::DVSEvent> getEventsInWindow(){
         eventsInWindowMutex.lock();
-        // TODO
         QVector<DVSEventHandler::DVSEvent> tmp = QVector<DVSEventHandler::DVSEvent>(timeWindowEvents);
         eventsInWindowMutex.unlock();
         return tmp;
@@ -80,9 +95,9 @@ public:
     // -> The starttime of the current time slot
     // -> All event positions
     typedef struct SlotEventData{
-        QVector<SimpleEvent> events;
-        int slotsToSkip;
-        long currWindowStartTime;
+        QVector<SimpleEvent> events;        // Event list (only x and y)
+        int slotsToSkip;                    // Timeslots to skip after processing the events
+        double currWindowStartTime;         // The start time in us of the current window
     }SlotEventData;
 
 private:
@@ -93,35 +108,33 @@ private:
     int bufferFilterCount;
 
     // All orientations
-    QList<double> orientations;
+    QVector<double> orientations;
     // Filtersettings for the filter
     FilterSettings fsettings;
     // filterset for each orientation of the specified filter
     FilterSet** fset;
+    // CPU array of GPU pointers (one pointer for each filter)
     double** gpuFilters;
+    // Filter sizes
     int fsx,fsy,fsz;
 
     // Convolution buffers for each filter orientation
     Buffer3D** convBuffer;
+    // CPU array of GPU pointers (one pointer for each buffer)
     double** gpuConvBuffers;
     // Index into the convolution ring buffer
     int ringBufferIdx;
+    // Buffer sizes
     int bsx,bsy,bsz;
 
-    QMutex gpuDataMutex;
-
-    // Starttime for the current time slot
-    //long currWindowStartTime;
     // Overall stream start time TODO: Remove and start stream at 0
     int startTime;
     // Time per timeslot
     double timePerSlot;
 
-    //QMutex sharedCpuDataMutex;
-    //int slotsToSkip;
-
     // All events in the timewindow
     QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
+    // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
     // All events in the current timeslot
     SlotEventData timeSlotEvents[2];
@@ -133,10 +146,10 @@ private:
     QMutex eventReadMutex;
     // Gpu ptr for eventsR
     SimpleEvent* gpuEventList;
+    // Size of the uploaded event list
     int gpuEventListSize;
+    // True, if a new event list is ready for processing
     bool eventListReady;
-
-    QVector<int> eventCnt;
 };
 
 #endif // MOTIONENERGYESTIMATOR_H

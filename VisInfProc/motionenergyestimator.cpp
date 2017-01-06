@@ -8,7 +8,7 @@
 #include "settings.h"
 #include <assert.h>
 
-MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> orientations)
+MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> orientations)
 {
     assert(orientations.length() > 0);
 
@@ -59,13 +59,11 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QList<double> or
 
     gpuEventList = NULL;
     gpuEventListSize = 0;
-
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
     qDebug("Destroying motion energy estimator...");
-
 
     for(int i = 0; i < orientations.length(); i++){
         delete fset[i];
@@ -107,10 +105,11 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
     int timeSlotsToSkip = qFloor((double)deltaT/timePerSlot);
 
     if(timeSlotsToSkip != 0){
-        //qDebug("New Slot finished: %d events",eventsW->events.length());
+
         // Flip lists
         eventReadMutex.lock();
-        eventCnt.append(eventsW->events.length());
+        if(eventListReady)
+            qDebug("Events skipped: %d",eventsR->events.length());
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;
@@ -118,15 +117,14 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
         eventsR->slotsToSkip=eventsROld->slotsToSkip+timeSlotsToSkip;
         eventsW->slotsToSkip = 0;
         eventsW->currWindowStartTime=eventsR->currWindowStartTime + timePerSlot;
+
+        if(eventsR->events.length() > 0)
+            eventListReady = true;
+
         eventReadMutex.unlock();
-
+        // Clear events for new data
         eventsW->events.clear();
-
-        eventListReady = true;
     }
-//    else{
-//        qDebug("Event in slot %d", e.timestamp);
-//    }
     eventsW->events.append(ev);
 
     // Update events in timewindow
@@ -144,7 +142,6 @@ void MotionEnergyEstimator::startUploadEventsAsync()
     eventReadMutex.lock();
     if(eventsR->events.size() > 0)
     {
-        //qDebug("Uploading: %d events", eventsR->events.length());
         // Release previous array
         if(gpuEventList != NULL)
             gpuErrchk(cudaFree(gpuEventList));
@@ -153,9 +150,9 @@ void MotionEnergyEstimator::startUploadEventsAsync()
         int cnt = sizeof(SimpleEvent)*eventsR->events.length();
         gpuErrchk(cudaMalloc(&gpuEventList,cnt));
         // Start asynchonous memcpy
-        gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),cnt,cudaMemcpyHostToDevice,cudaStreams[0]));
+        gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),cnt,cudaMemcpyHostToDevice,cudaStreams[DEFAULT_STREAM_ID]));
         gpuEventListSize = eventsR->events.length();
-        // Free list and wait for next one
+        // Clear list and wait for next one
         eventsR->events.clear();
     }
     eventReadMutex.unlock();
@@ -167,8 +164,7 @@ void MotionEnergyEstimator::startUploadEventsAsync()
 
 void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
-    gpuDataMutex.lock();
-    syncStreams();
+    cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
     assert(gpuEventList != NULL);
 
     for(int i = 0; i < orientations.length()*4; i++){
@@ -178,16 +174,18 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
                                     bsx,bsy,bsz,
                                     cudaStreams[i]);
     }
-    gpuDataMutex.unlock();
 }
 
 long MotionEnergyEstimator::startReadMotionEnergyAsync(double** gpuEnergyBuffers)
 {
     eventReadMutex.lock();
-    gpuDataMutex.lock();
 
-    syncStreams();
     for(int i = 0; i < orientations.length(); i++){
+        // Only syncronize important streams
+        cudaStreamSynchronize(cudaStreams[i*4]);
+        cudaStreamSynchronize(cudaStreams[i*4 + 1]);
+        cudaStreamSynchronize(cudaStreams[i*4 + 2]);
+        cudaStreamSynchronize(cudaStreams[i*4 + 3]);
         cudaReadOpponentMotionEnergyAsync(gpuConvBuffers[i*4],
                                           gpuConvBuffers[i*4 + 1],
                                           gpuConvBuffers[i*4 + 2],
@@ -195,9 +193,8 @@ long MotionEnergyEstimator::startReadMotionEnergyAsync(double** gpuEnergyBuffers
                                           ringBufferIdx,
                                           bsx,bsy,bsz,
                                           gpuEnergyBuffers[i],
-                                          cudaStreams[i]);
+                                          cudaStreams[i*4]);
     }
-    gpuDataMutex.unlock();
 
     // Go to next timeslice
     long tmp = eventsR->currWindowStartTime;

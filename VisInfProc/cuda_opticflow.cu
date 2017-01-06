@@ -22,25 +22,14 @@ __global__ void kernelComputeOpticFlow(int n,
 }
 
 __host__ void cudaComputeOpticFlow(int sx, int sy,
-                                  double* gpuFlowX,double* gpuFlowY,
-                                  double** cpuArrGpuEnergy,double* cpuArrOrientations, int orientationCnt)
+                                  double* gpuFlowX, double* gpuFlowY,
+                                  double** gpuArrGpuEnergy, double* gpuArrOrientations, int orientationCnt, cudaStream_t stream)
 {
     int n = sx*sy;
     long blocks = ceil((float)n/THREADS_PER_BLOCK);
-    // Allocate GPU arrays
-    double ** gpuArrGpuEnergies;
-    gpuArrGpuEnergies = (double**)cudaCreateBuffer(orientationCnt*sizeof(double*));
-    double * gpuArrOrientations;
-    gpuArrOrientations = (double*)cudaCreateBuffer(orientationCnt*sizeof(double));
-    cudaUploadBuffer(cpuArrGpuEnergy,gpuArrGpuEnergies,orientationCnt*sizeof(double*));
-    cudaUploadBuffer(cpuArrOrientations,gpuArrOrientations,orientationCnt*sizeof(double));
-
-    kernelComputeOpticFlow<<<blocks,THREADS_PER_BLOCK>>>(
+    kernelComputeOpticFlow<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
                          n,
                          gpuFlowX,gpuFlowY,
-                         gpuArrGpuEnergies,gpuArrOrientations,orientationCnt);
+                         gpuArrGpuEnergy,gpuArrOrientations,orientationCnt);
 
-    // Free arrays
-    cudaFreeBuffer(gpuArrGpuEnergies);
-    cudaFreeBuffer(gpuArrOrientations);
 }

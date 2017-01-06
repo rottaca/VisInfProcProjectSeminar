@@ -69,8 +69,6 @@ void DVSEventHandler::playbackFile()
     while(opModeLocal == PLAYBACK && eventIdx < eventList.size()){
 
         DVSEvent e = eventList.at(eventIdx++);
-        if(e.On)
-            continue;
         worker->nextEvent(e);
 
         if(eventIdx < eventList.size()){
@@ -96,7 +94,8 @@ void DVSEventHandler::playbackFile()
     if(eventIdx == eventList.size()){
         int nMillis = timeMeasure.elapsed();
         int dtUs = eventList.last().timestamp - eventList.first().timestamp;
-        qDebug(QString("Executed in %1 instead of %2 ms. Overhead: %3 %%").
+        qDebug(QString("Executed %1 events in %2 instead of %3 ms. Overhead: %4 %").
+               arg(eventList.size()).
                arg(nMillis).
                arg(dtUs/1000).
                arg(((float)nMillis*1000/dtUs - 1) *100).toLocal8Bit());
@@ -172,6 +171,10 @@ QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
         e.posX = ((ad >> 0x01) & 0x7F);  // X: 0 - 127
         e.posY = ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
         e.timestamp = time;
+
+        if(!e.On)
+            continue;
+
         events.append(e);
     }
     return events;
