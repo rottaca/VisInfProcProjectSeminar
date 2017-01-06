@@ -73,6 +73,24 @@ public:
         return motionEnergyEstimators[filterNr]->getEventsInWindow();
     }
 
+    /**
+     * @brief getEventStatistics Returns information about the processed and maximal skipped event amount overall
+     * @param all
+     * @param skipped
+     */
+    void getEventStatistics(long &all, long &skipped){
+        long tmp1,tmp2;
+        all = 0;
+        skipped = 0;
+        for(int i = 0; i < energyEstimatorCnt; i++){
+            motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
+            if(tmp1 > all)
+                all = tmp1;
+            if(tmp2 > skipped)
+                skipped = tmp2;
+        }
+    }
+
 private:
     /**
      * @brief computeOpticFlow Computes the optic flow based on the currently stored information

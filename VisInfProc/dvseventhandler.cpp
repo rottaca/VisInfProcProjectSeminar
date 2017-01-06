@@ -81,7 +81,7 @@ void DVSEventHandler::playbackFile()
                     if(sleepTime > 0){
                         usleep(sleepTime);
                     }
-            }else{
+            }else if (playSpeed > 0){
                 usleep(playSpeed);
             }
         }
@@ -172,8 +172,8 @@ QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
         e.posY = ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
         e.timestamp = time;
 
-        if(!e.On)
-            continue;
+        //if(!e.On)
+        //    continue;
 
         events.append(e);
     }

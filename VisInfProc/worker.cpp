@@ -6,8 +6,6 @@ Worker::Worker(QObject *parent) : QThread(parent)
     eventSemaphoreR = new QSemaphore(0);
     eventSemaphoreW = new QSemaphore(1);
     ofe = NULL;
-    eventCnt = 0;
-    dischargedEventCnt = 0;
 }
 
 
@@ -35,16 +33,6 @@ void Worker::createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<
 
     ofe = new OpticFlowEstimator(settings,orientations);
 
-    loggingEventMutex.lock();
-    eventCnt = 0;
-    dischargedEventCnt = 0;
-    loggingEventMutex.unlock();
-    // Save ??
-//    delete eventSemaphoreR;
-//    eventSemaphoreR = new QSemaphore(0);
-//    delete eventSemaphoreW;
-//    eventSemaphoreW = new QSemaphore(1);
-
 }
 
 void Worker::stopProcessing()
@@ -59,8 +47,6 @@ void Worker::stopProcessing()
 }
 void Worker::run()
 {
-    eventCnt = 0;
-    dischargedEventCnt = 0;
     isProcessing = true;
 
     while(isProcessing){
@@ -68,34 +54,10 @@ void Worker::run()
         ofe->process();
         // TODO
         usleep(1);
-//        // Try to lock event, don't block forever when we try to stop the processing
-//        if(!eventSemaphoreR->tryAcquire(1,100))
-//            continue;
-
-//        // Copy event and release it
-//        DVSEventHandler::DVSEvent e = currEvent;
-//        eventSemaphoreW->release(1);
-
-//        // Process the event
-//        ofeMutex.lock();
-//        ofe->processEvent(e);
-//        ofeMutex.unlock();
     }
 }
 
 void Worker::nextEvent(DVSEventHandler::DVSEvent event)
 {
     ofe->onNewEvent(event);
-//    loggingEventMutex.lock();
-//    eventCnt++;
-
-//    if(!eventSemaphoreW->tryAcquire(1)){
-//        dischargedEventCnt++;
-//        loggingEventMutex.unlock();
-//        return;
-//    }
-//    loggingEventMutex.unlock();
-
-//    currEvent = event;
-//    eventSemaphoreR->release(1);
 }

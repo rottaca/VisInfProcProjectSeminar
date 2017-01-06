@@ -29,12 +29,8 @@ public:
     void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
         ofe->getOpticFlow(flowX,flowY);
     }
-    void getStats(int &recievedEvents, int &dischargedEvents){
-
-        loggingEventMutex.lock();
-        recievedEvents = eventCnt;
-        dischargedEvents = dischargedEventCnt;
-        loggingEventMutex.unlock();
+    void getStats(long &recievedEvents, long &dischargedEvents){
+        ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
 
     bool getIsProcessing(){
@@ -58,9 +54,6 @@ private:
     QSemaphore *eventSemaphoreR;
     QSemaphore *eventSemaphoreW;
     DVSEventHandler::DVSEvent currEvent;
-
-    long eventCnt, dischargedEventCnt;
-    QMutex loggingEventMutex;
 };
 
 #endif // WORKER_H

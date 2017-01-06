@@ -59,6 +59,8 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> 
 
     gpuEventList = NULL;
     gpuEventListSize = 0;
+    eventsAll = 0;
+    eventsSkipped = 0;
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
@@ -88,6 +90,10 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
         gpuErrchk(cudaFree(gpuEventList));
 }
 void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
+
+    eventStatisticsMutex.lock();
+    eventsAll++;
+    eventStatisticsMutex.unlock();
     eventWriteMutex.lock();
 
     SimpleEvent ev;
@@ -108,8 +114,12 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
 
         // Flip lists
         eventReadMutex.lock();
-        if(eventListReady)
-            qDebug("Events skipped: %d",eventsR->events.length());
+        if(eventListReady && eventsR->events.length() > 0){
+            //qDebug("Events skipped: %d",eventsR->events.length());
+            eventStatisticsMutex.lock();
+            eventsSkipped+=eventsR->events.length();
+            eventStatisticsMutex.unlock();
+        }
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;

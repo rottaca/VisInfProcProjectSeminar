@@ -31,5 +31,4 @@ __host__ void cudaComputeOpticFlow(int sx, int sy,
                          n,
                          gpuFlowX,gpuFlowY,
                          gpuArrGpuEnergy,gpuArrOrientations,orientationCnt);
-
 }

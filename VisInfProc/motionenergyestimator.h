@@ -90,6 +90,18 @@ public:
         return tmp;
     }
 
+    /**
+     * @brief getEventStatistics Returns information about the processed and skipped event amount
+     * @param all
+     * @param skipped
+     */
+    void getEventStatistics(long &all, long &skipped){
+        eventStatisticsMutex.lock();
+        all = eventsAll;
+        skipped = eventsSkipped;
+        eventStatisticsMutex.unlock();
+    }
+
     // Struct contains all data for the given list of events
     // -> Number of slots to skip after processing
     // -> The starttime of the current time slot
@@ -150,6 +162,10 @@ private:
     int gpuEventListSize;
     // True, if a new event list is ready for processing
     bool eventListReady;
+
+    long eventsSkipped;
+    long eventsAll;
+    QMutex eventStatisticsMutex;
 };
 
 #endif // MOTIONENERGYESTIMATOR_H

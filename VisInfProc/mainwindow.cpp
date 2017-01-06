@@ -67,49 +67,49 @@ void MainWindow::OnUpdate()
             ui->l_timestamp->setText(QString("%1").arg(time));
 
             // TODO Move to GPU
-//            double* ptrOfV1 = flowX.getCPUPtr();
-//            double* ptrOfV2 = flowY.getCPUPtr();
+            double* ptrOfV1 = flowX.getCPUPtr();
+            double* ptrOfV2 = flowY.getCPUPtr();
 
-//            int sz = 128;
-//            int imgScale = 4;
-//            double maxL = 0.3;
-//            int spacing = 2;
-//            int length = 10;
-//            double minPercentage = 0.1;
+            int sz = 128;
+            int imgScale = 4;
+            double maxL = 0.3;
+            int spacing = 2;
+            int length = 20;
+            double minPercentage = 0.3;
 
-//            QVector<QLine> lines;
-//            QVector<QPoint> points;
-//            for(int y = 0; y < 128; y+=spacing){
-//                for(int x = 0; x < 128; x+=spacing){
-//                    int i = x + y*128;
-//                    QLine line;
-//                    double l = qSqrt(ptrOfV1[i]*ptrOfV1[i] + ptrOfV2[i]*ptrOfV2[i]);
-//                    double percentage = qMin(1.0,l/maxL);
+            QVector<QLine> lines;
+            QVector<QPoint> points;
+            for(int y = 0; y < 128; y+=spacing){
+                for(int x = 0; x < 128; x+=spacing){
+                    int i = x + y*128;
+                    QLine line;
+                    double l = qSqrt(ptrOfV1[i]*ptrOfV1[i] + ptrOfV2[i]*ptrOfV2[i]);
+                    double percentage = qMin(1.0,l/maxL);
 
-//                    if(percentage > minPercentage){
-//                        int x2 = x + percentage*length*ptrOfV1[i];
-//                        int y2 = y + percentage*length*ptrOfV2[i];
-//                        //qDebug(QString("%1 %2 %3 %4 %5 %6").arg(x).arg(y).arg(x2).arg(y2).arg(percentage).arg(l).toLocal8Bit());
-//                        line.setLine(x*imgScale,y*imgScale,x2*imgScale,y2*imgScale);
-//                        lines.append(line);
-//                        points.append(QPoint(x*imgScale,y*imgScale));
-//                    }
-//                }
-//            }
-//            //qDebug(QString("%1").arg(lines.length()).toLocal8Bit());
+                    if(percentage > minPercentage){
+                        int x2 = x + percentage*length*ptrOfV1[i];
+                        int y2 = y + percentage*length*ptrOfV2[i];
+                        //qDebug(QString("%1 %2 %3 %4 %5 %6").arg(x).arg(y).arg(x2).arg(y2).arg(percentage).arg(l).toLocal8Bit());
+                        line.setLine(x*imgScale,y*imgScale,x2*imgScale,y2*imgScale);
+                        lines.append(line);
+                        points.append(QPoint(x*imgScale,y*imgScale));
+                    }
+                }
+            }
+            //qDebug(QString("%1").arg(lines.length()).toLocal8Bit());
 
-//            QImage imgFlow(imgScale*sz,imgScale*sz,QImage::Format_RGB888);
-//            imgFlow.fill(Qt::white);
-//            QPainter painter1(&imgFlow);
-//            QPen pointpen(Qt::red);
-//            pointpen.setWidth(2);
-//            painter1.setPen(pointpen);
-//            painter1.drawPoints(points);
-//            QPen linepen(Qt::black);
-//            painter1.setPen(linepen);
-//            painter1.drawLines(lines);
-//            painter1.end();
-//            ui->label_3->setPixmap(QPixmap::fromImage(imgFlow));
+            QImage imgFlow(imgScale*sz,imgScale*sz,QImage::Format_RGB888);
+            imgFlow.fill(Qt::white);
+            QPainter painter1(&imgFlow);
+            QPen pointpen(Qt::red);
+            pointpen.setWidth(2);
+            painter1.setPen(pointpen);
+            painter1.drawPoints(points);
+            QPen linepen(Qt::black);
+            painter1.setPen(linepen);
+            painter1.drawLines(lines);
+            painter1.end();
+            ui->label_3->setPixmap(QPixmap::fromImage(imgFlow));
         }else{
             //qDebug("No new data available!");
         }
@@ -127,15 +127,15 @@ void MainWindow::OnUpdate()
         painter.end();
         ui->label_eventwindow->setPixmap(QPixmap::fromImage(img));
 
-        int evRec, evDisc;
+        long evRec, evDisc;
         worker->getStats(evRec,evDisc);
         float p = 0;
         if(evRec > 0)
             p = 1- (float)evDisc/evRec;
 
         ui->l_proc_ratio->setText(QString("%1 %").arg(p*100,0,'g',4));
-        ui->l_proc_ev_cnt->setNum(evRec-evDisc);
-        ui->l_rec_ev_cnt->setNum(evRec);
+        ui->l_skip_ev_cnt->setNum((int)evDisc);
+        ui->l_rec_ev_cnt->setNum((int)evRec);
     }
 }
 void MainWindow::OnNewEvent(DVSEventHandler::DVSEvent e)
