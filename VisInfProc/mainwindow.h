@@ -15,7 +15,7 @@
 #include "opticflowestimator.h"
 #include "worker.h"
 
-#define FPS 40
+#define FPS 25
 
 
 namespace Ui {
@@ -35,15 +35,23 @@ signals:
 
 public slots:
     void OnUpdate();
-    void OnNewEvent(DVSEventHandler::DVSEvent e);
     void OnPlaybackFinished();
+    void OnClickStartPlayback();
+    void OnChangePlaybackFile();
 
 private:
+    void initUI();
+    void initSystem();
+    void initSignalsAndSlots();
+
+private:
+    cudaStream_t cudaStream;
     Ui::MainWindow *ui;
     FilterSettings fsettings;
     DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
+    QTime lastStatisticsUpdate;
     QVector<double> orientations;
     QVector<FilterSettings> settings;
 

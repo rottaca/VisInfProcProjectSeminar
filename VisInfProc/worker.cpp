@@ -42,8 +42,11 @@ void Worker::stopProcessing()
 
     if(wait(2000))
         qDebug("Stopped processing.");
-    else
+    else{
         qDebug("Failed to stop processing thread!");
+        terminate();
+        wait();
+    }
 }
 void Worker::run()
 {

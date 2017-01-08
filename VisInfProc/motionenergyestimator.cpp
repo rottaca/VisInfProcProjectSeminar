@@ -7,6 +7,7 @@
 #include <QFile>
 #include "settings.h"
 #include <assert.h>
+#include <nvToolsExt.h>
 
 MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> orientations)
 {
@@ -61,6 +62,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> 
     gpuEventListSize = 0;
     eventsAll = 0;
     eventsSkipped = 0;
+    gpuEventListSizeAllocated = 0;
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
@@ -114,8 +116,8 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
 
         // Flip lists
         eventReadMutex.lock();
+        // Was the last block not processed by the worker thread ? Then it is lost
         if(eventListReady && eventsR->events.length() > 0){
-            //qDebug("Events skipped: %d",eventsR->events.length());
             eventStatisticsMutex.lock();
             eventsSkipped+=eventsR->events.length();
             eventStatisticsMutex.unlock();
@@ -152,16 +154,35 @@ void MotionEnergyEstimator::startUploadEventsAsync()
     eventReadMutex.lock();
     if(eventsR->events.size() > 0)
     {
-        // Release previous array
-        if(gpuEventList != NULL)
-            gpuErrchk(cudaFree(gpuEventList));
+        int cnt = eventsR->events.length();
 
-        // Allocate buffer for event list
-        int cnt = sizeof(SimpleEvent)*eventsR->events.length();
-        gpuErrchk(cudaMalloc(&gpuEventList,cnt));
+        // Do we need more memory for the next event list ?
+        if(gpuEventListSizeAllocated < cnt){
+            // Delete old list if it exists
+            if(gpuEventList != NULL){
+#ifndef NDEBUG
+                nvtxMark("Release prev Event list");
+#endif
+                gpuErrchk(cudaFree(gpuEventList));
+            }
+
+#ifndef NDEBUG
+            nvtxMark("Alloc new Event list");
+#endif
+            // Allocate buffer for event list
+            gpuErrchk(cudaMalloc(&gpuEventList,sizeof(SimpleEvent)*cnt));
+            gpuEventListSizeAllocated = cnt;
+        }
+
         // Start asynchonous memcpy
-        gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),cnt,cudaMemcpyHostToDevice,cudaStreams[DEFAULT_STREAM_ID]));
-        gpuEventListSize = eventsR->events.length();
+#ifndef NDEBUG
+        nvtxMark("Copy events");
+#endif
+        gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),
+                                  sizeof(SimpleEvent)*cnt,cudaMemcpyHostToDevice,
+                                  cudaStreams[DEFAULT_STREAM_ID]));
+        gpuEventListSize = cnt;
+
         // Clear list and wait for next one
         eventsR->events.clear();
     }
@@ -174,8 +195,8 @@ void MotionEnergyEstimator::startUploadEventsAsync()
 
 void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
-    cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
     assert(gpuEventList != NULL);
+    cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
 
     for(int i = 0; i < orientations.length()*4; i++){
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,

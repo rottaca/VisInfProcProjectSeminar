@@ -8,7 +8,7 @@ DVSEventHandler::DVSEventHandler(QObject *parent):QThread(parent)
     operationMutex.lock();
     operationMode = IDLE;
     operationMutex.unlock();
-    playbackSpeed = -1;
+    playbackSpeed = 1;
     worker = NULL;
 }
 DVSEventHandler::~DVSEventHandler()
@@ -26,7 +26,7 @@ void DVSEventHandler::run(){
 
     switch (opModeLocal) {
     case PLAYBACK:
-        playbackFile();
+        _playbackFile();
         break;
     case ONLINE:
 
@@ -36,7 +36,7 @@ void DVSEventHandler::run(){
     }
 
 }
-void DVSEventHandler::playbackFile()
+void DVSEventHandler::_playbackFile()
 {
     playbackDataMutex.lock();
     QFile f(playbackFileName);
@@ -47,7 +47,6 @@ void DVSEventHandler::playbackFile()
 
     QByteArray buff = f.readAll();
     f.close();
-    int playSpeed = playbackSpeed;
     playbackDataMutex.unlock();
 
     if(buff.size() == 0){
@@ -72,17 +71,18 @@ void DVSEventHandler::playbackFile()
         worker->nextEvent(e);
 
         if(eventIdx < eventList.size()){
-            if(playSpeed == -1){
-                    int deltaEt = eventList.at(eventIdx).timestamp - startTimestamp;
-                    int elapsedTime = timeMeasure.nsecsElapsed()/1000;
-                    int sleepTime = deltaEt - elapsedTime;
+            // get new playback speed
+            playbackDataMutex.lock();
+            float playSpeed = playbackSpeed;
+            playbackDataMutex.unlock();
 
-                    sleepTime = qMax(0,sleepTime);
-                    if(sleepTime > 0){
-                        usleep(sleepTime);
-                    }
-            }else if (playSpeed > 0){
-                usleep(playSpeed);
+            int deltaEt = eventList.at(eventIdx).timestamp - startTimestamp;
+            int elapsedTime = timeMeasure.nsecsElapsed()/1000*playSpeed;
+            int sleepTime = deltaEt - elapsedTime;
+
+            sleepTime = qMax(0,sleepTime);
+            if(sleepTime > 0){
+                usleep(sleepTime);
             }
         }
 
@@ -168,8 +168,9 @@ QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
         // Extract event from address by assuming a DVS128 camera
         DVSEvent e;
         e.On = ad & 0x01;       // Polarity: LSB
-        e.posX = ((ad >> 0x01) & 0x7F);  // X: 0 - 127
-        e.posY = ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
+        // flip axis to match qt's image coordinate system
+        e.posX = 127 - ((ad >> 0x01) & 0x7F);  // X: 0 - 127
+        e.posY = 127 - ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
         e.timestamp = time;
 
         //if(!e.On)
@@ -180,11 +181,11 @@ QVector<DVSEventHandler::DVSEvent> DVSEventHandler::parseFile(QByteArray &buff){
     return events;
 }
 
-void DVSEventHandler::PlayBackFile(QString fileName, int speedus)
+void DVSEventHandler::playbackFile(QString fileName,float speed)
 {
     playbackDataMutex.lock();
     playbackFileName = fileName;
-    playbackSpeed = speedus;
+    playbackSpeed = speed;
     playbackDataMutex.unlock();
 
     operationMutex.lock();
@@ -192,4 +193,32 @@ void DVSEventHandler::PlayBackFile(QString fileName, int speedus)
     operationMutex.unlock();
 
     start();
+}
+
+void DVSEventHandler::abort()
+{
+
+    qDebug("Stopping playback...");
+    operationMutex.lock();
+    operationMode = IDLE;
+    operationMutex.unlock();
+
+    if(wait(2000))
+        qDebug("Stopped playback.");
+    else{
+        qDebug("Failed to stop playback thread!");
+        terminate();
+        wait();
+    }
+
+    switch (operationMode) {
+    case PLAYBACK:
+
+        break;
+    case ONLINE:
+
+        break;
+    default:
+        break;
+    }
 }

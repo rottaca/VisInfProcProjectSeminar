@@ -9,7 +9,7 @@
 #include <cuda_runtime.h>
 
 extern void cuda2DBufferToRGBImage(int sx, int sy,double min, double max,
-                                        double* gpuBuffer, unsigned char* gpuImage);
+                                        double* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream);
 
 /**
  * @brief The Filter2D class stores the filter coefficients for a 2d filter.

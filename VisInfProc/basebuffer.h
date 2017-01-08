@@ -6,6 +6,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "cuda_helper.h"
+#include <nvToolsExt.h>
 
 class BaseBuffer
 {
@@ -20,6 +21,10 @@ public:
 
     long getBufferItemCnt() const{
         return itemCnt;
+    }
+
+    void setCudaStream(cudaStream_t stream){
+        cudaStream = stream;
     }
 
     void copyFrom(const BaseBuffer& other);
@@ -91,6 +96,8 @@ protected:
 
     mutable bool gpuValid,cpuValid;
     mutable long itemCnt;
+
+    cudaStream_t cudaStream;
 };
 
 #endif // BASEBUFFER_H

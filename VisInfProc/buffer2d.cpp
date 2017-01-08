@@ -67,6 +67,9 @@ QImage Buffer2D::toImage(double min, double max) const
     double mx = max;
     double mn = min;
 
+#ifndef NDEBUG
+    nvtxRangeId_t id = nvtxRangeStart("2D-Buffer to Image");
+#endif
     // Compute max and min on cpu if necessary -> BAD
     if(min == 0 && max == 0){
         if(!cpuValid)
@@ -84,8 +87,12 @@ QImage Buffer2D::toImage(double min, double max) const
     if(gpuImage == NULL)
         gpuImage = static_cast<unsigned char*>(cudaCreateBuffer(itemCnt*3));
 
-    cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage);
-    cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3);
+    cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage,cudaStream);
+    cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3,cudaStream);
+
+#ifndef NDEBUG
+    nvtxRangeEnd(id);
+#endif
 
     return img;
 }

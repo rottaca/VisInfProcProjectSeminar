@@ -3,6 +3,8 @@
 
 #include "cuda_helper.h"
 #include <cuda_runtime.h>
+#include <cuda.h>
+#include <nvToolsExt.h>
 
 #include <QtMath>
 #include <QList>
@@ -10,39 +12,19 @@
 #include <QPoint>
 #include <QLine>
 #include <QtMath>
+#include <QFileDialog>
+#include <QtSerialPort/QSerialPortInfo>
+#include <QtSerialPort/QSerialPort>
 
-#include "buffer1d.h"
-#include "buffer2d.h"
-#include "buffer3d.h"
+#include "settings.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
-
-    gpuErrchk(cudaSetDevice(0));
-
-    worker = new Worker();
-    dvsEventHandler.setWorker(worker);
-    FilterSettings fset = FilterSettings::getSettings(FilterSettings::SPEED_25);
-    FilterSettings fset2 = FilterSettings::getSettings(FilterSettings::SPEED_25);
-
-    settings.append(fset);
-    //settings.append(fset2);
-    orientations.append(qDegreesToRadians(0.0f));
-    orientations.append(qDegreesToRadians(90.0f));
-    worker->createOpticFlowEstimator(settings,orientations);
-
-    connect(&updateTimer,SIGNAL(timeout()),this,SLOT(OnUpdate()));
-    connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
-    connect(&dvsEventHandler,SIGNAL(OnPlaybackFinished()),this,SLOT(OnPlaybackFinished()));
-
-    worker->start();
-
-    dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat");
-    //dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_wall_take_2_2016-12-22.aedat");
-    //dvsEventHandler.PlayBackFile("/tausch/scale4/mnist_0_scale04_0550.aedat");
+    initUI();
+    initSystem();
+    initSignalsAndSlots();
 
     updateTimer.start(1000/FPS);
 }
@@ -50,21 +32,59 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete worker;
+    cudaStreamDestroy(cudaStream);
 }
+
+void MainWindow::initUI()
+{
+    ui->setupUi(this);
+    lastStatisticsUpdate.start();
+    Q_FOREACH(QSerialPortInfo port, QSerialPortInfo::availablePorts()) {
+            ui->cb_ports->addItem(port.portName());
+        }
+}
+
+void MainWindow::initSystem()
+{
+    gpuErrchk(cudaSetDevice(0));
+    cudaStreamCreate(&cudaStream);
+
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_50));
+
+    orientations.append(qDegreesToRadians(0.0f));
+    //orientations.append(qDegreesToRadians(90.0f));
+
+    worker = new Worker();
+    dvsEventHandler.setWorker(worker);
+}
+
+void MainWindow::initSignalsAndSlots()
+{
+    connect(&updateTimer,SIGNAL(timeout()),this,SLOT(OnUpdate()));
+    connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
+    connect(&dvsEventHandler,SIGNAL(OnPlaybackFinished()),this,SLOT(OnPlaybackFinished()));
+    connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(OnChangePlaybackFile()));
+    connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(OnClickStartPlayback()));
+}
+
 void MainWindow::OnUpdate()
 {
     if(worker->getIsProcessing()){
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
         if(time != -1){
-            worker->getMotionEnergy(0,1,oppMoEnergy2);
+            worker->getMotionEnergy(1,0,oppMoEnergy2);
             worker->getOpticFlow(flowX,flowY);
+            flowX.setCudaStream(cudaStream);
+            flowY.setCudaStream(cudaStream);
+            oppMoEnergy1.setCudaStream(cudaStream);
+            oppMoEnergy2.setCudaStream(cudaStream);
 
             QImage img1 = oppMoEnergy1.toImage(-0.3,0.3);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
             QImage img2 = oppMoEnergy2.toImage(-0.3,0.3);
             ui->label_2->setPixmap(QPixmap::fromImage(img2));
-
-            ui->l_timestamp->setText(QString("%1").arg(time));
 
             // TODO Move to GPU
             double* ptrOfV1 = flowX.getCPUPtr();
@@ -79,9 +99,9 @@ void MainWindow::OnUpdate()
 
             QVector<QLine> lines;
             QVector<QPoint> points;
-            for(int y = 0; y < 128; y+=spacing){
-                for(int x = 0; x < 128; x+=spacing){
-                    int i = x + y*128;
+            for(int y = 0; y < DVS_RESOLUTION_HEIGHT; y+=spacing){
+                for(int x = 0; x < DVS_RESOLUTION_WIDTH; x+=spacing){
+                    int i = x + y*DVS_RESOLUTION_WIDTH;
                     QLine line;
                     double l = qSqrt(ptrOfV1[i]*ptrOfV1[i] + ptrOfV2[i]*ptrOfV2[i]);
                     double percentage = qMin(1.0,l/maxL);
@@ -120,33 +140,58 @@ void MainWindow::OnUpdate()
             points[i].setX(ev.at(i).posX);
             points[i].setY(ev.at(i).posY);
         }
-        QImage img(128,128,QImage::Format_RGB888);
+        QImage img(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
         img.fill(Qt::white);
         QPainter painter(&img);
         painter.drawPoints(points,ev.length());
         painter.end();
         ui->label_eventwindow->setPixmap(QPixmap::fromImage(img));
 
-        long evRec, evDisc;
-        worker->getStats(evRec,evDisc);
-        float p = 0;
-        if(evRec > 0)
-            p = 1- (float)evDisc/evRec;
+        if(lastStatisticsUpdate.elapsed() > 500){
+            long evRec, evDisc;
+            worker->getStats(evRec,evDisc);
+            float p = 0;
+            if(evRec > 0)
+                p = 1- (float)evDisc/evRec;
 
-        ui->l_proc_ratio->setText(QString("%1 %").arg(p*100,0,'g',4));
-        ui->l_skip_ev_cnt->setNum((int)evDisc);
-        ui->l_rec_ev_cnt->setNum((int)evRec);
+            ui->l_proc_ratio->setText(QString("%1 %").arg(p*100,0,'g',4));
+            ui->l_skip_ev_cnt->setNum((int)evDisc);
+            ui->l_rec_ev_cnt->setNum((int)evRec);
+            ui->l_timestamp->setNum((int)time);
+            lastStatisticsUpdate.restart();
+        }
     }
 }
-void MainWindow::OnNewEvent(DVSEventHandler::DVSEvent e)
-{
-    worker->nextEvent(e);
-}
+
 void MainWindow::OnPlaybackFinished()
 {
     worker->stopProcessing();
-//    worker->createOpticFlowEstimator(settings,orientations);
-//    worker->start();
+    ui->b_start_playback->setText("Start");
+}
 
-    //dvsEventHandler.PlayBackFile("/tausch/BottiBot/dvs128_towers_take_1_2016-12-22.aedat");
+void MainWindow::OnClickStartPlayback(){
+    if(worker->getIsProcessing()){
+        worker->stopProcessing();
+        dvsEventHandler.abort();
+        ui->b_start_playback->setText("Start");
+
+    }else{
+
+        ui->b_start_playback->setText("Stop");
+        QString file = ui->le_file_name_playback->text();
+        float speed = ui->sb_play_speed->value()/100.0f;
+
+        worker->createOpticFlowEstimator(settings,orientations);
+        worker->start();
+        dvsEventHandler.playbackFile(file,speed);
+    }
+}
+
+void MainWindow::OnChangePlaybackFile()
+{
+    QString fileName = QFileDialog::getOpenFileName(this,
+        tr("Open Playback file"), "~", tr("Playback files (*.aedat)"));
+
+    if(!fileName.isEmpty())
+        ui->le_file_name_playback->setText(fileName);
 }

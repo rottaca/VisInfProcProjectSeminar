@@ -8,7 +8,7 @@
 
 BaseBuffer::BaseBuffer()
 {
-
+    cudaStream = 0;
     cpuBuffer = NULL;
     gpuBuffer = NULL;
     gpuImage = NULL;
@@ -112,7 +112,8 @@ void BaseBuffer::downloadBuffer() const
     if(cpuBuffer == NULL)
         cpuBuffer = new double[itemCnt];
 
-    cudaDownloadBuffer(gpuBuffer,cpuBuffer,itemCnt*sizeof(double));
+    cudaDownloadBuffer(gpuBuffer,cpuBuffer,itemCnt*sizeof(double),cudaStream);
+    cudaStreamSynchronize(cudaStream);
     cpuValid = true;
     //qDebug("Downloading buffer");
 }
@@ -124,7 +125,8 @@ void BaseBuffer::uploadBuffer() const
     if(gpuBuffer == NULL)
         gpuBuffer = static_cast<double*>(cudaCreateBuffer(itemCnt*sizeof(double)));
 
-    cudaUploadBuffer(cpuBuffer,gpuBuffer,itemCnt*sizeof(double));
+    cudaUploadBuffer(cpuBuffer,gpuBuffer,itemCnt*sizeof(double),cudaStream);
+    cudaStreamSynchronize(cudaStream);
     gpuValid = true;
     //qDebug("Uploading buffer");
 }

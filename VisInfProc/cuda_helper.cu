@@ -18,14 +18,14 @@ __host__ void* cudaCreateBuffer(long size){
     }
     return gpuPtr;
 }
-__host__ void cudaUploadBuffer(void* cpuBuffPtr, void* gpuBuffPtr,long size){
-    gpuErrchk(cudaMemcpy(gpuBuffPtr,cpuBuffPtr,size,cudaMemcpyHostToDevice));
+__host__ void cudaUploadBuffer(void* cpuBuffPtr, void* gpuBuffPtr,long size,cudaStream_t stream){
+    gpuErrchk(cudaMemcpyAsync(gpuBuffPtr,cpuBuffPtr,size,cudaMemcpyHostToDevice,stream));
 }
-__host__ void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size){
-    gpuErrchk(cudaMemcpy(cpuBuffPtr,gpuBuffPtr,size,cudaMemcpyDeviceToHost));
+__host__ void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size,cudaStream_t stream){
+    gpuErrchk(cudaMemcpyAsync(cpuBuffPtr,gpuBuffPtr,size,cudaMemcpyDeviceToHost,stream));
 }
-__host__ void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size){
-    gpuErrchk(cudaMemcpy(gpuBuffPtrDest,gpuBuffPtrSrc,size,cudaMemcpyDeviceToDevice));
+__host__ void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size,cudaStream_t stream){
+    gpuErrchk(cudaMemcpyAsync(gpuBuffPtrDest,gpuBuffPtrSrc,size,cudaMemcpyDeviceToDevice,stream));
 }
 __host__ void cudaFreeBuffer(void* gpuBuffPtr){
     gpuErrchk(cudaFree(gpuBuffPtr));
@@ -37,8 +37,8 @@ __global__ void kernelSetDoubleBuffer(double* gpuBuffPtr, double v, long size){
         gpuBuffPtr[index] = v;
 }
 
-__host__ void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size){
+__host__ void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size,cudaStream_t stream){
     // Run through filter buffer
     long blocks = ceil((float)size/THREADS_PER_BLOCK);
-    kernelSetDoubleBuffer<<<blocks,THREADS_PER_BLOCK>>>(gpuBuffPtr,v,size);
+    kernelSetDoubleBuffer<<<blocks,THREADS_PER_BLOCK,0,stream>>>(gpuBuffPtr,v,size);
 }

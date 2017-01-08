@@ -17,6 +17,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
     int filterPos = threadIdx.x + blockIdx.x * blockDim.x;
     // Idx valid
     if (filterPos < fn){
+        double filterVal = gpuFilter[filterPos];
         // Compute x,y,z coodinates in buffer
         int fz = filterPos / fs_xy;
         int fxy = filterPos % fs_xy;
@@ -57,7 +58,8 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
                 // Check for valid buffer position (filp buffer z)
                 if(bx >= 0 && bx < bsx && by >= 0 && by < bsy){
                     int bufferPos = bPos_tmp + by*bsx + bx;
-                    gpuBuffer[bufferPos] += gpuFilter[filterPos];
+                    //atomicAdd(gpuBuffer + bufferPos,filterVal);
+                    gpuBuffer[bufferPos] += filterVal;
                 }
             }
         }

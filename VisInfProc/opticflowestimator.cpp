@@ -4,6 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include "cuda_helper.h"
+#include <nvToolsExt.h>
 
 OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations)
 {
@@ -88,6 +89,10 @@ void OpticFlowEstimator::process()
     if(cnt == 0)
         return;
 
+#ifndef NDEBUG
+    nvtxRangeId_t id = nvtxRangeStart("Processing Block");
+    nvtxMark("Upload Events");
+#endif
     // Upload event lists to gpu
     //qDebug("Upload events");
     for(int i = 0; i < energyEstimatorCnt; i++){
@@ -95,6 +100,9 @@ void OpticFlowEstimator::process()
             motionEnergyEstimators[i]->startUploadEventsAsync();
     }
 
+#ifndef NDEBUG
+    nvtxMark("Process events");
+#endif
     //qDebug("Start processing");
     // Start parallel batch processing of events
     for(int i = 0; i < energyEstimatorCnt; i++){
@@ -102,6 +110,9 @@ void OpticFlowEstimator::process()
             motionEnergyEstimators[i]->startProcessEventsBatchAsync();
     }
 
+#ifndef NDEBUG
+    nvtxMark("Read Result");
+#endif
    // qDebug("Read result");
     motionEnergyMutex.lock();
     // Start parallel reading of opponent motion energy
@@ -111,7 +122,9 @@ void OpticFlowEstimator::process()
                         &gpuOpponentMotionEnergies[i*orientations.length()]);
         }
     }
-
+#ifndef NDEBUG
+    nvtxMark("Sync streams");
+#endif
     //qDebug("Sync");
     // Syncronize all streams and wait for them to finish
     for(int i = 0; i < energyEstimatorCnt; i++){
@@ -119,18 +132,33 @@ void OpticFlowEstimator::process()
             motionEnergyEstimators[i]->syncStreams();
         }
     }
+    // The optic flow stored in member variables is old
     opticFlowUpToDate = false;
     motionEnergyMutex.unlock();
+
+#ifndef NDEBUG
+    nvtxRangeEnd(id);
+#endif
 }
 
 void OpticFlowEstimator::computeOpticFlow(){
+
+#ifndef NDEBUG
+    nvtxRangeId_t id = nvtxRangeStart("Optic Flow");
+#endif
+    // Start optic flow computation
     for(int i = 0; i < 1; i++){
         cudaComputeOpticFlow(opticFlowVec[0].getSizeX(),opticFlowVec[0].getSizeY(),
                 opticFlowVec[0].getGPUPtr(),opticFlowVec[1].getGPUPtr(),
-                gpuArrgpuOpponentMotionEnergies + orientations.length()*i,gpuOrientations,orientations.length(),cudaStreams[i]);
+                gpuArrgpuOpponentMotionEnergies + orientations.length()*i,gpuOrientations,orientations.length(),
+                cudaStreams[i]);
     }
+    // Synchronize
     for(int i = 0; i < energyEstimatorCnt; i++){
         cudaStreamSynchronize(cudaStreams[i]);
     }
     opticFlowUpToDate = true;
+#ifndef NDEBUG
+    nvtxRangeEnd(id);
+#endif
 }

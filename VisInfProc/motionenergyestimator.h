@@ -158,8 +158,10 @@ private:
     QMutex eventReadMutex;
     // Gpu ptr for eventsR
     SimpleEvent* gpuEventList;
-    // Size of the uploaded event list
+    // Size of the uploaded event list (Event count)
     int gpuEventListSize;
+    // Size of the allocated memory (Event count), increases over time to avoid reallocation for smaller blocks
+    int gpuEventListSizeAllocated;
     // True, if a new event list is ready for processing
     bool eventListReady;
 

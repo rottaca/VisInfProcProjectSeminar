@@ -29,21 +29,24 @@ public:
         operationMutex.unlock();
     }
 
+    void abort();
+
     void run();
 
 signals:
     void OnPlaybackFinished();
 
 public slots:
-    void PlayBackFile(QString fileName, int speedus = -1);
+    void playbackFile(QString fileName, float speed);
+
 
 private:
     QVector<DVSEvent> parseFile(QByteArray &buff);
-    void playbackFile();
+    void _playbackFile();
 
 private:
     QString playbackFileName;
-    int playbackSpeed;
+    float playbackSpeed;
     QMutex playbackDataMutex;
 
     typedef enum OperationMode{IDLE,PLAYBACK,ONLINE} OperationMode;
