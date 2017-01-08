@@ -18,7 +18,7 @@ Buffer2D::Buffer2D(int sx, int sy):BaseBuffer()
     this->sy = sy;
     itemCnt = sx*sy;
     createCPUBuffer(itemCnt);
-    memset(cpuBuffer,0,itemCnt*sizeof(double));
+    memset(cpuBuffer,0,itemCnt*sizeof(float));
     cpuValid = true;
 }
 Buffer2D::Buffer2D(const Buffer2D& other):BaseBuffer()
@@ -36,7 +36,7 @@ Buffer2D &Buffer2D::operator=(const Buffer2D& other)
     return *this;
 }
 
-double& Buffer2D::operator()(int x, int y)
+float& Buffer2D::operator()(int x, int y)
 {
     assert(x >= 0 && x < sx);
     assert(y >= 0 && y < sy);
@@ -62,10 +62,10 @@ void Buffer2D::resize(int sx, int sy)
     gpuValid = true;
 }
 
-QImage Buffer2D::toImage(double min, double max) const
+QImage Buffer2D::toImage(float min, float max) const
 {
-    double mx = max;
-    double mn = min;
+    float mx = max;
+    float mn = min;
 
 #ifndef NDEBUG
     nvtxRangeId_t id = nvtxRangeStart("2D-Buffer to Image");

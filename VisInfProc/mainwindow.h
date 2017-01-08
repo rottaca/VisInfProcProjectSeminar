@@ -52,7 +52,7 @@ private:
     Worker* worker;
     QTimer updateTimer;
     QTime lastStatisticsUpdate;
-    QVector<double> orientations;
+    QVector<float> orientations;
     QVector<FilterSettings> settings;
 
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;

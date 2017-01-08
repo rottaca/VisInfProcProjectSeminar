@@ -9,13 +9,13 @@
 #include <QVector>
 
 extern void cudaComputeOpticFlow(int sx, int sy,
-                                 double* gpuFlowX, double* gpuFlowY,
-                                 double** gpuArrGpuEnergy, double* gpuArrOrientations, int orientationCnt, cudaStream_t stream);
+                                 float* gpuFlowX, float* gpuFlowY,
+                                 float** gpuArrGpuEnergy, float* gpuArrOrientations, int orientationCnt, cudaStream_t stream);
 
 class OpticFlowEstimator
 {
 public:
-    OpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations);
+    OpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations);
     ~OpticFlowEstimator();
 
     /**
@@ -105,8 +105,8 @@ private:
     // Pointer to array of motion energy estimators
     MotionEnergyEstimator **motionEnergyEstimators;
     // All covered orientations
-    QVector<double> orientations;
-    double * gpuOrientations;
+    QVector<float> orientations;
+    float * gpuOrientations;
     // All covered filter settings
     QVector<FilterSettings> settings;
     // Contains the optic flow in x and y direction for each pixel
@@ -116,9 +116,9 @@ private:
     // Pointer to array of 2d buffer pointers
     Buffer2D **opponentMotionEnergies;
     // CPU array of GPU pointers
-    double **gpuOpponentMotionEnergies;
+    float **gpuOpponentMotionEnergies;
     // GPU array of GPU pointers
-    double **gpuArrgpuOpponentMotionEnergies;
+    float **gpuArrgpuOpponentMotionEnergies;
     // Array of timestamps of last opponent motion energy updates
     long *updateTimeStamps;
 

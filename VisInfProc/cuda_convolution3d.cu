@@ -7,9 +7,9 @@
 #include "cuda_settings.h"
 #include <math.h>
 
-__global__ void kernelConvolute3D(double* gpuBuffer,
+__global__ void kernelConvolute3D(float* gpuBuffer,
                                   int writeIdx, int bsx, int bsy, int bsz,
-                                  double* gpuFilter, int fsx, int fsy, int fsz,
+                                  float* gpuFilter, int fsx, int fsy, int fsz,
                                   int px, int py,
                                   int fs_xy,int fn){
 
@@ -37,9 +37,9 @@ __global__ void kernelConvolute3D(double* gpuBuffer,
     }
 }
 
-__host__ void cudaConvolution3D(double* gpuBuffer,
+__host__ void cudaConvolution3D(float* gpuBuffer,
                               int writeIdx, int bsx, int bsy, int bsz,
-                              double* gpuFilter, int fsx, int fsy, int fsz,
+                              float* gpuFilter, int fsx, int fsy, int fsz,
                                 int px, int py){
     // Run through filter buffer
     long blocks = ceil((float)(fsx*fsy*fsz)/THREADS_PER_BLOCK);

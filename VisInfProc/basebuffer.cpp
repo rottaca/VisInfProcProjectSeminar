@@ -53,7 +53,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
         if(gpuBuffer == NULL)
             createGPUBuffer(szNew);
 
-        cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(double));
+        cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(float));
         gpuValid = true;
         cpuValid = false;
     }else if(other.isCPUValid()){
@@ -61,7 +61,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
         if(cpuBuffer == NULL)
             createCPUBuffer(szNew);
 
-        memcpy(cpuBuffer,other.getCPUPtr(),szNew*sizeof(double));
+        memcpy(cpuBuffer,other.getCPUPtr(),szNew*sizeof(float));
         gpuValid = false;
         cpuValid = true;
     }else{
@@ -83,7 +83,7 @@ BaseBuffer& BaseBuffer::operator-=(const BaseBuffer &other)
         downloadBuffer();
 
     gpuValid = false;
-    double * ptrOther = other.getCPUPtr();
+    float * ptrOther = other.getCPUPtr();
     for(int i = 0; i < getBufferItemCnt();i++){
         cpuBuffer[i] -= ptrOther[i];
     }
@@ -97,7 +97,7 @@ BaseBuffer& BaseBuffer::operator+=(const BaseBuffer &other)
         downloadBuffer();
 
     gpuValid = false;
-    double * ptrOther = other.getCPUPtr();
+    float * ptrOther = other.getCPUPtr();
     for(int i = 0; i < getBufferItemCnt();i++){
         cpuBuffer[i] += ptrOther[i];
     }
@@ -110,9 +110,9 @@ void BaseBuffer::downloadBuffer() const
     assert(gpuValid);
 
     if(cpuBuffer == NULL)
-        cpuBuffer = new double[itemCnt];
+        cpuBuffer = new float[itemCnt];
 
-    cudaDownloadBuffer(gpuBuffer,cpuBuffer,itemCnt*sizeof(double),cudaStream);
+    cudaDownloadBuffer(gpuBuffer,cpuBuffer,itemCnt*sizeof(float),cudaStream);
     cudaStreamSynchronize(cudaStream);
     cpuValid = true;
     //qDebug("Downloading buffer");
@@ -123,9 +123,9 @@ void BaseBuffer::uploadBuffer() const
     assert(cpuValid);
 
     if(gpuBuffer == NULL)
-        gpuBuffer = static_cast<double*>(cudaCreateBuffer(itemCnt*sizeof(double)));
+        gpuBuffer = static_cast<float*>(cudaCreateBuffer(itemCnt*sizeof(float)));
 
-    cudaUploadBuffer(cpuBuffer,gpuBuffer,itemCnt*sizeof(double),cudaStream);
+    cudaUploadBuffer(cpuBuffer,gpuBuffer,itemCnt*sizeof(float),cudaStream);
     cudaStreamSynchronize(cudaStream);
     gpuValid = true;
     //qDebug("Uploading buffer");
@@ -135,12 +135,12 @@ void BaseBuffer::createCPUBuffer(long sz)
 {
     if(cpuBuffer != NULL)
         delete[] cpuBuffer;
-    cpuBuffer = new double[sz];
+    cpuBuffer = new float[sz];
 }
 
 void BaseBuffer::createGPUBuffer(long sz)
 {
     if(gpuBuffer != NULL)
         cudaFreeBuffer(gpuBuffer);
-    gpuBuffer = static_cast<double*>(cudaCreateBuffer(sz*sizeof(double)));
+    gpuBuffer = static_cast<float*>(cudaCreateBuffer(sz*sizeof(float)));
 }

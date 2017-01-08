@@ -28,7 +28,7 @@ extern void cudaUploadBuffer(void* cpuBuffPtr, void * gpuBuffPtr,long size,cudaS
 extern void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size,cudaStream_t stream = 0);
 extern void cudaFreeBuffer(void* gpuBuffPtr);
 extern void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size,cudaStream_t stream = 0);
-extern void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size,cudaStream_t stream = 0);
+extern void cudaSetDoubleBuffer(float* gpuBuffPtr,float v, long size,cudaStream_t stream = 0);
 
 #endif // CUDA_HELPER_H
 

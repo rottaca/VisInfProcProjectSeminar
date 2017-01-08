@@ -23,7 +23,7 @@ Worker::~Worker(){
     eventSemaphoreW = NULL;
 }
 
-void Worker::createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations)
+void Worker::createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations)
 {
     if(isProcessing)
         stopProcessing();

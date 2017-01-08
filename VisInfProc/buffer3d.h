@@ -16,7 +16,7 @@ public:
     Buffer3D(const Buffer3D& other);
 
     Buffer3D &operator=(const Buffer3D& other);
-    double& operator()(int x,int y,int z);
+    float& operator()(int x,int y,int z);
 
     int getSizeX() const{
         return sx;
@@ -29,9 +29,9 @@ public:
     }
 
     void resize(int sx, int sy, int sz);
-    QImage toImageXY(int pos, double min = 0, double max = 0) const;
-    QImage toImageXZ(int pos, double min = 0, double max = 0) const;
-    QImage toImageYZ(int pos, double min = 0, double max = 0) const;
+    QImage toImageXY(int pos, float min = 0, float max = 0) const;
+    QImage toImageXZ(int pos, float min = 0, float max = 0) const;
+    QImage toImageYZ(int pos, float min = 0, float max = 0) const;
 
 private:
     int sx,sy,sz;

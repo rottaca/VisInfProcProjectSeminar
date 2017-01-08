@@ -50,11 +50,11 @@ void MainWindow::initSystem()
     cudaStreamCreate(&cudaStream);
 
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
     //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_50));
 
     orientations.append(qDegreesToRadians(0.0f));
-    //orientations.append(qDegreesToRadians(90.0f));
+    orientations.append(qDegreesToRadians(90.0f));
 
     worker = new Worker();
     dvsEventHandler.setWorker(worker);
@@ -74,28 +74,28 @@ void MainWindow::OnUpdate()
     if(worker->getIsProcessing()){
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
         if(time != -1){
-            worker->getMotionEnergy(1,0,oppMoEnergy2);
+            worker->getMotionEnergy(0,1,oppMoEnergy2);
             worker->getOpticFlow(flowX,flowY);
             flowX.setCudaStream(cudaStream);
             flowY.setCudaStream(cudaStream);
             oppMoEnergy1.setCudaStream(cudaStream);
             oppMoEnergy2.setCudaStream(cudaStream);
 
-            QImage img1 = oppMoEnergy1.toImage(-0.3,0.3);
+            QImage img1 = oppMoEnergy1.toImage(-0.5,0.5);
             ui->label_1->setPixmap(QPixmap::fromImage(img1));
-            QImage img2 = oppMoEnergy2.toImage(-0.3,0.3);
+            QImage img2 = oppMoEnergy2.toImage(-0.5,0.5);
             ui->label_2->setPixmap(QPixmap::fromImage(img2));
 
             // TODO Move to GPU
-            double* ptrOfV1 = flowX.getCPUPtr();
-            double* ptrOfV2 = flowY.getCPUPtr();
+            float* ptrOfV1 = flowX.getCPUPtr();
+            float* ptrOfV2 = flowY.getCPUPtr();
 
             int sz = 128;
             int imgScale = 4;
-            double maxL = 0.3;
+            float maxL = 0.3;
             int spacing = 2;
             int length = 20;
-            double minPercentage = 0.3;
+            float minPercentage = 0.3;
 
             QVector<QLine> lines;
             QVector<QPoint> points;
@@ -103,8 +103,8 @@ void MainWindow::OnUpdate()
                 for(int x = 0; x < DVS_RESOLUTION_WIDTH; x+=spacing){
                     int i = x + y*DVS_RESOLUTION_WIDTH;
                     QLine line;
-                    double l = qSqrt(ptrOfV1[i]*ptrOfV1[i] + ptrOfV2[i]*ptrOfV2[i]);
-                    double percentage = qMin(1.0,l/maxL);
+                    float l = qSqrt(ptrOfV1[i]*ptrOfV1[i] + ptrOfV2[i]*ptrOfV2[i]);
+                    float percentage = qMin(1.0f,l/maxL);
 
                     if(percentage > minPercentage){
                         int x2 = x + percentage*length*ptrOfV1[i];

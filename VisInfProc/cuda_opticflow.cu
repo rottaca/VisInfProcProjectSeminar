@@ -6,15 +6,15 @@
 
 
 __global__ void kernelComputeOpticFlow(int n,
-                                       double* gpuFlowX,double* gpuFlowY,
-                                       double** gpuEnergy,double* orientations, int orientationCnt){
+                                       float* gpuFlowX,float* gpuFlowY,
+                                       float** gpuEnergy,float* orientations, int orientationCnt){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n){
         gpuFlowX[idx] = 0;
         gpuFlowY[idx] = 0;
         for(int i = 0; i  < orientationCnt; i++)
         {
-            double energy = gpuEnergy[i][idx];
+            float energy = gpuEnergy[i][idx];
             gpuFlowX[idx] += energy*cos(orientations[i]);
             gpuFlowY[idx] += energy*sin(orientations[i]);
         }
@@ -22,8 +22,8 @@ __global__ void kernelComputeOpticFlow(int n,
 }
 
 __host__ void cudaComputeOpticFlow(int sx, int sy,
-                                  double* gpuFlowX, double* gpuFlowY,
-                                  double** gpuArrGpuEnergy, double* gpuArrOrientations, int orientationCnt, cudaStream_t stream)
+                                  float* gpuFlowX, float* gpuFlowY,
+                                  float** gpuArrGpuEnergy, float* gpuArrOrientations, int orientationCnt, cudaStream_t stream)
 {
     int n = sx*sy;
     long blocks = ceil((float)n/THREADS_PER_BLOCK);

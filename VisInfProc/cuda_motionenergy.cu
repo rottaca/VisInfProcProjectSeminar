@@ -8,8 +8,8 @@
 
 #define MAX_SHARED_GPU_EVENTS 256
 __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
-                            double* gpuFilter, int fsx, int fsy, int fsz,
-                            double* gpuBuffer, int ringBufferIdx,
+                            float* gpuFilter, int fsx, int fsy, int fsz,
+                            float* gpuBuffer, int ringBufferIdx,
                             int bsx, int bsy, int bsz,
                             int fs_xy, int fn){
 
@@ -17,7 +17,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
     int filterPos = threadIdx.x + blockIdx.x * blockDim.x;
     // Idx valid
     if (filterPos < fn){
-        double filterVal = gpuFilter[filterPos];
+        float filterVal = gpuFilter[filterPos];
         // Compute x,y,z coodinates in buffer
         int fz = filterPos / fs_xy;
         int fxy = filterPos % fs_xy;
@@ -32,7 +32,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
 
         // Per block shared memory
         __shared__ SimpleEvent gpuEventListShared[MAX_SHARED_GPU_EVENTS];
-        int eventGroupCnt = ceil(gpuEventListSize/(double)MAX_SHARED_GPU_EVENTS);
+        int eventGroupCnt = ceil(gpuEventListSize/(float)MAX_SHARED_GPU_EVENTS);
         // Load events blockwise
         for(int eventGroupIdx = 0; eventGroupIdx<eventGroupCnt; eventGroupIdx++){
             int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+threadIdx.x/2;
@@ -58,8 +58,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
                 // Check for valid buffer position (filp buffer z)
                 if(bx >= 0 && bx < bsx && by >= 0 && by < bsy){
                     int bufferPos = bPos_tmp + by*bsx + bx;
-                    //atomicAdd(gpuBuffer + bufferPos,filterVal);
-                    gpuBuffer[bufferPos] += filterVal;
+                    atomicAdd(gpuBuffer + bufferPos,filterVal);
                 }
             }
         }
@@ -67,8 +66,8 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
 }
 
 __host__ void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
-                                          double* gpuFilter, int fsx, int fsy, int fsz,
-                                          double* gpuBuffer, int ringBufferIdx,
+                                          float* gpuFilter, int fsx, int fsy, int fsz,
+                                          float* gpuBuffer, int ringBufferIdx,
                                           int bsx, int bsy, int bsz,
                                           cudaStream_t cudaStream)
 {
@@ -82,26 +81,26 @@ __host__ void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEvent
                                                                              fs_xy,fn);
 }
 
-__global__ void kernelReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
-                                                    double* gpuConvBufferl2,
-                                                    double* gpuConvBufferr1,
-                                                    double* gpuConvBufferr2,
+__global__ void kernelReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
+                                                    float* gpuConvBufferl2,
+                                                    float* gpuConvBufferr1,
+                                                    float* gpuConvBufferr2,
                                                     int ringBufferIdx,
                                                     int bsx, int bsy, int bsz, int n,
-                                                    double* gpuEnergyBuffer){
+                                                    float* gpuEnergyBuffer){
     int bufferPos = threadIdx.x + blockIdx.x * blockDim.x;
     if(bufferPos < n){
         // Offset in ringbuffer
         int bufferPosConv = bufferPos + ringBufferIdx*bsx*bsy;
         // Get answer from all 4 corresponding buffers and compute opponent motion energy
         // get all four filter responses and reset buffers
-        double l1 = gpuConvBufferl1[bufferPosConv];
+        float l1 = gpuConvBufferl1[bufferPosConv];
         gpuConvBufferl1[bufferPosConv] = 0;
-        double l2 = gpuConvBufferl2[bufferPosConv];
+        float l2 = gpuConvBufferl2[bufferPosConv];
         gpuConvBufferl2[bufferPosConv] = 0;
-        double r1 = gpuConvBufferr1[bufferPosConv];
+        float r1 = gpuConvBufferr1[bufferPosConv];
         gpuConvBufferr1[bufferPosConv] = 0;
-        double r2 = gpuConvBufferr2[bufferPosConv];
+        float r2 = gpuConvBufferr2[bufferPosConv];
         gpuConvBufferr2[bufferPosConv] = 0;
 
         // Compute opponent motion energy
@@ -109,13 +108,13 @@ __global__ void kernelReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
     }
 }
 
-__host__ void cudaReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
-                                                double* gpuConvBufferl2,
-                                                double* gpuConvBufferr1,
-                                                double* gpuConvBufferr2,
+__host__ void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
+                                                float* gpuConvBufferl2,
+                                                float* gpuConvBufferr1,
+                                                float* gpuConvBufferr2,
                                                 int ringBufferIdx,
                                                 int bsx, int bsy, int bsz,
-                                                double* gpuEnergyBuffer,
+                                                float* gpuEnergyBuffer,
                                                 cudaStream_t cudaStream)
 {
     int n = bsx*bsy;

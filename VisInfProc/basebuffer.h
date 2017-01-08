@@ -38,21 +38,21 @@ public:
         return cpuValid;
     }
 
-    double* getCPUPtr() const{
+    float* getCPUPtr() const{
         if(!cpuValid && gpuValid)
             downloadBuffer();
         gpuValid = false;
         return cpuBuffer;
     }
 
-    double* getGPUPtr() const{
+    float* getGPUPtr() const{
         if(!gpuValid && cpuValid)
             uploadBuffer();
         cpuValid = false;
         return gpuBuffer;
     }
 
-    double getMax() const{
+    float getMax() const{
         if(!cpuValid){
             if(gpuValid)
                 downloadBuffer();
@@ -62,7 +62,7 @@ public:
 
         return *std::max_element(cpuBuffer, cpuBuffer + getBufferItemCnt());
     }
-    double getMin() const{
+    float getMin() const{
         if(!cpuValid){
             if(gpuValid)
                 downloadBuffer();
@@ -72,7 +72,7 @@ public:
         return *std::min_element(cpuBuffer, cpuBuffer + getBufferItemCnt());
     }
 
-    void fill(double v){
+    void fill(float v){
 
         if(gpuBuffer == NULL){
             createGPUBuffer(itemCnt);
@@ -90,8 +90,8 @@ protected:
     // Mutable: Allows change on const object
     // Necessary to download/upload data, this does not change the object
     // in a logical way
-    mutable double *cpuBuffer;
-    mutable double *gpuBuffer;
+    mutable float *cpuBuffer;
+    mutable float *gpuBuffer;
     mutable unsigned char   *gpuImage;
 
     mutable bool gpuValid,cpuValid;

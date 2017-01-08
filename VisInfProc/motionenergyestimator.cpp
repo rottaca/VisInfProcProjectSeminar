@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <nvToolsExt.h>
 
-MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> orientations)
+MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> orientations)
 {
     assert(orientations.length() > 0);
 
@@ -33,8 +33,8 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<double> 
     fset = new FilterSet*[orientations.length()];
     convBuffer = new Buffer3D*[bufferFilterCount];
 
-    gpuFilters = new double* [bufferFilterCount];
-    gpuConvBuffers = new double* [bufferFilterCount];
+    gpuFilters = new float* [bufferFilterCount];
+    gpuConvBuffers = new float* [bufferFilterCount];
     cudaStreams = new cudaStream_t[bufferFilterCount];
 
     for(int i = 0; i < orientations.length(); i++){
@@ -110,7 +110,7 @@ void MotionEnergyEstimator::onNewEvent(const DVSEventHandler::DVSEvent &e){
 
     int deltaT = e.timestamp - eventsW->currWindowStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
-    int timeSlotsToSkip = qFloor((double)deltaT/timePerSlot);
+    int timeSlotsToSkip = qFloor((float)deltaT/timePerSlot);
 
     if(timeSlotsToSkip != 0){
 
@@ -207,7 +207,7 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
     }
 }
 
-long MotionEnergyEstimator::startReadMotionEnergyAsync(double** gpuEnergyBuffers)
+long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
 {
     eventReadMutex.lock();
 

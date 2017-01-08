@@ -31,13 +31,13 @@ __host__ void cudaFreeBuffer(void* gpuBuffPtr){
     gpuErrchk(cudaFree(gpuBuffPtr));
 }
 
-__global__ void kernelSetDoubleBuffer(double* gpuBuffPtr, double v, long size){
+__global__ void kernelSetDoubleBuffer(float* gpuBuffPtr, float v, long size){
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     if (index < size)
         gpuBuffPtr[index] = v;
 }
 
-__host__ void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size,cudaStream_t stream){
+__host__ void cudaSetDoubleBuffer(float* gpuBuffPtr,float v, long size,cudaStream_t stream){
     // Run through filter buffer
     long blocks = ceil((float)size/THREADS_PER_BLOCK);
     kernelSetDoubleBuffer<<<blocks,THREADS_PER_BLOCK,0,stream>>>(gpuBuffPtr,v,size);

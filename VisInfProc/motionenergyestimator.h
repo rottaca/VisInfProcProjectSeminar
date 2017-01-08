@@ -20,18 +20,18 @@
 
 // External defined cuda functions
 extern void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
-                                        double* gpuFilter, int fsx, int fsy, int fsz,
-                                        double* gpuBuffer, int ringBufferIdx,
+                                        float* gpuFilter, int fsx, int fsy, int fsz,
+                                        float* gpuBuffer, int ringBufferIdx,
                                         int bsx, int bsy, int bsz,
                                         cudaStream_t cudaStream);
 
-extern void cudaReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
-                                              double* gpuConvBufferl2,
-                                              double* gpuConvBufferr1,
-                                              double* gpuConvBufferr2,
+extern void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
+                                              float* gpuConvBufferl2,
+                                              float* gpuConvBufferr1,
+                                              float* gpuConvBufferr2,
                                               int ringBufferIdx,
                                               int bsx, int bsy, int bsz,
-                                              double* gpuEnergyBuffer,
+                                              float* gpuEnergyBuffer,
                                               cudaStream_t cudaStream);
 
 #define DEFAULT_STREAM_ID 0
@@ -39,7 +39,7 @@ extern void cudaReadOpponentMotionEnergyAsync(double* gpuConvBufferl1,
 class MotionEnergyEstimator
 {
 public:
-    MotionEnergyEstimator(FilterSettings fs, QVector<double> orientations);
+    MotionEnergyEstimator(FilterSettings fs, QVector<float> orientations);
     ~MotionEnergyEstimator();
 
     FilterSettings getSettings(){
@@ -69,7 +69,7 @@ public:
      * @param gpuEnergyBuffers cpu Pointer to an cpu array of gpu buffer pointers (amount == orientations.length()
      * @return Returns the start time for the current time slot
      */
-    long startReadMotionEnergyAsync(double** gpuEnergyBuffers);
+    long startReadMotionEnergyAsync(float** gpuEnergyBuffers);
 
     /**
      * @brief syncStreams Synchronizes all streams of this motion energy estimator
@@ -109,7 +109,7 @@ public:
     typedef struct SlotEventData{
         QVector<SimpleEvent> events;        // Event list (only x and y)
         int slotsToSkip;                    // Timeslots to skip after processing the events
-        double currWindowStartTime;         // The start time in us of the current window
+        float currWindowStartTime;         // The start time in us of the current window
     }SlotEventData;
 
 private:
@@ -120,20 +120,20 @@ private:
     int bufferFilterCount;
 
     // All orientations
-    QVector<double> orientations;
+    QVector<float> orientations;
     // Filtersettings for the filter
     FilterSettings fsettings;
     // filterset for each orientation of the specified filter
     FilterSet** fset;
     // CPU array of GPU pointers (one pointer for each filter)
-    double** gpuFilters;
+    float** gpuFilters;
     // Filter sizes
     int fsx,fsy,fsz;
 
     // Convolution buffers for each filter orientation
     Buffer3D** convBuffer;
     // CPU array of GPU pointers (one pointer for each buffer)
-    double** gpuConvBuffers;
+    float** gpuConvBuffers;
     // Index into the convolution ring buffer
     int ringBufferIdx;
     // Buffer sizes
@@ -142,7 +142,7 @@ private:
     // Overall stream start time TODO: Remove and start stream at 0
     int startTime;
     // Time per timeslot
-    double timePerSlot;
+    float timePerSlot;
 
     // All events in the timewindow
     QVector<DVSEventHandler::DVSEvent> timeWindowEvents;

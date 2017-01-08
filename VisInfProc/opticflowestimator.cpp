@@ -6,7 +6,7 @@
 #include "cuda_helper.h"
 #include <nvToolsExt.h>
 
-OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector<double> orientations)
+OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations)
 {
     this->orientations = orientations;
     this->settings = settings;
@@ -15,7 +15,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opponentMotionEnergies = new Buffer2D*[energyEstimatorCnt*orientations.length()];
     updateTimeStamps = new long[energyEstimatorCnt];
 
-    gpuOpponentMotionEnergies = new double*[energyEstimatorCnt*orientations.length()];
+    gpuOpponentMotionEnergies = new float*[energyEstimatorCnt*orientations.length()];
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++){
         cudaStreamCreate(&cudaStreams[i]);
@@ -34,11 +34,11 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowVec[1].fill(0);
 
     gpuOrientations = NULL;
-    int sz = sizeof(double)*orientations.length();
+    int sz = sizeof(float)*orientations.length();
     gpuErrchk(cudaMalloc(&gpuOrientations,sz));
     gpuErrchk(cudaMemcpyAsync(gpuOrientations,orientations.data(),sz,cudaMemcpyHostToDevice,cudaStreams[0]));
     gpuArrgpuOpponentMotionEnergies = NULL;
-    sz = sizeof(double*)*energyEstimatorCnt*orientations.length();
+    sz = sizeof(float*)*energyEstimatorCnt*orientations.length();
     gpuErrchk(cudaMalloc(&gpuArrgpuOpponentMotionEnergies,sz));
     gpuErrchk(cudaMemcpyAsync(gpuArrgpuOpponentMotionEnergies,gpuOpponentMotionEnergies,sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 
