@@ -14,8 +14,9 @@
 #include "dvseventhandler.h"
 #include "opticflowestimator.h"
 #include "worker.h"
+#include "serialedvsinterface.h"
 
-#define FPS 40
+#define FPS 25
 
 
 namespace Ui {
@@ -32,21 +33,35 @@ public:
 
 signals:
     void startProcessing();
+    void sendRawCmd(QString cmd);
 
 public slots:
-    void OnUpdate();
-    void OnNewEvent(DVSEventHandler::DVSEvent e);
-    void OnPlaybackFinished();
+    void onUpdate();
+    void onPlaybackFinished();
+    void onClickStartPlayback();
+    void onChangePlaybackFile();
+    void onLineRecived(QString answ);
+    void onCmdSent(QString cmd);
+    void onClickStartStreaming();
+    void onClickConnect();
+    void onCmdEntered();
 
 private:
+    void initUI();
+    void initSystem();
+    void initSignalsAndSlots();
+
+private:
+    cudaStream_t cudaStream;
     Ui::MainWindow *ui;
     FilterSettings fsettings;
     DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
-    QList<double> orientations;
-    QList<FilterSettings> settings;
-
+    QTime lastStatisticsUpdate;
+    QVector<float> orientations;
+    QVector<FilterSettings> settings;
+    SerialeDVSInterface serial;
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
 };
 

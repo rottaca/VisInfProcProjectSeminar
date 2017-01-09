@@ -12,7 +12,7 @@ Buffer1D::Buffer1D(int size):BaseBuffer()
     assert(size > 0);
     itemCnt = size;
     createCPUBuffer(itemCnt);
-    memset(cpuBuffer,0,itemCnt*sizeof(double));
+    memset(cpuBuffer,0,itemCnt*sizeof(float));
     cpuValid = true;
 }
 
@@ -28,7 +28,7 @@ Buffer1D& Buffer1D::operator=(const Buffer1D &other)
     return *this;
 }
 
-double& Buffer1D::operator()(int i)
+float& Buffer1D::operator()(int i)
 {
     assert(i >= 0 && i < itemCnt);
     if(!cpuValid)

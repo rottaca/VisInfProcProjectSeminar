@@ -27,7 +27,7 @@ Buffer1D FilterManager::constructTemporalFilter(FilterSettings &s, enum Temporal
     return f1;
 }
 
-Buffer2D FilterManager::constructSpatialFilter(FilterSettings &s, double orientation, enum SpatialFilter type)
+Buffer2D FilterManager::constructSpatialFilter(FilterSettings &s, float orientation, enum SpatialFilter type)
 {
     // TODO Move to GPU
     Buffer2D f2(s.spatialSize,s.spatialSize);
@@ -39,9 +39,9 @@ Buffer2D FilterManager::constructSpatialFilter(FilterSettings &s, double orienta
     for(int y = -sz_2; y <= sz_2; y++){
         for(int x = -sz_2; x <= sz_2; x++){
             // TODO Optimize
-            double v =2*M_PI/(s.sigmaGabor*s.sigmaGabor)*gaussSpatial(s.sigmaGabor,x,y);
+            float v =2*M_PI/(s.sigmaGabor*s.sigmaGabor)*gaussSpatial(s.sigmaGabor,x,y);
 
-            double tmp = 2*M_PI*(fx0*x + fy0*y);
+            float tmp = 2*M_PI*(fx0*x + fy0*y);
 
             switch (type) {
             case ODD:
@@ -60,12 +60,12 @@ Buffer2D FilterManager::constructSpatialFilter(FilterSettings &s, double orienta
     return f2;
 }
 
-float FilterManager::gaussTemporal(double sigma, double mu, double t)
+float FilterManager::gaussTemporal(float sigma, float mu, float t)
 {
     return qExp(-(t-mu)*(t-mu)/(2*sigma*sigma));
 }
 
-float FilterManager::gaussSpatial(double sigma, double x, double y)
+float FilterManager::gaussSpatial(float sigma, float x, float y)
 {
     return qExp(-2*M_PI*M_PI*(x*x+y*y)/(sigma*sigma));
 }

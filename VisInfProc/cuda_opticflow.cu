@@ -6,15 +6,15 @@
 
 
 __global__ void kernelComputeOpticFlow(int n,
-                                       double* gpuFlowX,double* gpuFlowY,
-                                       double** gpuEnergy,double* orientations, int orientationCnt){
+                                       float* gpuFlowX,float* gpuFlowY,
+                                       float** gpuEnergy,float* orientations, int orientationCnt){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n){
         gpuFlowX[idx] = 0;
         gpuFlowY[idx] = 0;
         for(int i = 0; i  < orientationCnt; i++)
         {
-            double energy = gpuEnergy[i][idx];
+            float energy = gpuEnergy[i][idx];
             gpuFlowX[idx] += energy*cos(orientations[i]);
             gpuFlowY[idx] += energy*sin(orientations[i]);
         }
@@ -22,25 +22,13 @@ __global__ void kernelComputeOpticFlow(int n,
 }
 
 __host__ void cudaComputeOpticFlow(int sx, int sy,
-                                  double* gpuFlowX,double* gpuFlowY,
-                                  double** cpuArrGpuEnergy,double* cpuArrOrientations, int orientationCnt)
+                                  float* gpuFlowX, float* gpuFlowY,
+                                  float** gpuArrGpuEnergy, float* gpuArrOrientations, int orientationCnt, cudaStream_t stream)
 {
     int n = sx*sy;
     long blocks = ceil((float)n/THREADS_PER_BLOCK);
-    // Allocate GPU arrays
-    double ** gpuArrGpuEnergies;
-    gpuArrGpuEnergies = (double**)cudaCreateBuffer(orientationCnt*sizeof(double*));
-    double * gpuArrOrientations;
-    gpuArrOrientations = (double*)cudaCreateBuffer(orientationCnt*sizeof(double));
-    cudaUploadBuffer(cpuArrGpuEnergy,gpuArrGpuEnergies,orientationCnt*sizeof(double*));
-    cudaUploadBuffer(cpuArrOrientations,gpuArrOrientations,orientationCnt*sizeof(double));
-
-    kernelComputeOpticFlow<<<blocks,THREADS_PER_BLOCK>>>(
+    kernelComputeOpticFlow<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
                          n,
                          gpuFlowX,gpuFlowY,
-                         gpuArrGpuEnergies,gpuArrOrientations,orientationCnt);
-
-    // Free arrays
-    cudaFreeBuffer(gpuArrGpuEnergies);
-    cudaFreeBuffer(gpuArrOrientations);
+                         gpuArrGpuEnergy,gpuArrOrientations,orientationCnt);
 }

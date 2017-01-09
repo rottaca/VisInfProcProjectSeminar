@@ -15,7 +15,7 @@ public:
 
     Buffer1D& operator=(const Buffer1D &other);
 
-    double& operator()(int i);
+    float& operator()(int i);
 
     int getSize() const{
         return itemCnt;

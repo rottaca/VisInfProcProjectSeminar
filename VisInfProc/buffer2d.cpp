@@ -18,7 +18,7 @@ Buffer2D::Buffer2D(int sx, int sy):BaseBuffer()
     this->sy = sy;
     itemCnt = sx*sy;
     createCPUBuffer(itemCnt);
-    memset(cpuBuffer,0,itemCnt*sizeof(double));
+    memset(cpuBuffer,0,itemCnt*sizeof(float));
     cpuValid = true;
 }
 Buffer2D::Buffer2D(const Buffer2D& other):BaseBuffer()
@@ -36,7 +36,7 @@ Buffer2D &Buffer2D::operator=(const Buffer2D& other)
     return *this;
 }
 
-double& Buffer2D::operator()(int x, int y)
+float& Buffer2D::operator()(int x, int y)
 {
     assert(x >= 0 && x < sx);
     assert(y >= 0 && y < sy);
@@ -62,11 +62,14 @@ void Buffer2D::resize(int sx, int sy)
     gpuValid = true;
 }
 
-QImage Buffer2D::toImage(double min, double max) const
+QImage Buffer2D::toImage(float min, float max) const
 {
-    double mx = max;
-    double mn = min;
+    float mx = max;
+    float mn = min;
 
+#ifndef NDEBUG
+    nvtxRangeId_t id = nvtxRangeStart("2D-Buffer to Image");
+#endif
     // Compute max and min on cpu if necessary -> BAD
     if(min == 0 && max == 0){
         if(!cpuValid)
@@ -84,19 +87,12 @@ QImage Buffer2D::toImage(double min, double max) const
     if(gpuImage == NULL)
         gpuImage = static_cast<unsigned char*>(cudaCreateBuffer(itemCnt*3));
 
-    cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage);
+    cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage,cudaStream);
+    cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3,cudaStream);
 
-    cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3);
-
-//#pragma omp parallel for
-//    for(int y = 0; y < sy; y++){
-//        uchar* ptr = img.scanLine(y);
-//        double * buffPtr = cpuBuffer + y*sx;
-//        for(int x = 0; x < sx*3; x+=3){
-//            Helper::pseudoColor(buffPtr[x/3],mn,mx,
-//                    &ptr[x+0],&ptr[x+1],&ptr[x+2]);
-//        }
-//    }
+#ifndef NDEBUG
+    nvtxRangeEnd(id);
+#endif
 
     return img;
 }

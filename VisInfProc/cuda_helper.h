@@ -19,16 +19,16 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
      cudaError_t error = cudaGetLastError(); \
      if(error != cudaSuccess) \
      {\
-       printf("CUDA error: %s\n", cudaGetErrorString(error));\
+       printf("CUDA Kernel Error: %s\n", cudaGetErrorString(error));\
        exit(-1);\
      }\
 }
 extern void* cudaCreateBuffer(long size);
-extern void cudaUploadBuffer(void* cpuBuffPtr, void * gpuBuffPtr,long size);
-extern void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size);
+extern void cudaUploadBuffer(void* cpuBuffPtr, void * gpuBuffPtr,long size,cudaStream_t stream = 0);
+extern void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,long size,cudaStream_t stream = 0);
 extern void cudaFreeBuffer(void* gpuBuffPtr);
-extern void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size);
-extern void cudaSetDoubleBuffer(double* gpuBuffPtr,double v, long size);
+extern void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc,long size,cudaStream_t stream = 0);
+extern void cudaSetDoubleBuffer(float* gpuBuffPtr,float v, long size,cudaStream_t stream = 0);
 
 #endif // CUDA_HELPER_H
 

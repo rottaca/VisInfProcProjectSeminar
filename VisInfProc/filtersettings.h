@@ -26,7 +26,7 @@ public:
      */
     QString toString();
 
-    enum PredefinedSettings {DEFAULT,SPEED_25};
+    enum PredefinedSettings {DEFAULT,SPEED_50,SPEED_25,SPEED_12_5};
     static FilterSettings getSettings(enum PredefinedSettings ps);
 
 public:

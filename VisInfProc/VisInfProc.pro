@@ -4,15 +4,16 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui serialport
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = VisInfProc
 TEMPLATE = app
 
-QMAKE_CXXFLAGS += -fopenmp
-LIBS += -fopenmp
+CONFIG(release, debug|release): DEFINES += NDEBUG
+QMAKE_CXXFLAGS += -fopenmp -lnvToolsExt
+LIBS += -fopenmp -lnvToolsExt
 
 CONFIG += c++11
 
@@ -31,7 +32,8 @@ SOURCES += main.cpp\
     opticflowestimator.cpp \
     worker.cpp \
     aspectratiopixmaplabel.cpp \
-    basebuffer.cpp
+    basebuffer.cpp \
+    serialedvsinterface.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -51,7 +53,9 @@ HEADERS  += mainwindow.h \
     worker.h \
     aspectratiopixmaplabel.h \
     basebuffer.h \
-    settings.h
+    settings.h \
+    datatypes.h \
+    serialedvsinterface.h
 
 FORMS    += mainwindow.ui
 
@@ -63,14 +67,14 @@ CUDA_SOURCES =  cuda_helper.cu \
                 cuda_motionenergy.cu \
                 cuda_opticflow.cu
 
-CUDA_DIR = /usr/local/cuda-7.5
+CUDA_DIR = /usr/local/cuda
 CUDA_ARCH = sm_50 # as supported by the Tegra K1
 
 INCLUDEPATH += $$CUDA_DIR/include
 LIBS += -L $$CUDA_DIR/lib64 -lcuda -lcudart
 osx: LIBS += -F/Library/Frameworks -framework CUDA
 
-cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME}
+cuda.commands = $$CUDA_DIR/bin/nvcc -c -arch=$$CUDA_ARCH -o ${QMAKE_FILE_OUT} ${QMAKE_FILE_NAME} -lineinfo
 cuda.dependency_type = TYPE_C
 cuda.depend_command = $$CUDA_DIR/bin/nvcc -M ${QMAKE_FILE_NAME}
 cuda.input = CUDA_SOURCES

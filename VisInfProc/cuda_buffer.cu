@@ -6,12 +6,12 @@
 #include "cuda_settings.h"
 
 
-__global__ void kernel2DBufferToRGBImage(int sx, int sy, int s, double min, double max,
-                                         double* gpuBuffer, unsigned char* gpuImage){
+__global__ void kernel2DBufferToRGBImage(int sx, int sy, int s, float min, float max,
+                                         float* gpuBuffer, unsigned char* gpuImage){
 
     int buffIdx = threadIdx.x + blockIdx.x * blockDim.x;
     if(buffIdx < s){
-        double v = gpuBuffer[buffIdx];
+        float v = gpuBuffer[buffIdx];
 
         int colorIdx = round((v - min)/(max-min)*(GPU_LUT_COLORMAP_SZ-1));
         if(colorIdx < 0)
@@ -27,9 +27,9 @@ __global__ void kernel2DBufferToRGBImage(int sx, int sy, int s, double min, doub
     }
 }
 
-__host__ void cuda2DBufferToRGBImage(int sx, int sy,double min, double max,
-                               double* gpuBuffer, unsigned char* gpuImage){
+__host__ void cuda2DBufferToRGBImage(int sx, int sy,float min, float max,
+                               float* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream){
     int s = sx*sy;
     long blocks = ceil((float)(s)/THREADS_PER_BLOCK);
-    kernel2DBufferToRGBImage<<<blocks,THREADS_PER_BLOCK>>>(sx,sy,s,min, max,gpuBuffer,gpuImage);
+    kernel2DBufferToRGBImage<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(sx,sy,s,min, max,gpuBuffer,gpuImage);
 }

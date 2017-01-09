@@ -45,7 +45,7 @@ void Convolution3D::nextTimeSlot(Buffer2D* output, int slotsToSkip)
         output->resize(buffer.getSizeX(),buffer.getSizeY());
         // Move image to output image
         cudaCopyBuffer(output->getGPUPtr(),
-                             buffer.getGPUPtr() + pageSize*writeIdx,pageSize*sizeof(double));
+                             buffer.getGPUPtr() + pageSize*writeIdx,pageSize*sizeof(float));
     }
 
     if(writeIdx+slotsToSkip > buffer.getSizeZ())
@@ -73,7 +73,7 @@ QImage Convolution3D::toOrderedImageXZ(int orderStart, int slicePos, float min, 
     QImage img(sx,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    double* buff = buffer.getCPUPtr();
+    float* buff = buffer.getCPUPtr();
     if(min == 0 && max == 0){
         mx = *std::max_element(buff,buff+sz*sx*sy);
         mn = *std::min_element(buff,buff+sz*sx*sy);
@@ -107,7 +107,7 @@ QImage Convolution3D::toOrderedImageYZ(int orderStart, int slicePos, float min, 
     QImage img(sy,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    double* buff = buffer.getCPUPtr();
+    float* buff = buffer.getCPUPtr();
     if(min == 0 && max == 0){
         mx = *std::max_element(buff,buff+sz*sx*sy);
         mn = *std::min_element(buff,buff+sz*sx*sy);

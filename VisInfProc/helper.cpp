@@ -262,7 +262,7 @@ static uchar rgbColormapLUT[LUT_COLORMAP_SZ*3] = {
 };
 
 
-void Helper::pseudoColor(double v,double min, double max,uchar* r, uchar* g, uchar* b)
+void Helper::pseudoColor(float v,float min, float max,uchar* r, uchar* g, uchar* b)
 {
     int idx = qRound((v - min)/(max-min)*255);
     if(idx < 0)

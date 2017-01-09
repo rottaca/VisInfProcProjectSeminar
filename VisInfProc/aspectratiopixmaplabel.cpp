@@ -5,6 +5,7 @@ AspectRatioPixmapLabel::AspectRatioPixmapLabel(QWidget *parent) :
 {
     this->setMinimumSize(1,1);
     setScaledContents(false);
+    sizePolicy().setHorizontalStretch(1);
 }
 
 void AspectRatioPixmapLabel::setPixmap ( const QPixmap & p)
