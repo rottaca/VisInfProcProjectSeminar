@@ -6,24 +6,30 @@
 #include <QMutex>
 #include <QMutexLocker>
 
-#include "dvseventhandler.h"
+
+class Worker;
 
 class SerialeDVSInterface: public QObject
 {
     Q_OBJECT
 public:
+
+    typedef struct DVSEvent{
+        u_int8_t posX, posY;
+        u_int8_t On;
+        u_int32_t timestamp;
+    } DVSEvent;
+
+    typedef enum AddressVersion{Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
+    typedef enum TimestampVersion{Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
+
     SerialeDVSInterface(QObject* parent = 0);
+    ~SerialeDVSInterface();
+
 
     // Connect/Disconnect
     bool open(QString portName);
-    void close();
-
-
-
-    // Getters
-    bool isConnected(){return opened;}
-    bool isStreaming(){return streaming;}
-
+    void stop();
 
 
     // Commands
@@ -32,30 +38,69 @@ public:
     void enableMotors(bool enable);
     void setMotorVelocity(int motorId, int speed);
 
+    // Playback
+    void playbackFile(QString fileName, float speed);
 
+    // Getters / Setters
+    bool isConnected(){
+        QMutexLocker locker(&serialMutex);
+        return serial.isOpen();
+    }
 
+    bool isStreaming(){
+        QMutexLocker locker(&operationMutex);
+        return operationMode == ONLINE_STREAMING;
+    }
 
-    void setDVSEventHandler(DVSEventHandler* eventHandler){
-        QMutexLocker locker(&dataMutex);
-        this->eventHandler = eventHandler;
+    void setWorker(Worker* worker){
+        QMutexLocker locker(&operationMutex);
+        this->worker = worker;
     }
 
 signals:
+    void onPlaybackFinished();
     void onLineRecived(QString answ);
     void onCmdSent(QString cmd);
 
+
 public slots:
-    void run();
+    void process();
     void sendRawCmd(QString cmd);
+
+
+private:
+    QByteArray parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers);
+    void _playbackFile();
+
+    void initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers);
+    bool evBuilderProcessNextByte(char c, DVSEvent &event);
+    DVSEvent evBuilderParseEvent();
 
 private:
     QThread thread;
-    bool opened;
+
+    typedef enum OperationMode{IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
+    OperationMode operationMode;
+    Worker *worker;
+    QMutex operationMutex;
+
     QSerialPort serial;
     QMutex serialMutex;
-    bool streaming;
-    DVSEventHandler* eventHandler;
-    QMutex dataMutex;
+
+    // Playback data
+    QString playbackFileName;
+    float playbackSpeed;
+    QMutex playbackDataMutex;
+
+    TimestampVersion evBuilderTimestampVersion;
+    AddressVersion evBuilderAddressVersion;
+    int evBuilderByteIdx;
+    int evBuilderBufferSz;
+    char* evBuilderData;
+    long evBuilderSyncTimestamp;
+    QMutex evBuilderMutex;
+
+
 };
 
 #endif // SERIALEDVSINTERFACE_H

@@ -8,7 +8,7 @@
 #include "filtersettings.h"
 #include "filterset.h"
 #include "convolution3d.h"
-#include "dvseventhandler.h"
+#include "serialedvsinterface.h"
 
 #include <assert.h>
 
@@ -47,7 +47,7 @@ public:
     }
 
 
-    void onNewEvent(const DVSEventHandler::DVSEvent &e);
+    void onNewEvent(const SerialeDVSInterface::DVSEvent &e);
     bool isEventListReady(){
         eventWriteMutex.lock();
         bool cpy = eventListReady;
@@ -83,9 +83,9 @@ public:
      * @brief getEventsInWindow Returns a vector with all events in the current time window
      * @return
      */
-    QVector<DVSEventHandler::DVSEvent> getEventsInWindow(){
+    QVector<SerialeDVSInterface::DVSEvent> getEventsInWindow(){
         eventsInWindowMutex.lock();
-        QVector<DVSEventHandler::DVSEvent> tmp = QVector<DVSEventHandler::DVSEvent>(timeWindowEvents);
+        QVector<SerialeDVSInterface::DVSEvent> tmp = QVector<SerialeDVSInterface::DVSEvent>(timeWindowEvents);
         eventsInWindowMutex.unlock();
         return tmp;
     }
@@ -145,7 +145,7 @@ private:
     float timePerSlot;
 
     // All events in the timewindow
-    QVector<DVSEventHandler::DVSEvent> timeWindowEvents;
+    QVector<SerialeDVSInterface::DVSEvent> timeWindowEvents;
     // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
     // All events in the current timeslot

@@ -57,20 +57,22 @@ void MainWindow::initSystem()
     orientations.append(qDegreesToRadians(90.0f));
 
     worker = new Worker();
-    dvsEventHandler.setWorker(worker);
-    serial.setDVSEventHandler(&dvsEventHandler);
+    eDVSHandler.setWorker(worker);
 }
 
 void MainWindow::initSignalsAndSlots()
 {
     connect(&updateTimer,SIGNAL(timeout()),this,SLOT(onUpdate()));
+
     connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
-    connect(&dvsEventHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
+    connect(this,SIGNAL(sendRawCmd(QString)),&eDVSHandler,SLOT(sendRawCmd(QString)));
+
+    connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
+    connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
+    connect(&eDVSHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
+
     connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(onChangePlaybackFile()));
     connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(onClickStartPlayback()));
-    connect(this,SIGNAL(sendRawCmd(QString)),&serial,SLOT(sendRawCmd(QString)));
-    connect(&serial,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
-    connect(&serial,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
     connect(ui->b_connect,SIGNAL(clicked()),this,SLOT(onClickConnect()));
     connect(ui->b_start_streaming,SIGNAL(clicked()),this,SLOT(onClickStartStreaming()));
     connect(ui->le_cmd_input,SIGNAL(editingFinished()),this,SLOT(onCmdEntered()));
@@ -140,7 +142,7 @@ void MainWindow::onUpdate()
             //qDebug("No new data available!");
         }
 
-        QVector<DVSEventHandler::DVSEvent> ev = worker->getEventsInWindow(0);
+        QVector<SerialeDVSInterface::DVSEvent> ev = worker->getEventsInWindow(0);
         QPoint points[ev.length()];
         for(int i = 0; i < ev.length(); i++){
             points[i].setX(ev.at(i).posX);
@@ -171,28 +173,27 @@ void MainWindow::onUpdate()
 
 void MainWindow::onPlaybackFinished()
 {
-    worker->stopProcessing();
+    qDebug("PlaybackFinished");
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
 }
 
 void MainWindow::onClickStartPlayback(){
     if(worker->getIsProcessing()){
-        worker->stopProcessing();
-        dvsEventHandler.abort();
+        qDebug("Stop Playback");
+        eDVSHandler.stop();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
 
     }else{
-
+        qDebug("Start Playback");
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
         worker->createOpticFlowEstimator(settings,orientations);
-        worker->start();
-        dvsEventHandler.playbackFile(file,speed);
+        eDVSHandler.playbackFile(file,speed);
     }
 }
 
@@ -220,13 +221,13 @@ void MainWindow::onCmdSent(QString cmd)
 
 void MainWindow::onClickStartStreaming()
 {
-    if(serial.isStreaming()){
+    if(eDVSHandler.isStreaming()){
         ui->b_start_streaming->setText("Start Streaming");
-        serial.stopEventStreaming();
+        eDVSHandler.stopEventStreaming();
         worker->stopProcessing();
     }else{
         ui->b_start_streaming->setText("Stop Streaming");
-        serial.startEventStreaming();
+        eDVSHandler.startEventStreaming();
         worker->createOpticFlowEstimator(settings,orientations);
         worker->start();
     }
@@ -234,14 +235,14 @@ void MainWindow::onClickStartStreaming()
 
 void MainWindow::onClickConnect()
 {
-    if(serial.isConnected()){
-        serial.close();
+    if(eDVSHandler.isConnected()){
+        eDVSHandler.stop();
         ui->b_connect->setText("Connect");
         ui->tab_playback->setEnabled(true);
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
     }else{
-        if(serial.open(ui->cb_ports->currentText())){
+        if(eDVSHandler.open(ui->cb_ports->currentText())){
             ui->b_connect->setText("Disconnect");
             ui->tab_playback->setEnabled(false);
             ui->gb_cmdline->setEnabled(true);
@@ -253,7 +254,7 @@ void MainWindow::onClickConnect()
 }
 void MainWindow::onCmdEntered()
 {
-    if(serial.isConnected()){
+    if(eDVSHandler.isConnected()){
         QString txt = ui->le_cmd_input->text();
         txt.append("\n");
         emit sendRawCmd(txt);

@@ -68,7 +68,7 @@ OpticFlowEstimator::~OpticFlowEstimator()
     gpuArrgpuOpponentMotionEnergies = NULL;
 }
 
-void OpticFlowEstimator::onNewEvent(const DVSEventHandler::DVSEvent& e)
+void OpticFlowEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent& e)
 {
     for(int i = 0; i < energyEstimatorCnt; i++){
         motionEnergyEstimators[i]->onNewEvent(e);

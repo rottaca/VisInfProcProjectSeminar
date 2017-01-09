@@ -54,7 +54,7 @@ void Worker::run()
     }
 }
 
-void Worker::nextEvent(DVSEventHandler::DVSEvent event)
+void Worker::nextEvent(const SerialeDVSInterface::DVSEvent &event)
 {
     ofe->onNewEvent(event);
 }

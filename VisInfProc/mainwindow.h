@@ -55,13 +55,13 @@ private:
     cudaStream_t cudaStream;
     Ui::MainWindow *ui;
     FilterSettings fsettings;
-    DVSEventHandler dvsEventHandler;
+    //DVSEventHandler dvsEventHandler;
     Worker* worker;
     QTimer updateTimer;
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-    SerialeDVSInterface serial;
+    SerialeDVSInterface eDVSHandler;
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
 };
 

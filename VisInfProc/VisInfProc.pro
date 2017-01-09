@@ -27,7 +27,6 @@ SOURCES += main.cpp\
     filterset.cpp \
     helper.cpp \
     convolution3d.cpp \
-    dvseventhandler.cpp \
     motionenergyestimator.cpp \
     opticflowestimator.cpp \
     worker.cpp \
@@ -44,7 +43,6 @@ HEADERS  += mainwindow.h \
     filterset.h \
     helper.h \
     convolution3d.h \
-    dvseventhandler.h \
     motionenergyestimator.h \
     opticflowestimator.h \
     cuda_helper.h \
