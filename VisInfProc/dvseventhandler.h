@@ -20,6 +20,9 @@ public:
         u_int32_t timestamp;
     } DVSEvent;
 
+    typedef enum AddressVersion{Addr2Byte,Addr4Byte} AddressVersion;
+    typedef enum TimestampVersion{Time4Byte, Time3Byte, Time2Byte, TimeDelta, TimeNoTime} TimestampVersion;
+
     DVSEventHandler(QObject* parent = 0);
     ~DVSEventHandler();
 
@@ -29,16 +32,20 @@ public:
         operationMutex.unlock();
     }
 
+    DVSEvent parseEvent(uchar *data, int sz, AddressVersion addrVers, TimestampVersion timeVers);
+
+    void nextRealtimeEventByte(char c);
+
     void abort();
 
     void run();
 
 signals:
-    void OnPlaybackFinished();
+    void onPlaybackFinished();
 
 public slots:
     void playbackFile(QString fileName, float speed);
-
+    void initStreaming(TimestampVersion timeVers);
 
 private:
     QVector<DVSEvent> parseFile(QByteArray &buff);
@@ -53,5 +60,13 @@ private:
     OperationMode operationMode;
     Worker *worker;
     QMutex operationMutex;
+
+    QMutex realtimeDataMutex;
+    TimestampVersion realtimeTimestampVersion;
+    int realtimeEventByteIdx;
+    int realtimeEventBufferSize;
+    uchar * realtimeEventData;
+    long realtimeEventTimestamp;
+
 };
 #endif // DVSEVENTHANDLER_H

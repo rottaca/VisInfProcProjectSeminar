@@ -109,7 +109,7 @@
          <widget class="QComboBox" name="cb_ports"/>
         </item>
         <item row="2" column="0" colspan="2">
-         <widget class="QGroupBox" name="groupBox_3">
+         <widget class="QGroupBox" name="gb_cmdline">
           <property name="enabled">
            <bool>false</bool>
           </property>
@@ -162,7 +162,10 @@
          </widget>
         </item>
         <item row="3" column="0" colspan="2">
-         <widget class="QPushButton" name="b_start_processing">
+         <widget class="QPushButton" name="b_start_streaming">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="text">
            <string>Start processing</string>
           </property>

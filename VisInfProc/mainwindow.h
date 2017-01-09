@@ -14,6 +14,7 @@
 #include "dvseventhandler.h"
 #include "opticflowestimator.h"
 #include "worker.h"
+#include "serialedvsinterface.h"
 
 #define FPS 25
 
@@ -32,12 +33,18 @@ public:
 
 signals:
     void startProcessing();
+    void sendRawCmd(QString cmd);
 
 public slots:
-    void OnUpdate();
-    void OnPlaybackFinished();
-    void OnClickStartPlayback();
-    void OnChangePlaybackFile();
+    void onUpdate();
+    void onPlaybackFinished();
+    void onClickStartPlayback();
+    void onChangePlaybackFile();
+    void onLineRecived(QString answ);
+    void onCmdSent(QString cmd);
+    void onClickStartStreaming();
+    void onClickConnect();
+    void onCmdEntered();
 
 private:
     void initUI();
@@ -54,7 +61,7 @@ private:
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-
+    SerialeDVSInterface serial;
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
 };
 

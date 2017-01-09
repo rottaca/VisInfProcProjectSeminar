@@ -49,8 +49,8 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
     //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_50));
 
     orientations.append(qDegreesToRadians(0.0f));
@@ -58,18 +58,25 @@ void MainWindow::initSystem()
 
     worker = new Worker();
     dvsEventHandler.setWorker(worker);
+    serial.setDVSEventHandler(&dvsEventHandler);
 }
 
 void MainWindow::initSignalsAndSlots()
 {
-    connect(&updateTimer,SIGNAL(timeout()),this,SLOT(OnUpdate()));
+    connect(&updateTimer,SIGNAL(timeout()),this,SLOT(onUpdate()));
     connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
-    connect(&dvsEventHandler,SIGNAL(OnPlaybackFinished()),this,SLOT(OnPlaybackFinished()));
-    connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(OnChangePlaybackFile()));
-    connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(OnClickStartPlayback()));
+    connect(&dvsEventHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
+    connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(onChangePlaybackFile()));
+    connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(onClickStartPlayback()));
+    connect(this,SIGNAL(sendRawCmd(QString)),&serial,SLOT(sendRawCmd(QString)));
+    connect(&serial,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
+    connect(&serial,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
+    connect(ui->b_connect,SIGNAL(clicked()),this,SLOT(onClickConnect()));
+    connect(ui->b_start_streaming,SIGNAL(clicked()),this,SLOT(onClickStartStreaming()));
+    connect(ui->le_cmd_input,SIGNAL(editingFinished()),this,SLOT(onCmdEntered()));
 }
 
-void MainWindow::OnUpdate()
+void MainWindow::onUpdate()
 {
     if(worker->getIsProcessing()){
         long time = worker->getMotionEnergy(0,0,oppMoEnergy1);
@@ -116,7 +123,6 @@ void MainWindow::OnUpdate()
                     }
                 }
             }
-            //qDebug(QString("%1").arg(lines.length()).toLocal8Bit());
 
             QImage imgFlow(imgScale*sz,imgScale*sz,QImage::Format_RGB888);
             imgFlow.fill(Qt::white);
@@ -163,21 +169,24 @@ void MainWindow::OnUpdate()
     }
 }
 
-void MainWindow::OnPlaybackFinished()
+void MainWindow::onPlaybackFinished()
 {
     worker->stopProcessing();
     ui->b_start_playback->setText("Start");
+    ui->tab_online->setEnabled(true);
 }
 
-void MainWindow::OnClickStartPlayback(){
+void MainWindow::onClickStartPlayback(){
     if(worker->getIsProcessing()){
         worker->stopProcessing();
         dvsEventHandler.abort();
         ui->b_start_playback->setText("Start");
+        ui->tab_online->setEnabled(true);
 
     }else{
 
         ui->b_start_playback->setText("Stop");
+        ui->tab_online->setEnabled(false);
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
@@ -187,11 +196,66 @@ void MainWindow::OnClickStartPlayback(){
     }
 }
 
-void MainWindow::OnChangePlaybackFile()
+void MainWindow::onChangePlaybackFile()
 {
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Open Playback file"), "~", tr("Playback files (*.aedat)"));
 
     if(!fileName.isEmpty())
         ui->le_file_name_playback->setText(fileName);
+}
+
+void MainWindow::onLineRecived(QString answ)
+{
+    ui->te_comands->moveCursor (QTextCursor::End);
+    ui->te_comands->insertPlainText (QString("Answer: %1").arg(answ));
+    ui->te_comands->moveCursor (QTextCursor::End);
+}
+void MainWindow::onCmdSent(QString cmd)
+{
+    ui->te_comands->moveCursor (QTextCursor::End);
+    ui->te_comands->insertPlainText (QString("Cmd: %1").arg(cmd));
+    ui->te_comands->moveCursor (QTextCursor::End);
+}
+
+void MainWindow::onClickStartStreaming()
+{
+    if(serial.isStreaming()){
+        ui->b_start_streaming->setText("Start Streaming");
+        serial.stopEventStreaming();
+        worker->stopProcessing();
+    }else{
+        ui->b_start_streaming->setText("Stop Streaming");
+        serial.startEventStreaming();
+        worker->createOpticFlowEstimator(settings,orientations);
+        worker->start();
+    }
+}
+
+void MainWindow::onClickConnect()
+{
+    if(serial.isConnected()){
+        serial.close();
+        ui->b_connect->setText("Connect");
+        ui->tab_playback->setEnabled(true);
+        ui->gb_cmdline->setEnabled(false);
+        ui->b_start_streaming->setEnabled(false);
+    }else{
+        if(serial.open(ui->cb_ports->currentText())){
+            ui->b_connect->setText("Disconnect");
+            ui->tab_playback->setEnabled(false);
+            ui->gb_cmdline->setEnabled(true);
+            ui->b_start_streaming->setEnabled(true);
+        }else{
+            qDebug("Failed to connect!");
+        }
+    }
+}
+void MainWindow::onCmdEntered()
+{
+    if(serial.isConnected()){
+        QString txt = ui->le_cmd_input->text();
+        txt.append("\n");
+        emit sendRawCmd(txt);
+    }
 }

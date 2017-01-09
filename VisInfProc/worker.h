@@ -49,11 +49,6 @@ private:
     bool isProcessing;
 
     OpticFlowEstimator *ofe;
-
-    // Semaphore for reading and writing new event
-    QSemaphore *eventSemaphoreR;
-    QSemaphore *eventSemaphoreW;
-    DVSEventHandler::DVSEvent currEvent;
 };
 
 #endif // WORKER_H

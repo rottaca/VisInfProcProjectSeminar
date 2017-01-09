@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     opticflowestimator.cpp \
     worker.cpp \
     aspectratiopixmaplabel.cpp \
-    basebuffer.cpp
+    basebuffer.cpp \
+    serialedvsinterface.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -53,7 +54,8 @@ HEADERS  += mainwindow.h \
     aspectratiopixmaplabel.h \
     basebuffer.h \
     settings.h \
-    datatypes.h
+    datatypes.h \
+    serialedvsinterface.h
 
 FORMS    += mainwindow.ui
 
