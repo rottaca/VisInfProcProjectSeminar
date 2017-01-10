@@ -121,7 +121,7 @@ private:
     float **gpuArrgpuOpponentMotionEnergies;
     // Array of timestamps of last opponent motion energy updates
     long *updateTimeStamps;
-
+    // True if optic flow is the newest available computation
     bool opticFlowUpToDate;
 };
 

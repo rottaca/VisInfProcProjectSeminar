@@ -49,12 +49,14 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
     //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_50));
 
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(90.0f));
+//    orientations.append(qDegreesToRadians(45.0f));
+//    orientations.append(qDegreesToRadians(-45.0f));
 
     worker = new Worker();
     eDVSHandler.setWorker(worker);
@@ -104,7 +106,7 @@ void MainWindow::onUpdate()
             float maxL = 0.3;
             int spacing = 2;
             int length = 20;
-            float minPercentage = 0.3;
+            float minPercentage = 0.1;
 
             QVector<QLine> lines;
             QVector<QPoint> points;

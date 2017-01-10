@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QTime>
 
 #include "buffer1d.h"
 #include "buffer2d.h"
@@ -10,14 +11,10 @@
 #include "filtermanager.h"
 #include "filtersettings.h"
 #include "filterset.h"
-#include "convolution3d.h"
-#include "dvseventhandler.h"
 #include "opticflowestimator.h"
 #include "worker.h"
 #include "serialedvsinterface.h"
-
-#define FPS 25
-
+#include "settings.h"
 
 namespace Ui {
 class MainWindow;

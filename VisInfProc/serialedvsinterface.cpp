@@ -7,13 +7,23 @@
 
 SerialeDVSInterface::SerialeDVSInterface(QObject *parent):QObject(parent)
 {
+    operationMode = IDLE;
+    evBuilderData = NULL;
+    evBuilderAddressVersion = Addr2Byte;
+    evBuilderTimestampVersion = TimeNoTime;
+    evBuilderBufferSz = 0;
+    evBuilderByteIdx = 0;
+    evBuilderSyncTimestamp = 0;
+    worker = NULL;
+    playbackSpeed = 1;
+    playbackFileName = "";
+
     moveToThread(&thread);
     serial.moveToThread(&thread);
 
+    // Call process function in eventloop of new thread
     connect(&thread,SIGNAL(started()),this,SLOT(process()));
 
-    operationMode = IDLE;
-    evBuilderData = NULL;
 }
 
 SerialeDVSInterface::~SerialeDVSInterface()

@@ -8,20 +8,27 @@ FilterSettings::FilterSettings():FilterSettings(0,0,0,0,0,0)
 
 }
 
-FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz, int _timewindow_us)
-    :f0(_f0),
-     s1(1.f/2),s2(3.f/4),
-     muBi1(_muBi1),muBi2(2*muBi1),
-     sigmaBi1(muBi1/3),sigmaBi2(3.f/2*sigmaBi1),
-     muMono(1.f/5*muBi1*(1 + qSqrt(36 + 10*qLn(s1/s2)))),
-     sigmaMono(muMono/3.f),
-     sigmaGabor(25),
-     temporalEnd(_tempEnd),
-     temporalSteps(_tempSteps),
-     spatialSize(_spatialSz),
-     timewindow_us(_timewindow_us)
+FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
+                               float _tempSteps, int _spatialSz, int _timewindow_us)
 {
-
+    f0 = _f0;
+    s1 = 1.f/2;
+    s2 = 3.f/4;
+    muBi1 = _muBi1;
+    muBi2 = 2*muBi1;
+    sigmaBi1 = muBi1/3;
+    sigmaBi2 = 3.f/2*sigmaBi1;
+    muMono = 1.f/5*muBi1*(1 + qSqrt(36 + 10*qLn(s1/s2)));
+    sigmaMono = muMono/3;
+    sigmaGabor = 25.f;
+    temporalEnd = _tempEnd;
+    temporalSteps = _tempSteps;
+    spatialSize = _spatialSz;
+    timewindow_us = _timewindow_us;
+    alphaPNorm = 0.1f;
+    alphaQNorm = 0.002f;
+    betaNorm = 1.0f;
+    sigmaNorm = 3.6f;
 }
 
 QString FilterSettings::toString()

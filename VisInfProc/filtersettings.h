@@ -18,7 +18,8 @@ public:
      * @param _spatialSz Size of spatial filter, has to be odd
      * @param _timewindow timewindow for filter
      */
-    FilterSettings(float _f0, float _muBi1, float _tempEnd, float _tempSteps, int _spatialSz, int _timewindow_us);
+    FilterSettings(float _f0, float _muBi1, float _tempEnd,
+                   float _tempSteps, int _spatialSz, int _timewindow_us);
 
     /**
      * @brief toString Converts the filtersettings into a string
@@ -30,6 +31,7 @@ public:
     static FilterSettings getSettings(enum PredefinedSettings ps);
 
 public:
+    // Spatial-temporal filter settings
     float f0;
     float s1,s2;
     float muBi1,muBi2;
@@ -37,10 +39,16 @@ public:
     float muMono;
     float sigmaMono;
     float sigmaGabor;
+    // Filter resolution and time scale
     float temporalEnd;
     float temporalSteps;
-    int spatialSize;
     int timewindow_us;
+    int spatialSize;
+    // Normalization settings
+    float alphaPNorm;
+    float alphaQNorm;
+    float betaNorm;
+    float sigmaNorm;
 
 };
 

@@ -87,9 +87,16 @@ __global__ void kernelReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
                                                     float* gpuConvBufferr2,
                                                     int ringBufferIdx,
                                                     int bsx, int bsy, int bsz, int n,
+                                                    float alphaPNorm, float alphaQNorm, float betaNorm, float sigmaNorm,
                                                     float* gpuEnergyBuffer){
     int bufferPos = threadIdx.x + blockIdx.x * blockDim.x;
     if(bufferPos < n){
+        int bx,by,bz;
+        int bxy = bufferpos / (bsx*bsy);
+        bz = bufferPos % bsx*bsy;
+        bx = bxy % bsx;
+        by = bxy / bsx;
+
         // Offset in ringbuffer
         int bufferPosConv = bufferPos + ringBufferIdx*bsx*bsy;
         // Get answer from all 4 corresponding buffers and compute opponent motion energy
@@ -104,7 +111,24 @@ __global__ void kernelReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
         gpuConvBufferr2[bufferPosConv] = 0;
 
         // Compute opponent motion energy
-        gpuEnergyBuffer[bufferPos] = sqrt(r1*r1+r2*r2) - sqrt(l1*l1+l2*l2);
+        float energyR = sqrt(r1*r1+r2*r2);
+        float energyL = sqrt(l1*l1+l2*l2);
+
+        // Normalize energy
+//        q_i = 0;
+//        for(int y = -1; y <= 1; y++){
+//            int by_ = by + y;
+//            if(by_ < 0 || by_ >= bsy)
+//                continue;
+//            for(int x = -1; x <= 1; x++){
+//                int bx_ = bx + x;
+//                if(bx_ < 0 || bx_ >= bsx)
+//                    continue;
+
+//            }
+//        }
+
+        gpuEnergyBuffer[bufferPos] = energyR - energyL;
     }
 }
 
@@ -114,6 +138,7 @@ __host__ void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
                                                 float* gpuConvBufferr2,
                                                 int ringBufferIdx,
                                                 int bsx, int bsy, int bsz,
+                                                float alphaPNorm, float alphaQNorm, float betaNorm, float sigmaNorm,
                                                 float* gpuEnergyBuffer,
                                                 cudaStream_t cudaStream)
 {
@@ -123,6 +148,7 @@ __host__ void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
                                                                                    gpuConvBufferl2,
                                                                                    gpuConvBufferr1,
                                                                                    gpuConvBufferr2,
-                                                                                    ringBufferIdx,bsx,bsy,bsz,n,
-                                                                                    gpuEnergyBuffer);
+                                                                                   ringBufferIdx,bsx,bsy,bsz,n,
+                                                                                   alphaPNorm,alphaQNorm,betaNorm,sigmaNorm,
+                                                                                   gpuEnergyBuffer);
 }

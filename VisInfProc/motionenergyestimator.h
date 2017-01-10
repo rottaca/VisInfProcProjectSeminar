@@ -7,7 +7,6 @@
 #include "filtermanager.h"
 #include "filtersettings.h"
 #include "filterset.h"
-#include "convolution3d.h"
 #include "serialedvsinterface.h"
 
 #include <assert.h>
@@ -31,6 +30,7 @@ extern void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
                                               float* gpuConvBufferr2,
                                               int ringBufferIdx,
                                               int bsx, int bsy, int bsz,
+                                              float alphaPNorm, float alphaQNorm, float betaNorm, float sigmaNorm,
                                               float* gpuEnergyBuffer,
                                               cudaStream_t cudaStream);
 
@@ -126,7 +126,7 @@ private:
     // filterset for each orientation of the specified filter
     FilterSet** fset;
     // CPU array of GPU pointers (one pointer for each filter)
-    float** gpuFilters;
+    float** cpuArrGpuFilters;
     // Filter sizes
     int fsx,fsy,fsz;
 

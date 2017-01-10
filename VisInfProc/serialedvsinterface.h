@@ -69,21 +69,25 @@ public slots:
 
 
 private:
+    // Playback function to parse and play an event file
     QByteArray parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers);
     void _playbackFile();
 
+    // Event builder functions
     void initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers);
     bool evBuilderProcessNextByte(char c, DVSEvent &event);
     DVSEvent evBuilderParseEvent();
 
 private:
+    // Thread for async processing of playback file and serial interface
     QThread thread;
-
+    // Operation mode and worker thread
     typedef enum OperationMode{IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
     OperationMode operationMode;
     Worker *worker;
     QMutex operationMutex;
 
+    // Serial port for realtime processing
     QSerialPort serial;
     QMutex serialMutex;
 
@@ -92,6 +96,7 @@ private:
     float playbackSpeed;
     QMutex playbackDataMutex;
 
+    // Data for the event builder
     TimestampVersion evBuilderTimestampVersion;
     AddressVersion evBuilderAddressVersion;
     int evBuilderByteIdx;

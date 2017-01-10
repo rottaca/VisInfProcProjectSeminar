@@ -33,7 +33,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     fset = new FilterSet*[orientations.length()];
     convBuffer = new Buffer3D*[bufferFilterCount];
 
-    gpuFilters = new float* [bufferFilterCount];
+    cpuArrGpuFilters = new float* [bufferFilterCount];
     gpuConvBuffers = new float* [bufferFilterCount];
     cudaStreams = new cudaStream_t[bufferFilterCount];
 
@@ -45,10 +45,10 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
             convBuffer[i*4+j] = new Buffer3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
             gpuConvBuffers[i*4+j] = convBuffer[i*4+j]->getGPUPtr();
         }
-        gpuFilters[i*4    ] = fset[i]->spatialTemporal[FilterSet::LEFT1].getGPUPtr();
-        gpuFilters[i*4 + 1] = fset[i]->spatialTemporal[FilterSet::LEFT2].getGPUPtr();
-        gpuFilters[i*4 + 2] = fset[i]->spatialTemporal[FilterSet::RIGHT1].getGPUPtr();
-        gpuFilters[i*4 + 3] = fset[i]->spatialTemporal[FilterSet::RIGHT2].getGPUPtr();
+        cpuArrGpuFilters[i*4    ] = fset[i]->spatialTemporal[FilterSet::LEFT1].getGPUPtr();
+        cpuArrGpuFilters[i*4 + 1] = fset[i]->spatialTemporal[FilterSet::LEFT2].getGPUPtr();
+        cpuArrGpuFilters[i*4 + 2] = fset[i]->spatialTemporal[FilterSet::RIGHT1].getGPUPtr();
+        cpuArrGpuFilters[i*4 + 3] = fset[i]->spatialTemporal[FilterSet::RIGHT2].getGPUPtr();
     }
     // Extract buffer sizes
     fsx = fset[0]->spatialTemporal[FilterSet::LEFT1].getSizeX();
@@ -68,7 +68,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
     qDebug("Destroying motion energy estimator...");
-
+    qDebug("Peak event count per computation: %d",gpuEventListSizeAllocated);
     for(int i = 0; i < orientations.length(); i++){
         delete fset[i];
         for(int j = 0; j < 4; j++){
@@ -83,8 +83,8 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     fset = NULL;
     delete[] convBuffer;
     convBuffer = NULL;
-    delete[] gpuFilters;
-    gpuFilters = NULL;
+    delete[] cpuArrGpuFilters;
+    cpuArrGpuFilters = NULL;
     delete[] gpuConvBuffers;
     gpuConvBuffers = NULL;
 
@@ -113,7 +113,6 @@ void MotionEnergyEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent &e){
     int timeSlotsToSkip = qFloor((float)deltaT/timePerSlot);
 
     if(timeSlotsToSkip != 0){
-
         // Flip lists
         eventReadMutex.lock();
         // Was the last block not processed by the worker thread ? Then it is lost
@@ -200,7 +199,7 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
 
     for(int i = 0; i < orientations.length()*4; i++){
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,
-                                    gpuFilters[i],fsx,fsy,fsz,
+                                    cpuArrGpuFilters[i],fsx,fsy,fsz,
                                     gpuConvBuffers[i],ringBufferIdx,
                                     bsx,bsy,bsz,
                                     cudaStreams[i]);
@@ -223,6 +222,7 @@ long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
                                           gpuConvBuffers[i*4 + 3],
                                           ringBufferIdx,
                                           bsx,bsy,bsz,
+                                          fsettings.alphaPNorm,fsettings.alphaQNorm,fsettings.betaNorm,fsettings.sigmaBi1,
                                           gpuEnergyBuffers[i],
                                           cudaStreams[i*4]);
     }
