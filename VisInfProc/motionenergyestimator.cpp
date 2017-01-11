@@ -29,7 +29,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     timePerSlot =(float)fs.timewindow_us/fs.temporalSteps;
     eventListReady = false;
     ringBufferIdx = 0;
-    bufferFilterCount = orientations.length()*4;
+    bufferFilterCount = orientations.length()*FILTERS_PER_ORIENTATION;
     fset = new FilterSet*[orientations.length()];
     convBuffer = new Buffer3D*[bufferFilterCount];
 
@@ -39,21 +39,19 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
 
     for(int i = 0; i < orientations.length(); i++){
         fset[i] = new FilterSet(fs,orientations.at(i));
-        for(int j = 0; j < 4; j++)
+        for(int j = 0; j < FILTERS_PER_ORIENTATION; j++)
         {
-            cudaStreamCreate(&cudaStreams[i*4+j]);
-            convBuffer[i*4+j] = new Buffer3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
-            gpuConvBuffers[i*4+j] = convBuffer[i*4+j]->getGPUPtr();
+            cudaStreamCreate(&cudaStreams[i*FILTERS_PER_ORIENTATION+j]);
+            convBuffer[i*FILTERS_PER_ORIENTATION+j] = new Buffer3D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,fset[i]->sz);
+            gpuConvBuffers[i*FILTERS_PER_ORIENTATION+j] = convBuffer[i*FILTERS_PER_ORIENTATION+j]->getGPUPtr();
         }
-        cpuArrGpuFilters[i*4    ] = fset[i]->spatialTemporal[FilterSet::LEFT1].getGPUPtr();
-        cpuArrGpuFilters[i*4 + 1] = fset[i]->spatialTemporal[FilterSet::LEFT2].getGPUPtr();
-        cpuArrGpuFilters[i*4 + 2] = fset[i]->spatialTemporal[FilterSet::RIGHT1].getGPUPtr();
-        cpuArrGpuFilters[i*4 + 3] = fset[i]->spatialTemporal[FilterSet::RIGHT2].getGPUPtr();
+        cpuArrGpuFilters[i*FILTERS_PER_ORIENTATION    ] = fset[i]->spatialTemporal[FilterSet::PHASE1].getGPUPtr();
+        cpuArrGpuFilters[i*FILTERS_PER_ORIENTATION + 1] = fset[i]->spatialTemporal[FilterSet::PHASE2].getGPUPtr();
     }
     // Extract buffer sizes
-    fsx = fset[0]->spatialTemporal[FilterSet::LEFT1].getSizeX();
-    fsy = fset[0]->spatialTemporal[FilterSet::LEFT1].getSizeY();
-    fsz = fset[0]->spatialTemporal[FilterSet::LEFT1].getSizeZ();
+    fsx = fset[0]->spatialTemporal[FilterSet::PHASE1].getSizeX();
+    fsy = fset[0]->spatialTemporal[FilterSet::PHASE1].getSizeY();
+    fsz = fset[0]->spatialTemporal[FilterSet::PHASE1].getSizeZ();
     bsx = DVS_RESOLUTION_WIDTH;
     bsy = DVS_RESOLUTION_HEIGHT;
     bsz = fsz;
@@ -71,9 +69,9 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     qDebug("Peak event count per computation: %d",gpuEventListSizeAllocated);
     for(int i = 0; i < orientations.length(); i++){
         delete fset[i];
-        for(int j = 0; j < 4; j++){
-            gpuErrchk(cudaStreamDestroy(cudaStreams[i*4+j]));
-            delete convBuffer[i*4+j];
+        for(int j = 0; j < FILTERS_PER_ORIENTATION; j++){
+            gpuErrchk(cudaStreamDestroy(cudaStreams[i*FILTERS_PER_ORIENTATION+j]));
+            delete convBuffer[i*FILTERS_PER_ORIENTATION+j];
         }
     }
 
@@ -197,7 +195,7 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
     assert(gpuEventList != NULL);
     cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
 
-    for(int i = 0; i < orientations.length()*4; i++){
+    for(int i = 0; i < bufferFilterCount; i++){
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,
                                     cpuArrGpuFilters[i],fsx,fsy,fsz,
                                     gpuConvBuffers[i],ringBufferIdx,
@@ -212,19 +210,14 @@ long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
 
     for(int i = 0; i < orientations.length(); i++){
         // Only syncronize important streams
-        cudaStreamSynchronize(cudaStreams[i*4]);
-        cudaStreamSynchronize(cudaStreams[i*4 + 1]);
-        cudaStreamSynchronize(cudaStreams[i*4 + 2]);
-        cudaStreamSynchronize(cudaStreams[i*4 + 3]);
-        cudaReadOpponentMotionEnergyAsync(gpuConvBuffers[i*4],
-                                          gpuConvBuffers[i*4 + 1],
-                                          gpuConvBuffers[i*4 + 2],
-                                          gpuConvBuffers[i*4 + 3],
+        cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION]);
+        cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION + 1]);
+        cudaReadMotionEnergyAsync(gpuConvBuffers[i*FILTERS_PER_ORIENTATION],
+                                          gpuConvBuffers[i*FILTERS_PER_ORIENTATION + 1],
                                           ringBufferIdx,
-                                          bsx,bsy,bsz,
-                                          fsettings.alphaPNorm,fsettings.alphaQNorm,fsettings.betaNorm,fsettings.sigmaBi1,
+                                          bsx,bsy,
                                           gpuEnergyBuffers[i],
-                                          cudaStreams[i*4]);
+                                          cudaStreams[i*FILTERS_PER_ORIENTATION]);
     }
 
     // Go to next timeslice
@@ -234,4 +227,15 @@ long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
     eventsR->slotsToSkip = 0;
     eventReadMutex.unlock();
     return tmp;
+}
+void MotionEnergyEstimator::startNormalizeEnergiesAsync(float** gpuEnergyBuffers)
+{
+    for(int i = 0; i < orientations.length(); i++){
+        // Only syncronize important streams
+        cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION]);
+        cudaNormalizeMotionEnergyAsync(bsx,bsy,
+                                       fsettings.alphaPNorm,fsettings.alphaQNorm,fsettings.betaNorm,fsettings.sigmaBi1,
+                                       gpuEnergyBuffers[i],
+                                       cudaStreams[i*FILTERS_PER_ORIENTATION]);
+    }
 }

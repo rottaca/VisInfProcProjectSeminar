@@ -8,6 +8,9 @@
 // GUI refresh rate
 #define FPS 30
 
+
+#define FILTERS_PER_ORIENTATION 2
+
 //#include "cuda_settings.h"
 
 #endif // SETTINGS_H

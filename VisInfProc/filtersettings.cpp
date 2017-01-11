@@ -3,13 +3,32 @@
 
 #include <assert.h>
 
-FilterSettings::FilterSettings():FilterSettings(0,0,0,0,0,0)
+FilterSettings::FilterSettings()
 {
-
+    f0 = 0;
+    s1 = 0;
+    s2 = 0;
+    muBi1 = 0;
+    muBi2 = 0;
+    sigmaBi1 = 0;
+    sigmaBi2 = 0;
+    muMono = 0;
+    sigmaMono = 0;
+    sigmaGabor = 0;
+    temporalEnd = 0;
+    temporalSteps = 0;
+    spatialSize = 0;
+    timewindow_us = 0;
+    alphaPNorm = 0;
+    alphaQNorm = 0;
+    betaNorm = 0;
+    sigmaNorm = 0;
+    speed_px_per_sec = 0;
 }
 
 FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
-                               float _tempSteps, int _spatialSz, int _timewindow_us)
+                               float _tempSteps, int _spatialSz, int _timewindow_us,
+                               float _speed_px_per_sec)
 {
     f0 = _f0;
     s1 = 1.f/2;
@@ -29,6 +48,9 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
     alphaQNorm = 0.002f;
     betaNorm = 1.0f;
     sigmaNorm = 3.6f;
+    speed_px_per_sec = _speed_px_per_sec;
+
+    assert(spatialSize % 2 != 0);
 }
 
 QString FilterSettings::toString()
@@ -65,19 +87,19 @@ FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
 {
     switch (ps) {
     case DEFAULT:
-            return FilterSettings(0.08f,0.2f,0.7,100,25,135000);
+            return FilterSettings(0.08f,0.2f,0.7,100,25,135000, 0);
         break;
     case SPEED_12_5:
-            return FilterSettings(0.15f,0.23f,0.7,23,23,135000*2);
+            return FilterSettings(0.15f,0.23f,0.7,20,21,135000*2,12.5f);
         break;
     case SPEED_25:
-            return FilterSettings(0.15f,0.23f,0.7,23,23,135000);
+            return FilterSettings(0.15f,0.23f,0.7,20,21,135000,25);
         break;
     case SPEED_50:
-            return FilterSettings(0.15f,0.23f,0.7,23,23,135000/2);
+            return FilterSettings(0.15f,0.23f,0.7,20,21,135000/2,50);
         break;
     default:
-            return FilterSettings(0,0,0,0,0,0);
+            return FilterSettings(0,0,0,0,0,0,0);
         break;
     }
 }

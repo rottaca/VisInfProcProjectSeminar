@@ -26,7 +26,6 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
     gaborEven = FilterManager::constructSpatialFilter(fs,orientation,FilterManager::EVEN);
     gaborOdd = FilterManager::constructSpatialFilter(fs,orientation,FilterManager::ODD);
 
-
     // Construct spatial temporal filters
     spatialTemporal[EVEN_MONO] = FilterManager::combineFilters(tempMono,gaborEven);
     spatialTemporal[EVEN_BI] = FilterManager::combineFilters(tempBi,gaborEven);
@@ -34,14 +33,10 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
     spatialTemporal[ODD_BI] = FilterManager::combineFilters(tempBi,gaborOdd);
 
     // Construct differences
-    spatialTemporal[LEFT1] = spatialTemporal[ODD_BI];
-    spatialTemporal[LEFT1] -= spatialTemporal[EVEN_MONO];
-    spatialTemporal[LEFT2] = spatialTemporal[ODD_MONO];
-    spatialTemporal[LEFT2] += spatialTemporal[EVEN_BI];
-    spatialTemporal[RIGHT1] = spatialTemporal[ODD_BI];
-    spatialTemporal[RIGHT1] += spatialTemporal[EVEN_MONO];
-    spatialTemporal[RIGHT2] = spatialTemporal[ODD_MONO];
-    spatialTemporal[RIGHT2] -= spatialTemporal[EVEN_BI];
+    spatialTemporal[PHASE1] = spatialTemporal[ODD_BI];
+    spatialTemporal[PHASE1] += spatialTemporal[EVEN_MONO];
+    spatialTemporal[PHASE2] = spatialTemporal[ODD_MONO];
+    spatialTemporal[PHASE2] -= spatialTemporal[EVEN_BI];
 
 //    QFile file("even.png");
 //    file.open(QIODevice::WriteOnly);

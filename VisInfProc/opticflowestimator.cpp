@@ -14,20 +14,21 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     energyEstimatorCnt = settings.length();
     opticFlowUpToDate = false;
     motionEnergyEstimators = new MotionEnergyEstimator*[energyEstimatorCnt];
-    opponentMotionEnergies = new Buffer2D*[energyEstimatorCnt*orientations.length()];
+    motionEnergyBuffers = new Buffer2D*[energyEstimatorCnt*orientations.length()];
     updateTimeStamps = new long[energyEstimatorCnt];
-    gpuOpponentMotionEnergies = new float*[energyEstimatorCnt*orientations.length()];
+    cpuArrGpuMotionEnergies = new float*[energyEstimatorCnt*orientations.length()];
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
 
-
+    float cpuArrSpeeds[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++){
         cudaStreamCreate(&cudaStreams[i]);
         motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
         updateTimeStamps[i] = -1;
+        cpuArrSpeeds[i] = settings.at(i).speed_px_per_sec;
         for(int j= 0; j < orientations.length();j++){
             int idx = i*orientations.length() + j;
-            opponentMotionEnergies[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-            gpuOpponentMotionEnergies[idx] = opponentMotionEnergies[idx]->getGPUPtr();
+            motionEnergyBuffers[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+            cpuArrGpuMotionEnergies[idx] = motionEnergyBuffers[idx]->getGPUPtr();
         }
     }
 
@@ -37,16 +38,22 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowVec[1].fill(0);
 
     qDebug("Uploading orientations to GPU...");
-    gpuOrientations = NULL;
+    gpuArrOrientations = NULL;
     int sz = sizeof(float)*orientations.length();
-    gpuErrchk(cudaMalloc(&gpuOrientations,sz));
-    gpuErrchk(cudaMemcpyAsync(gpuOrientations,orientations.data(),sz,cudaMemcpyHostToDevice,cudaStreams[0]));
+    gpuErrchk(cudaMalloc(&gpuArrOrientations,sz));
+    gpuErrchk(cudaMemcpyAsync(gpuArrOrientations,orientations.data(),sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 
-    qDebug("Uploading pointers array to opponent motion energy buffers to GPU...");
-    gpuArrgpuOpponentMotionEnergies = NULL;
+    qDebug("Uploading pointers array to  motion energy buffers to GPU...");
+    gpuArrGpuMotionEnergies = NULL;
     sz = sizeof(float*)*energyEstimatorCnt*orientations.length();
-    gpuErrchk(cudaMalloc(&gpuArrgpuOpponentMotionEnergies,sz));
-    gpuErrchk(cudaMemcpyAsync(gpuArrgpuOpponentMotionEnergies,gpuOpponentMotionEnergies,sz,cudaMemcpyHostToDevice,cudaStreams[0]));
+    gpuErrchk(cudaMalloc(&gpuArrGpuMotionEnergies,sz));
+    gpuErrchk(cudaMemcpyAsync(gpuArrGpuMotionEnergies,cpuArrGpuMotionEnergies,sz,cudaMemcpyHostToDevice,cudaStreams[0]));
+
+    qDebug("Uploading speeds to GPU...");
+    gpuArrSpeeds = NULL;
+    sz = sizeof(float)*energyEstimatorCnt;
+    gpuErrchk(cudaMalloc(&gpuArrSpeeds,sz));
+    gpuErrchk(cudaMemcpyAsync(gpuArrSpeeds,cpuArrSpeeds,sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 
     cudaStreamSynchronize(cudaStreams[0]);
 }
@@ -59,7 +66,7 @@ OpticFlowEstimator::~OpticFlowEstimator()
         delete motionEnergyEstimators[i];
         for(int j= 0; j < orientations.length();j++){
             int idx = i*orientations.length() + j;
-            delete opponentMotionEnergies[idx];
+            delete motionEnergyBuffers[idx];
         }
     }
 
@@ -68,10 +75,10 @@ OpticFlowEstimator::~OpticFlowEstimator()
     delete[] updateTimeStamps;
     updateTimeStamps = NULL;
 
-    gpuErrchk(cudaFree(gpuOrientations));
-    gpuOrientations = NULL;
-    gpuErrchk(cudaFree(gpuArrgpuOpponentMotionEnergies));
-    gpuArrgpuOpponentMotionEnergies = NULL;
+    gpuErrchk(cudaFree(gpuArrOrientations));
+    gpuArrOrientations = NULL;
+    gpuErrchk(cudaFree(gpuArrGpuMotionEnergies));
+    gpuArrGpuMotionEnergies = NULL;
 }
 
 void OpticFlowEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent& e)
@@ -121,11 +128,22 @@ void OpticFlowEstimator::process()
 #endif
    // qDebug("Read result");
     motionEnergyMutex.lock();
-    // Start parallel reading of opponent motion energy
+    // Start parallel reading of  motion energy
     for(int i = 0; i < energyEstimatorCnt; i++){
         if(somethingToDo[i]){
             updateTimeStamps[i] = motionEnergyEstimators[i]->startReadMotionEnergyAsync(
-                        &gpuOpponentMotionEnergies[i*orientations.length()]);
+                        &cpuArrGpuMotionEnergies[i*orientations.length()]);
+        }
+    }
+
+#ifndef NDEBUG
+    nvtxMark("Normalize Result");
+#endif
+    // Start parallel normalizing of motion energy
+    for(int i = 0; i < energyEstimatorCnt; i++){
+        if(somethingToDo[i]){
+            motionEnergyEstimators[i]->startNormalizeEnergiesAsync(
+                        &cpuArrGpuMotionEnergies[i*orientations.length()]);
         }
     }
 #ifndef NDEBUG
@@ -153,16 +171,16 @@ void OpticFlowEstimator::computeOpticFlow(){
     nvtxRangeId_t id = nvtxRangeStart("Optic Flow");
 #endif
     // Start optic flow computation
-    for(int i = 0; i < 1; i++){
-        cudaComputeOpticFlow(opticFlowVec[0].getSizeX(),opticFlowVec[0].getSizeY(),
+    cudaComputeOpticFlow(opticFlowVec[0].getSizeX(),opticFlowVec[0].getSizeY(),
                 opticFlowVec[0].getGPUPtr(),opticFlowVec[1].getGPUPtr(),
-                gpuArrgpuOpponentMotionEnergies + orientations.length()*i,gpuOrientations,orientations.length(),
-                cudaStreams[i]);
-    }
+                gpuArrGpuMotionEnergies,
+                gpuArrOrientations,orientations.length(),
+                gpuArrSpeeds,energyEstimatorCnt,
+                cudaStreams[0]);
+
     // Synchronize
-    for(int i = 0; i < energyEstimatorCnt; i++){
-        cudaStreamSynchronize(cudaStreams[i]);
-    }
+    cudaStreamSynchronize(cudaStreams[0]);
+
     opticFlowUpToDate = true;
 #ifndef NDEBUG
     nvtxRangeEnd(id);

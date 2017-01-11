@@ -8,6 +8,7 @@
 #include "filtersettings.h"
 #include "filterset.h"
 #include "serialedvsinterface.h"
+#include "settings.h"
 
 #include <assert.h>
 
@@ -24,15 +25,16 @@ extern void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventLi
                                         int bsx, int bsy, int bsz,
                                         cudaStream_t cudaStream);
 
-extern void cudaReadOpponentMotionEnergyAsync(float* gpuConvBufferl1,
-                                              float* gpuConvBufferl2,
-                                              float* gpuConvBufferr1,
-                                              float* gpuConvBufferr2,
-                                              int ringBufferIdx,
-                                              int bsx, int bsy, int bsz,
-                                              float alphaPNorm, float alphaQNorm, float betaNorm, float sigmaNorm,
-                                              float* gpuEnergyBuffer,
-                                              cudaStream_t cudaStream);
+extern void cudaReadMotionEnergyAsync(float* gpuConvBufferl1,
+                                      float* gpuConvBufferl2,
+                                      int ringBufferIdx,
+                                      int bsx, int bsy,
+                                      float* gpuEnergyBuffer,
+                                      cudaStream_t cudaStream);
+void cudaNormalizeMotionEnergyAsync(int bsx, int bsy,
+                                    float alphaPNorm, float alphaQNorm, float betaNorm, float sigmaNorm,
+                                    float* gpuEnergyBuffer,
+                                    cudaStream_t cudaStream);
 
 #define DEFAULT_STREAM_ID 0
 
@@ -70,12 +72,17 @@ public:
      * @return Returns the start time for the current time slot
      */
     long startReadMotionEnergyAsync(float** gpuEnergyBuffers);
+    /**
+     * @brief startNormalizeEnergiesAsync Normalizes the previously computed motion energy inplace
+     * @param gpuEnergyBuffers
+     */
+    void startNormalizeEnergiesAsync(float** gpuEnergyBuffers);
 
     /**
      * @brief syncStreams Synchronizes all streams of this motion energy estimator
      */
     void syncStreams(){
-        for(int i = 0; i < orientations.length()*4; i ++)
+        for(int i = 0; i < orientations.length()*FILTERS_PER_ORIENTATION; i ++)
             cudaStreamSynchronize(cudaStreams[i]);
     }
 

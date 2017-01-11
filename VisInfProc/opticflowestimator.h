@@ -10,7 +10,13 @@
 
 extern void cudaComputeOpticFlow(int sx, int sy,
                                  float* gpuFlowX, float* gpuFlowY,
-                                 float** gpuArrGpuEnergy, float* gpuArrOrientations, int orientationCnt, cudaStream_t stream);
+                                 float** gpuArrGpuEnergy,
+                                 float* gpuArrOrientations, int orientationCnt,
+                                 float* speeds, int speedCnt,
+                                 cudaStream_t stream);
+extern void cudaFlowToRGB(float* gpuFlowX, float* gpuFlowY, char* gpuImage,
+                            int sx, int sy,
+                            float maxLength, cudaStream_t stream);
 
 class OpticFlowEstimator
 {
@@ -41,7 +47,7 @@ public:
         assert(orientationIdx >= 0);
         assert(orientationIdx < orientations.length());
         motionEnergyMutex.lock();
-        opponentMotionEnergy = *(opponentMotionEnergies[filterNr*orientations.length() + orientationIdx]);
+        opponentMotionEnergy = *(motionEnergyBuffers[filterNr*orientations.length() + orientationIdx]);
         motionEnergyMutex.unlock();
         return updateTimeStamps[filterNr];
     }
@@ -106,7 +112,7 @@ private:
     MotionEnergyEstimator **motionEnergyEstimators;
     // All covered orientations
     QVector<float> orientations;
-    float * gpuOrientations;
+    float * gpuArrOrientations;
     // All covered filter settings
     QVector<FilterSettings> settings;
     // Contains the optic flow in x and y direction for each pixel
@@ -114,11 +120,13 @@ private:
     // Mutex for accessing the stored opponent motion energies
     QMutex motionEnergyMutex;
     // Pointer to array of 2d buffer pointers
-    Buffer2D **opponentMotionEnergies;
+    Buffer2D **motionEnergyBuffers;
     // CPU array of GPU pointers
-    float **gpuOpponentMotionEnergies;
+    float **cpuArrGpuMotionEnergies;
     // GPU array of GPU pointers
-    float **gpuArrgpuOpponentMotionEnergies;
+    float **gpuArrGpuMotionEnergies;
+    // GPU array of speeds for which the filers are sensitive
+    float *gpuArrSpeeds;
     // Array of timestamps of last opponent motion energy updates
     long *updateTimeStamps;
     // True if optic flow is the newest available computation

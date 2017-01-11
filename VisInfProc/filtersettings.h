@@ -17,9 +17,11 @@ public:
      * @param _tempSteps Number of steps to go from t = 0 to t = tempEnd
      * @param _spatialSz Size of spatial filter, has to be odd
      * @param _timewindow timewindow for filter
+     * @param _speed_px_per_sec Prefered motion speed
      */
     FilterSettings(float _f0, float _muBi1, float _tempEnd,
-                   float _tempSteps, int _spatialSz, int _timewindow_us);
+                   float _tempSteps, int _spatialSz, int _timewindow_us,
+                   float _speed_px_per_sec);
 
     /**
      * @brief toString Converts the filtersettings into a string
@@ -49,6 +51,8 @@ public:
     float alphaQNorm;
     float betaNorm;
     float sigmaNorm;
+    // Flow computation
+    float speed_px_per_sec;
 
 };
 

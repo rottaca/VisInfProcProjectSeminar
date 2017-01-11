@@ -84,3 +84,6 @@ DISTFILES += \
     cuda_opticflow.cu \
     cuda_filtermanager.cu \
     cuda_buffer.cu
+
+RESOURCES += \
+    res/resource.qrc
