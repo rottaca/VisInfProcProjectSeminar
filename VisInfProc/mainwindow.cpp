@@ -39,9 +39,7 @@ void MainWindow::initUI()
 {
     ui->setupUi(this);
     lastStatisticsUpdate.start();
-    Q_FOREACH(QSerialPortInfo port, QSerialPortInfo::availablePorts()) {
-            ui->cb_ports->addItem(port.portName());
-    }
+
     ui->cb_show_speed->clear();
     Q_FOREACH(FilterSettings fs, settings){
         ui->cb_show_speed->addItem(QString("%1").arg(fs.speed_px_per_sec));
@@ -58,9 +56,9 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_25));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_50));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_21));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_46));
 
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(180.0f));
@@ -86,6 +84,7 @@ void MainWindow::initSignalsAndSlots()
     connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
     connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
     connect(&eDVSHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
+    connect(&eDVSHandler,SIGNAL(onConnectionResult(bool)),this,SLOT(onConnectionResult(bool)));
 
     connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(onChangePlaybackFile()));
     connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(onClickStartPlayback()));
@@ -117,7 +116,7 @@ void MainWindow::onUpdate()
 
 
             cudaFlowToRGB(flowX.getGPUPtr(),flowY.getGPUPtr(),gpuImage,
-                          DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,50,cudaStream);
+                          DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
             gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
                                       DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                       cudaMemcpyDeviceToHost,cudaStream));
@@ -165,12 +164,11 @@ void MainWindow::onPlaybackFinished()
 }
 
 void MainWindow::onClickStartPlayback(){
-    if(worker->getIsProcessing()){
+    if(eDVSHandler.isWorking()){
         qDebug("Stop Playback");
-        eDVSHandler.stop();
+        eDVSHandler.stopWork();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
-
     }else{
         qDebug("Start Playback");
         ui->b_start_playback->setText("Stop");
@@ -180,6 +178,18 @@ void MainWindow::onClickStartPlayback(){
 
         worker->createOpticFlowEstimator(settings,orientations);
         eDVSHandler.playbackFile(file,speed);
+    }
+}
+
+void MainWindow::onConnectionResult(bool failed)
+{
+    if(!failed){
+        ui->b_connect->setText("Disconnect");
+        ui->tab_playback->setEnabled(false);
+        ui->gb_cmdline->setEnabled(true);
+        ui->b_start_streaming->setEnabled(true);
+    }else{
+        qDebug("Failed to connect!");
     }
 }
 
@@ -221,21 +231,15 @@ void MainWindow::onClickStartStreaming()
 
 void MainWindow::onClickConnect()
 {
-    if(eDVSHandler.isConnected()){
-        eDVSHandler.stop();
+    if(eDVSHandler.isWorking()){
+        eDVSHandler.stopWork();
         ui->b_connect->setText("Connect");
         ui->tab_playback->setEnabled(true);
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
     }else{
-        if(eDVSHandler.open(ui->cb_ports->currentText())){
-            ui->b_connect->setText("Disconnect");
-            ui->tab_playback->setEnabled(false);
-            ui->gb_cmdline->setEnabled(true);
-            ui->b_start_streaming->setEnabled(true);
-        }else{
-            qDebug("Failed to connect!");
-        }
+        worker->createOpticFlowEstimator(settings,orientations);
+        eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
     }
 }
 void MainWindow::onCmdEntered()
@@ -243,6 +247,6 @@ void MainWindow::onCmdEntered()
     if(eDVSHandler.isConnected()){
         QString txt = ui->le_cmd_input->text();
         txt.append("\n");
-        emit sendRawCmd(txt);
+        eDVSHandler.sendRawCmd(txt);
     }
 }

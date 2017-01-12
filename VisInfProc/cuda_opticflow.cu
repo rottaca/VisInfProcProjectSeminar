@@ -126,8 +126,10 @@ __global__ void kernelComputeOpticFlow(int n,
         if(energy > 0.1)
         {
             float speed = speeds[maxIdx];
-            gpuFlowX[idx] = localFlowX/energy*speed;
-            gpuFlowY[idx] = localFlowY/energy*speed;
+            //gpuFlowX[idx] = localFlowX/energy*speed;
+            //gpuFlowY[idx] = localFlowY/energy*speed;
+            gpuFlowX[idx] = localFlowX;
+            gpuFlowY[idx] = localFlowY;
         }else{
             gpuFlowX[idx] = 0;
             gpuFlowY[idx] = 0;

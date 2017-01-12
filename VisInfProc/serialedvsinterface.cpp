@@ -14,16 +14,15 @@ SerialeDVSInterface::SerialeDVSInterface(QObject *parent):QObject(parent)
     evBuilderBufferSz = 0;
     evBuilderByteIdx = 0;
     evBuilderSyncTimestamp = 0;
-    worker = NULL;
+    processingWorker = NULL;
     playbackSpeed = 1;
     playbackFileName = "";
 
     moveToThread(&thread);
-    serial.moveToThread(&thread);
+    socket.moveToThread(&thread);
 
     // Call process function in eventloop of new thread
     connect(&thread,SIGNAL(started()),this,SLOT(process()));
-
 }
 
 SerialeDVSInterface::~SerialeDVSInterface()
@@ -31,6 +30,8 @@ SerialeDVSInterface::~SerialeDVSInterface()
     operationMutex.lock();
     operationMode = IDLE;
     operationMutex.unlock();
+
+    thread.quit();
 
     if(!thread.wait(2000)){
         thread.terminate();
@@ -42,32 +43,21 @@ SerialeDVSInterface::~SerialeDVSInterface()
     evBuilderData = NULL;
 }
 
-bool SerialeDVSInterface::open(QString portName)
+void SerialeDVSInterface::connectToBot(QString host, int port)
 {
-    QMutexLocker locker2(&serialMutex);
 
-    // Init serial port
-    serial.setBaudRate(4000000);
-    serial.setStopBits(QSerialPort::OneStop);
-    serial.setDataBits(QSerialPort::Data8);
-    serial.setParity(QSerialPort::NoParity);
-    serial.setFlowControl(QSerialPort::HardwareControl);
-    serial.setPortName(portName);
-
-    if(serial.error() != QSerialPort::NoError){
-        qDebug("Serial port error: %d",serial.error());
-        return false;
+    {
+        QMutexLocker locker2(&socketMutex);
+        this->host = host;
+        this->port = port;
     }
 
-    if(!serial.open(QSerialPort::ReadWrite))
-        return false;
-
-    operationMutex.lock();
-    operationMode = ONLINE;
-    operationMutex.unlock();
+    {
+        QMutexLocker locker2(&operationMutex);
+        operationMode = ONLINE;
+    }
 
     thread.start();
-    return true;
 }
 
 void SerialeDVSInterface::startEventStreaming()
@@ -77,10 +67,10 @@ void SerialeDVSInterface::startEventStreaming()
 //    if(eventHandler != NULL)
 //        eventHandler->initStreaming(DVSEventHandler::TimeDelta);
 
-    QMutexLocker locker(&serialMutex);
-    serial.write("E1\n");
-    serial.write("E+\n");
-    serial.waitForBytesWritten(10);
+    QMutexLocker locker(&socketMutex);
+    socket.write("E1\n");
+    socket.write("E+\n");
+    socket.waitForBytesWritten();
 
     operationMutex.lock();
     operationMode = ONLINE_STREAMING;
@@ -93,13 +83,9 @@ void SerialeDVSInterface::stopEventStreaming()
     operationMode = ONLINE;
     operationMutex.unlock();
 
-    QMutexLocker locker(&serialMutex);
-    serial.write("E-\n");
-    serial.waitForBytesWritten(10);
-    //QMutexLocker locker2(&dataMutex);
-    //if(eventHandler != NULL)
-    //    eventHandler->abort();
-
+    QMutexLocker locker(&socketMutex);
+    socket.write("E-\n");
+    socket.waitForBytesWritten();
 }
 void SerialeDVSInterface::sendRawCmd(QString cmd)
 {
@@ -111,8 +97,9 @@ void SerialeDVSInterface::sendRawCmd(QString cmd)
     }
 
     if(opModeLocal == ONLINE){
-        QMutexLocker locker(&serialMutex);
-        serial.write(cmd.toLocal8Bit());
+        QMutexLocker locker(&socketMutex);
+        socket.write(cmd.toLocal8Bit());
+        socket.waitForBytesWritten();
         emit onCmdSent(cmd);
     }
 }
@@ -125,12 +112,12 @@ void SerialeDVSInterface::enableMotors(bool enable){
     }
 
     if(opModeLocal == ONLINE){
-        QMutexLocker locker(&serialMutex);
+        QMutexLocker locker(&socketMutex);
         if(enable)
-            serial.write("M+\n");
+            socket.write("M+\n");
         else
-            serial.write("M-\n");
-        serial.waitForBytesWritten(10);
+            socket.write("M-\n");
+        socket.waitForBytesWritten();
     }
 }
 void SerialeDVSInterface::setMotorVelocity(int motorId, int speed)
@@ -142,9 +129,9 @@ void SerialeDVSInterface::setMotorVelocity(int motorId, int speed)
     }
 
     if(opModeLocal == ONLINE){
-        QMutexLocker locker(&serialMutex);
-        serial.write(QString("MV%1=%2\n").arg(motorId).arg(speed).toLocal8Bit());
-        serial.waitForBytesWritten(10);
+        QMutexLocker locker(&socketMutex);
+        socket.write(QString("MV%1=%2\n").arg(motorId).arg(speed).toLocal8Bit());
+        socket.waitForBytesWritten();
     }
 }
 
@@ -152,24 +139,25 @@ void SerialeDVSInterface::process()
 {
 
     OperationMode opModeLocal;
+    Worker* workerLocal;
     {
         QMutexLocker locker(&operationMutex);
         opModeLocal = operationMode;
-
-        if(worker == NULL)
-            return;
-
-        qDebug("Start worker");
-        worker->start();
+        workerLocal = processingWorker;
     }
 
+    if(workerLocal == NULL)
+        return;
+
+    qDebug("Start worker");
+    processingWorker->start();
 
     switch (opModeLocal) {
     case PLAYBACK:
         _playbackFile();
         break;
     case ONLINE:
-
+        _processSocket();
         break;
     default:
         break;
@@ -178,10 +166,12 @@ void SerialeDVSInterface::process()
     {
         QMutexLocker locker(&operationMutex);
         qDebug("Stop worker");
-        worker->stopProcessing();
+        processingWorker->stopProcessing();
     }
+    // Wait for processing stopped
     thread.quit();
 
+    qDebug("Done");
 
 //    dataMutex.lock();
 //    bool openedLocal = opened;
@@ -219,12 +209,32 @@ void SerialeDVSInterface::process()
 //        qApp->processEvents();
 //    }
 }
+void SerialeDVSInterface::_processSocket(){
+    // Init serial port
+    socket.connectToHost(host,port);
 
-void SerialeDVSInterface::stop()
+    if(!socket.waitForConnected(2000)){
+        operationMutex.lock();
+        operationMode = IDLE;
+        operationMutex.unlock();
+        emit onConnectionResult(true);
+        qDebug("Can't connect to socket \"%s:%d\": %s"
+               ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
+        return;
+    }
+}
+
+void SerialeDVSInterface::stopWork()
 {
-    if(isStreaming())
+    operationMutex.lock();
+    OperationMode localOpMode = operationMode;
+    operationMutex.unlock();
+
+    // Stop streaming
+    if(localOpMode == ONLINE_STREAMING)
         stopEventStreaming();
 
+    // Stop processing
     operationMutex.lock();
     operationMode = IDLE;
     operationMutex.unlock();
@@ -235,6 +245,12 @@ void SerialeDVSInterface::stop()
         thread.wait();
         qDebug("Stopped.");
     }
+    // Close socket
+    if(localOpMode == ONLINE)
+    {
+        QMutexLocker locker2(&socketMutex);
+        socket.disconnectFromHost();
+    }
 }
 
 void SerialeDVSInterface::playbackFile(QString fileName, float speed)
@@ -242,7 +258,7 @@ void SerialeDVSInterface::playbackFile(QString fileName, float speed)
     {
         QMutexLocker locker(&operationMutex);
         QMutexLocker locker2(&playbackDataMutex);
-        if(worker == NULL)
+        if(processingWorker == NULL)
             return;
         operationMode = PLAYBACK;
 
@@ -277,13 +293,14 @@ void SerialeDVSInterface::_playbackFile()
     // Measure real time
     timeMeasure.start();
     do{
+        qApp->processEvents();
         // New event ready ?
         if(evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew)){
             eventCount++;
 
             // send first event directly
             if(startTimestamp == -1){
-                worker->nextEvent(eNew);
+                processingWorker->nextEvent(eNew);
                 startTimestamp = eNew.timestamp;
             }
             // Compute sleep time
@@ -298,7 +315,7 @@ void SerialeDVSInterface::_playbackFile()
                     struct timespec ts = { sleepTime / 1000000, (sleepTime % 1000000) * 1000};
                     nanosleep(&ts, NULL);
                 }
-                worker->nextEvent(eNew);
+                processingWorker->nextEvent(eNew);
             }
         }
 
@@ -319,6 +336,10 @@ void SerialeDVSInterface::_playbackFile()
                .arg(((float)elapsedTimeReal/(elapsedTimeEvents/speed) - 1) *100)
                .toLocal8Bit());
 
+        {
+            QMutexLocker locker2(&operationMutex);
+            operationMode = IDLE;
+        }
         emit onPlaybackFinished();
     }
 }

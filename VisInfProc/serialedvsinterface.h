@@ -1,11 +1,10 @@
 #ifndef SERIALEDVSINTERFACE_H
 #define SERIALEDVSINTERFACE_H
 
-#include <QSerialPort>
 #include <QThread>
 #include <QMutex>
 #include <QMutexLocker>
-
+#include <QTcpSocket>
 
 class Worker;
 
@@ -26,25 +25,10 @@ public:
     SerialeDVSInterface(QObject* parent = 0);
     ~SerialeDVSInterface();
 
-
-    // Connect/Disconnect
-    bool open(QString portName);
-    void stop();
-
-
-    // Commands
-    void startEventStreaming();
-    void stopEventStreaming();
-    void enableMotors(bool enable);
-    void setMotorVelocity(int motorId, int speed);
-
-    // Playback
-    void playbackFile(QString fileName, float speed);
-
     // Getters / Setters
     bool isConnected(){
-        QMutexLocker locker(&serialMutex);
-        return serial.isOpen();
+        QMutexLocker locker(&operationMutex);
+        return operationMode == ONLINE_STREAMING || operationMode == ONLINE;
     }
 
     bool isStreaming(){
@@ -52,20 +36,39 @@ public:
         return operationMode == ONLINE_STREAMING;
     }
 
+    bool isWorking(){
+        QMutexLocker locker(&operationMutex);
+        return operationMode != IDLE;
+    }
+
+
+
     void setWorker(Worker* worker){
         QMutexLocker locker(&operationMutex);
-        this->worker = worker;
+        this->processingWorker = worker;
     }
+
+    // Connect/Disconnect/Playback
+    void playbackFile(QString fileName, float speed);
+    void connectToBot(QString host, int port);
+    void stopWork();
+
+    // Commands
+    void sendRawCmd(QString cmd);
+    void startEventStreaming();
+    void stopEventStreaming();
+    void enableMotors(bool enable);
+    void setMotorVelocity(int motorId, int speed);
 
 signals:
     void onPlaybackFinished();
+    void onConnectionResult(bool failed);
     void onLineRecived(QString answ);
     void onCmdSent(QString cmd);
 
-
 public slots:
+
     void process();
-    void sendRawCmd(QString cmd);
 
 
 private:
@@ -73,23 +76,27 @@ private:
     QByteArray parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers);
     void _playbackFile();
 
+    void _processSocket();
+
     // Event builder functions
     void initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers);
     bool evBuilderProcessNextByte(char c, DVSEvent &event);
     DVSEvent evBuilderParseEvent();
 
 private:
-    // Thread for async processing of playback file and serial interface
+    // Thread for async processing of playback file and tcp socket
     QThread thread;
     // Operation mode and worker thread
     typedef enum OperationMode{IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
     OperationMode operationMode;
-    Worker *worker;
+    Worker *processingWorker;
     QMutex operationMutex;
 
-    // Serial port for realtime processing
-    QSerialPort serial;
-    QMutex serialMutex;
+    // Tcp connection for realtime processing
+    QTcpSocket socket;
+    QString host;
+    int port;
+    QMutex socketMutex;
 
     // Playback data
     QString playbackFileName;
@@ -104,7 +111,6 @@ private:
     char* evBuilderData;
     long evBuilderSyncTimestamp;
     QMutex evBuilderMutex;
-
 
 };
 

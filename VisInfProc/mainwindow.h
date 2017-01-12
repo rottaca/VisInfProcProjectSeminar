@@ -28,11 +28,8 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
-signals:
-    void startProcessing();
-    void sendRawCmd(QString cmd);
-
 public slots:
+    void onConnectionResult(bool failed);
     void onUpdate();
     void onPlaybackFinished();
     void onClickStartPlayback();

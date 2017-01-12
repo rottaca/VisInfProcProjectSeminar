@@ -45,8 +45,10 @@ void Worker::stopProcessing()
 }
 void Worker::run()
 {
-    isProcessing = true;
+    if(ofe == NULL)
+        return;
 
+    isProcessing = true;
     while(isProcessing){
         ofe->process();
         // TODO Busy waiting
@@ -56,5 +58,7 @@ void Worker::run()
 
 void Worker::nextEvent(const SerialeDVSInterface::DVSEvent &event)
 {
+    if(ofe == NULL)
+        return;
     ofe->onNewEvent(event);
 }
