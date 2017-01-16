@@ -91,12 +91,8 @@ __global__ void kernelReadMotionEnergyAsync(float* gpuConvBufferl1,
         // Offset in ringbuffer
         int bufferPosConv = bufferPos + ringBufferIdx*bsx*bsy;
         // Get answer from two corresponding buffers and compute motion energy
-        // get both filter responses and reset buffers
-        // TODO: atomicExc(..) ??
         float l1 = gpuConvBufferl1[bufferPosConv];
-        gpuConvBufferl1[bufferPosConv] = 0;
         float l2 = gpuConvBufferl2[bufferPosConv];
-        gpuConvBufferl2[bufferPosConv] = 0;
 
         // Compute motion energy
         gpuEnergyBuffer[bufferPos] = sqrt(l1*l1+l2*l2);
@@ -158,6 +154,7 @@ __global__ void kernelNormalizeMotionEnergyAsync(int bsx, int bsy, int n,
 
         // Use normalized value
         gpuEnergyBuffer[bufferPos] = p_i;
+
     }
 }
 

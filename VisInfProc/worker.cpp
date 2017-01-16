@@ -34,6 +34,7 @@ void Worker::stopProcessing()
 {
     qDebug("Stopping processing...");
     isProcessing = false;
+    wcWorkReady.wakeAll();
 
     if(wait(2000))
         qDebug("Stopped processing.");
@@ -50,9 +51,11 @@ void Worker::run()
 
     isProcessing = true;
     while(isProcessing){
-        ofe->process();
-        // TODO Busy waiting
-        usleep(1);
+        mutex.lock();
+        // Data ready ?
+        if(wcWorkReady.wait(&mutex))
+            ofe->process();
+        mutex.unlock();
     }
 }
 
@@ -60,5 +63,8 @@ void Worker::nextEvent(const SerialeDVSInterface::DVSEvent &event)
 {
     if(ofe == NULL)
         return;
-    ofe->onNewEvent(event);
+
+    if(ofe->onNewEvent(event))
+        wcWorkReady.wakeAll();
+
 }

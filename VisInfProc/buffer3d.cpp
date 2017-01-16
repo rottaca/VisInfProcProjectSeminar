@@ -75,7 +75,7 @@ void Buffer3D::resize(int sx, int sy, int sz)
 QImage Buffer3D::toImageXY(int pos, float min, float max) const
 {
     assert(pos >= 0 && pos < sz);
-    qWarning("Don't use ! Port to GPU");
+    //qWarning("Don't use ! Port to GPU");
 
     if(!cpuValid)
         downloadBuffer();
@@ -107,7 +107,7 @@ QImage Buffer3D::toImageXY(int pos, float min, float max) const
 QImage Buffer3D::toImageXZ(int pos, float min, float max ) const
 {
     assert(pos >= 0 && pos < sy);
-    qWarning("Don't use ! Port to GPU");
+    //qWarning("Don't use ! Port to GPU");
     if(!cpuValid)
         downloadBuffer();
 
@@ -135,7 +135,7 @@ QImage Buffer3D::toImageXZ(int pos, float min, float max ) const
 QImage Buffer3D::toImageYZ(int pos, float min, float max) const
 {
     assert(pos >= 0 && pos < sx);
-    qWarning("Don't use ! Port to GPU");
+    //qWarning("Don't use ! Port to GPU");
 
     if(!cpuValid)
         downloadBuffer();

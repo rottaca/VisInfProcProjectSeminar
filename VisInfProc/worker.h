@@ -27,9 +27,13 @@ public:
         long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
         return time;
     }
-    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY){
-        ofe->getOpticFlow(flowX,flowY);
+    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY, int speedNr){
+        ofe->getOpticFlow(flowX,flowY,speedNr);
     }
+    void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer){
+        ofe->getConvBuffer(filterNr,orientationIdx,pairIdx,convBuffer);
+    }
+
     void getStats(long &recievedEvents, long &dischargedEvents){
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
@@ -50,6 +54,8 @@ private:
     bool isProcessing;
 
     OpticFlowEstimator *ofe;
+    QWaitCondition wcWorkReady;
+    QMutex mutex;
 };
 
 #endif // WORKER_H

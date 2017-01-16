@@ -305,15 +305,17 @@ void SerialeDVSInterface::_playbackFile()
             }
             // Compute sleep time
             else{
-                int elapsedTimeReal = timeMeasure.nsecsElapsed()/1000*speed;
-                int elapsedTimeEvents = eNew.timestamp - startTimestamp;
-                int sleepTime = elapsedTimeEvents - elapsedTimeReal;
+                long elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+                long elapsedTimeEvents = (eNew.timestamp - startTimestamp)/speed;
+                long sleepTime = elapsedTimeEvents - elapsedTimeReal;
+
+                //qDebug("%ld %ld %ld",elapsedTimeReal,elapsedTimeEvents,sleepTime);
 
                 // Sleep if necessary
-                sleepTime = qMax(0,sleepTime);
+                sleepTime = qMax(0L,sleepTime);
                 if(sleepTime > 0){
-                    struct timespec ts = { sleepTime / 1000000, (sleepTime % 1000000) * 1000};
-                    nanosleep(&ts, NULL);
+                    //qDebug("Sleep: %ld",sleepTime);
+                    QThread::usleep(sleepTime);
                 }
                 processingWorker->nextEvent(eNew);
             }

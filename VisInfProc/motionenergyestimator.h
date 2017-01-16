@@ -49,7 +49,7 @@ public:
     }
 
 
-    void onNewEvent(const SerialeDVSInterface::DVSEvent &e);
+    bool onNewEvent(const SerialeDVSInterface::DVSEvent &e);
     bool isEventListReady(){
         eventWriteMutex.lock();
         bool cpy = eventListReady;
@@ -109,6 +109,15 @@ public:
         eventStatisticsMutex.unlock();
     }
 
+    /**
+     * @brief getConvBuffer Debugging function
+     * @param bufferIdx
+     * @return
+     */
+    Buffer3D getConvBuffer(int bufferIdx){
+        return *cpuArrCpuConvBuffers[bufferIdx];
+    }
+
     // Struct contains all data for the given list of events
     // -> Number of slots to skip after processing
     // -> The starttime of the current time slot
@@ -138,9 +147,9 @@ private:
     int fsx,fsy,fsz;
 
     // Convolution buffers for each filter orientation
-    Buffer3D** convBuffer;
+    Buffer3D** cpuArrCpuConvBuffers;
     // CPU array of GPU pointers (one pointer for each buffer)
-    float** gpuConvBuffers;
+    float** cpuArrGpuConvBuffers;
     // Index into the convolution ring buffer
     int ringBufferIdx;
     // Buffer sizes

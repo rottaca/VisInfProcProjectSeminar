@@ -8,7 +8,8 @@
 // GUI refresh rate
 #define FPS 30
 
-
+// Convolution buffers per filter orientation
+// DO NOT CHANGE
 #define FILTERS_PER_ORIENTATION 2
 
 //#include "cuda_settings.h"

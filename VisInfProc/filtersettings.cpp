@@ -28,6 +28,7 @@ FilterSettings::FilterSettings()
 
 FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
                                float _tempSteps, int _spatialSz, int _timewindow_us,
+                               float _alphaPNorm, float _alphaQNorm, float _betaNorm, float _sigmaNorm,
                                float _speed_px_per_sec)
 {
     f0 = _f0;
@@ -44,59 +45,32 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
     temporalSteps = _tempSteps;
     spatialSize = _spatialSz;
     timewindow_us = _timewindow_us;
-    alphaPNorm = 0.1f;
-    alphaQNorm = 0.002f;
-    betaNorm = 1.0f;
-    sigmaNorm = 3.6f;
+    alphaPNorm = _alphaPNorm;
+    alphaQNorm = _alphaQNorm;
+    betaNorm = _betaNorm;
+    sigmaNorm = _sigmaNorm;
     speed_px_per_sec = _speed_px_per_sec;
 
     assert(spatialSize % 2 != 0);
-}
-
-QString FilterSettings::toString()
-{
-    return QString("f0: %1\n"
-                   "s1: %2\n"
-                   "s2: %3\n"
-                   "muBi1: %4\n"
-                   "muBi2: %5\n"
-                   "sigmaBi1: %6\n"
-                   "sigmaBi2: %7\n"
-                   "muMono: %8\n"
-                   "sigmaMono: %9\n"
-                   "sigmaGabor: %10\n"
-                   "temporalEnd: %11\n"
-                   "temporalSteps: %12\n"
-                   "spatialSize: %13\n")
-            .arg(f0)
-            .arg(s1)
-            .arg(s2)
-            .arg(muBi1)
-            .arg(muBi2)
-            .arg(sigmaBi1)
-            .arg(sigmaBi2)
-            .arg(muMono)
-            .arg(sigmaMono)
-            .arg(sigmaGabor)
-            .arg(temporalEnd)
-            .arg(temporalSteps)
-            .arg(spatialSize);
 }
 
 FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
 {
     switch (ps) {
     case DEFAULT:
-            return FilterSettings(0.08f,0.2f,0.7,100,25,135000, 0);
+            return FilterSettings(0.08f,0.2f,0.7,100,25,135000,0.1,0.002,1,3.6, 0);
         break;
-    case SPEED_21:
-            return FilterSettings(0.2f,0.23f,0.7,20,19,150000,20.7f);
+    case SPEED_1:
+            return FilterSettings(0.15f,0.23f,0.7,20,19,100000,0.1,0.002,1,3.6,66.733f);
         break;
-    case SPEED_46:
-            return FilterSettings(0.15f,0.23f,0.7,20,19,150000,46);
+    case SPEED_2:
+            return FilterSettings(0.15f,0.23f,0.7,20,19,200000,0.1,0.002,1,3.6,33.366f);
+        break;
+    case SPEED_3:
+            return FilterSettings(0.15f,0.23f,0.7,20,19,300000,0.1,0.02,1,3.6,22.244f);
         break;
     default:
-            return FilterSettings(0,0,0,0,0,0,0);
+            return FilterSettings();
         break;
     }
 }

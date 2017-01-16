@@ -56,19 +56,19 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_12_5));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_21));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_46));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
 
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(180.0f));
     orientations.append(qDegreesToRadians(-90.0f));
     orientations.append(qDegreesToRadians(90.0f));
 
-    //orientations.append(qDegreesToRadians(45.0f));
-    //orientations.append(qDegreesToRadians(-45.0f));
-    //orientations.append(qDegreesToRadians(-135.0f));
-    //orientations.append(qDegreesToRadians(135.0f));
+//    orientations.append(qDegreesToRadians(45.0f));
+//    orientations.append(qDegreesToRadians(-45.0f));
+//    orientations.append(qDegreesToRadians(-135.0f));
+//    orientations.append(qDegreesToRadians(135.0f));
 
     worker = new Worker();
     eDVSHandler.setWorker(worker);
@@ -101,11 +101,18 @@ void MainWindow::onUpdate()
 
         long time = worker->getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
         if(time != -1){
-            worker->getOpticFlow(flowX,flowY);
+            worker->getOpticFlow(flowX,flowY,speedIdx);
             flowX.setCudaStream(cudaStream);
             flowY.setCudaStream(cudaStream);
             oppMoEnergy1.setCudaStream(cudaStream);
             oppMoEnergy2.setCudaStream(cudaStream);
+
+            if(ui->cb_debug->isChecked()){
+                Buffer3D en;
+                worker->getConvBuffer(speedIdx,orientIdx,0,en);
+                QImage imgConv = en.toImageXZ(63);
+                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
+            }
 
             QImage img1 = oppMoEnergy1.toImage(0,1.0f);
             ui->l_motion->setPixmap(QPixmap::fromImage(img1));

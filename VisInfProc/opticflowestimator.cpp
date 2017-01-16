@@ -12,12 +12,14 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     this->settings = settings;
 
     energyEstimatorCnt = settings.length();
-    opticFlowUpToDate = false;
+    opticFlowUpToDate = new bool[energyEstimatorCnt];
     motionEnergyEstimators = new MotionEnergyEstimator*[energyEstimatorCnt];
     motionEnergyBuffers = new Buffer2D*[energyEstimatorCnt*orientations.length()];
     updateTimeStamps = new long[energyEstimatorCnt];
     cpuArrGpuMotionEnergies = new float*[energyEstimatorCnt*orientations.length()];
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
+    opticFlowVec[0] = new Buffer2D[energyEstimatorCnt];
+    opticFlowVec[1] = new Buffer2D[energyEstimatorCnt];
 
     float cpuArrSpeeds[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++){
@@ -25,17 +27,19 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
         motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
         updateTimeStamps[i] = -1;
         cpuArrSpeeds[i] = settings.at(i).speed_px_per_sec;
+        opticFlowUpToDate[i] = false;
+
         for(int j= 0; j < orientations.length();j++){
             int idx = i*orientations.length() + j;
             motionEnergyBuffers[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
             cpuArrGpuMotionEnergies[idx] = motionEnergyBuffers[idx]->getGPUPtr();
         }
-    }
 
-    opticFlowVec[0].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-    opticFlowVec[0].fill(0);
-    opticFlowVec[1].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-    opticFlowVec[1].fill(0);
+        opticFlowVec[0][i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+        opticFlowVec[0][i].fill(0);
+        opticFlowVec[1][i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+        opticFlowVec[1][i].fill(0);
+    }
 
     qDebug("Uploading orientations to GPU...");
     gpuArrOrientations = NULL;
@@ -81,11 +85,13 @@ OpticFlowEstimator::~OpticFlowEstimator()
     gpuArrGpuMotionEnergies = NULL;
 }
 
-void OpticFlowEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent& e)
+bool OpticFlowEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent& e)
 {
+    bool dataRead = false;
     for(int i = 0; i < energyEstimatorCnt; i++){
-        motionEnergyEstimators[i]->onNewEvent(e);
+        dataRead |= motionEnergyEstimators[i]->onNewEvent(e);
     }
+    return dataRead;
 }
 
 void OpticFlowEstimator::process()
@@ -154,10 +160,10 @@ void OpticFlowEstimator::process()
     for(int i = 0; i < energyEstimatorCnt; i++){
         if(somethingToDo[i]){
             motionEnergyEstimators[i]->syncStreams();
+            // The optic flow stored in member variables is old
+            opticFlowUpToDate[i] = false;
         }
     }
-    // The optic flow stored in member variables is old
-    opticFlowUpToDate = false;
     motionEnergyMutex.unlock();
 
 #ifndef NDEBUG
@@ -165,23 +171,24 @@ void OpticFlowEstimator::process()
 #endif
 }
 
-void OpticFlowEstimator::computeOpticFlow(){
+void OpticFlowEstimator::computeOpticFlow(int speedIdx){
 
 #ifndef NDEBUG
     nvtxRangeId_t id = nvtxRangeStart("Optic Flow");
 #endif
+
     // Start optic flow computation
-    cudaComputeOpticFlow(opticFlowVec[0].getSizeX(),opticFlowVec[0].getSizeY(),
-                opticFlowVec[0].getGPUPtr(),opticFlowVec[1].getGPUPtr(),
-                gpuArrGpuMotionEnergies,
+    cudaComputeOpticFlow(opticFlowVec[0][speedIdx].getSizeX(),opticFlowVec[0][speedIdx].getSizeY(),
+                opticFlowVec[0][speedIdx].getGPUPtr(),opticFlowVec[1][speedIdx].getGPUPtr(),
+                gpuArrGpuMotionEnergies + orientations.length()*speedIdx,
                 gpuArrOrientations,orientations.length(),
-                gpuArrSpeeds,energyEstimatorCnt,
+            settings[speedIdx].speed_px_per_sec,
                 cudaStreams[0]);
 
     // Synchronize
     cudaStreamSynchronize(cudaStreams[0]);
 
-    opticFlowUpToDate = true;
+    opticFlowUpToDate[speedIdx] = true;
 #ifndef NDEBUG
     nvtxRangeEnd(id);
 #endif

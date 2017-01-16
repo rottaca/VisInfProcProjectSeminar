@@ -9,131 +9,20 @@ __global__ void kernelComputeOpticFlow(int n,
                                        float* gpuFlowX,float* gpuFlowY,
                                        float** gpuEnergy,
                                        float* orientations, int orientationCnt,
-                                       float *speeds, int speedCnt){
+                                       float speed){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n){
-//        // TODO only store the 3 important
-//        //float energies[speedCnt][orientationCnt];
-//        int maxSpeedIdx = 0;
-//        float maxSpeedEnergy = 0;
-//        // Read all energies from all buffers
-//        // Read combined energy for each speed
-//        // Find maximum energy
-//        for(int i = 0; i  < speedCnt; i++){
-//            float speedEnergy = 0;
-//            for(int j = 0; j  < orientationCnt; j++){
-//                //energies[i][j] = gpuEnergy[i*orientationCnt + j][idx];
-//                speedEnergy += gpuEnergy[i*orientationCnt + j][idx];//energies[i][j];
-//            }
-//            // Find maximum energy
-//            if(maxSpeedEnergy < speedEnergy){
-//                maxSpeedEnergy = speedEnergy;
-//                maxSpeedIdx = i;
-//            }
-//        }
-
-//        // Polynomal interpolation
-//        // Fit polynom y = ax^2 + bx + c
-//        // Source: http://math.stackexchange.com/questions/680646/get-polynomial-function-from-3-points
-//        // and: http://www.wikihow.com/Find-the-Maximum-or-Minimum-Value-of-a-Quadratic-Function-Easily
-//        if(speedCnt >= 3){
-//            // Find the three closest energies
-//            int i1,i2,i3;
-//            // Maximum is at the beginning ?
-//            if(maxSpeedIdx == 0){
-//                i1 = 0;
-//                i2 = i1+1;
-//                i3 = i2+1;
-//            }
-//            // Maximum is at the end ?
-//            else if(maxSpeedIdx == speedCnt -1){
-//                i1 = speedCnt-1;
-//                i2 = i1-1;
-//                i3 = i2-1;
-//            }
-//            // Maximum is inbetween
-//            else{
-//                i1 = maxSpeedIdx - 1;
-//                i2 = maxSpeedIdx;
-//                i3 = maxSpeedIdx + 1;
-//            }
-
-
-//            // Compute polynom coefficients a,b and c
-//            // Xi's are the speeds
-//            // Yi's are the energies
-//            float a = speeds[i1]*(speedEnergy[i3] - speedEnergy[i2]) +
-//                speeds[i2]*(speedEnergy[i1] - speedEnergy[i3]) +
-//                speeds[i3]*(speedEnergy[i2] - speedEnergy[i1]) /
-//                ((speeds[i1]-speeds[i2])*
-//                 (speeds[i1]-speeds[i3])*
-//                 (speeds[i2]-speeds[i3]));
-//            float b = (speedEnergy[i2] - speedEnergy[i1])/(speeds[i2]-speeds[i1]) - a*(speeds[i1]+speeds[i2]);
-//            float c = speedEnergy[i1] - a*speeds[i1]*speeds[i1] - b*speeds[i1];
-
-
-//            // Check for max or min
-//            if(a > 0){
-//                // Find maximum energy by finding maximum of polynom y = ax^2+bx+c
-//                // Max speed is the length of our flow vector
-//                float maxSpeed = -b/(2*a);
-//                float maxEnergy = a*maxSpeed*maxSpeed + b*maxSpeed + c;
-
-//                // just combine all orientations from the buffer with the highest energy
-//                for(int i = 0; i  < orientationCnt; i++)
-//                {
-//                    localFlowX += speedEnergy[maxSpeedIdx]*cos(orientations[i]);
-//                    localFlowY += speedEnergy[maxSpeedIdx]*sin(orientations[i]);
-//                }
-//            }
-//            // we don't have a maximum
-//            else{
-//                // just combine all orientations from the buffer with the highest energy
-//                for(int i = 0; i  < orientationCnt; i++)
-//                {
-//                    localFlowX += speedEnergy[maxSpeedIdx]*cos(orientations[i]);
-//                    localFlowY += speedEnergy[maxSpeedIdx]*sin(orientations[i]);
-//                }
-//            }
- //       }
-        // Take maximum speed, no interpolation
-//        else{
-
         float localFlowX = 0;
         float localFlowY = 0;
-        float energy = 0;
-        int maxIdx = 0;
-        for(int i = 0; i < speedCnt; i++)
+        for(int j = 0; j  < orientationCnt; j++)
         {
-            float fX = 0;
-            float fY = 0;
+            localFlowX += gpuEnergy[j][idx]*cos(orientations[j]);
+            localFlowY += gpuEnergy[j][idx]*sin(orientations[j]);
+        }
+        //float energy = sqrt(localFlowX*localFlowX+localFlowY*localFlowY);
 
-            for(int j = 0; j  < orientationCnt; j++)
-            {
-                fX += gpuEnergy[i*orientationCnt + j][idx]*cos(orientations[j]);
-                fY += gpuEnergy[i*orientationCnt + j][idx]*sin(orientations[j]);
-            }
-            // Vector norm
-            float e = sqrt(fX*fX+fY*fY);
-            if(e > energy){
-                energy = e;
-                localFlowX = fX;
-                localFlowY = fY;
-                maxIdx = i;
-            }
-        }
-//        }
-        if(energy > 0.1)
-        {
-            float speed = speeds[maxIdx];
-            //gpuFlowX[idx] = localFlowX/energy*speed;
-            //gpuFlowY[idx] = localFlowY/energy*speed;
-            gpuFlowX[idx] = localFlowX;
-            gpuFlowY[idx] = localFlowY;
-        }else{
-            gpuFlowX[idx] = 0;
-            gpuFlowY[idx] = 0;
-        }
+        gpuFlowX[idx] = localFlowX;
+        gpuFlowY[idx] = localFlowY;
     }
 }
 
@@ -141,7 +30,7 @@ __host__ void cudaComputeOpticFlow(int sx, int sy,
                                    float* gpuFlowX, float* gpuFlowY,
                                    float** gpuArrGpuEnergy,
                                    float* gpuArrOrientations, int orientationCnt,
-                                   float *speeds, int speedCnt,
+                                   float speed,
                                    cudaStream_t stream)
 {
     int n = sx*sy;
@@ -151,7 +40,7 @@ __host__ void cudaComputeOpticFlow(int sx, int sy,
                          gpuFlowX,gpuFlowY,
                          gpuArrGpuEnergy,
                          gpuArrOrientations,orientationCnt,
-                         speeds,speedCnt);
+                        speed);
 }
 
 __global__ void kernelFlowToRGB(float* gpuFlowX, float* gpuFlowY, char *gpuImage,
