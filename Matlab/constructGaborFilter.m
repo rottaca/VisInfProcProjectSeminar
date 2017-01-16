@@ -1,7 +1,7 @@
-function [Godd, Geven, X, Y] = constructGaborFilter(theta, fx0, fy0, halfGaborRange)
+function [Godd, Geven, X, Y] = constructGaborFilter(theta, fx0, fy0, halfGaborRange,resolutionSpatial)
     tmp = 2*pi()/theta^2;
     
-    p = -halfGaborRange:halfGaborRange;
+    p = -halfGaborRange:resolutionSpatial:halfGaborRange;
     [X,Y] = meshgrid(p,p);
     
     gauss = exp(-2*pi^2.*(X.^2+Y.^2)./theta^2);

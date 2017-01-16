@@ -1,15 +1,15 @@
 close all;
 clear all;
 
-file = 'D:\Dokumente\grabbed_data0\scale4\mnist_0_scale04_0550.aedat';
+file = 'G:\BottiBot\dvs128_corridor_take_1_2016-12-22.aedat';
 % Load file
 [allAddr,allTs]=loadaerdat(file);
 % Convert to coordinates, time and event type
 [x_coord, y_coord, allTsnew, on_off] = dvsAER2coordinates(allTs, allAddr);
 disp(['Event timeframe: ' num2str(double(allTsnew(end))/1000000) ' sek']);
 
-timewindow_us = 30000;
-viewdelta = 100;
+timewindow_us = 100000;
+viewdelta = 1000;
 time = allTsnew(1);
 while(time < allTsnew(end))
     idx = allTsnew <= time & allTsnew > time-timewindow_us;
