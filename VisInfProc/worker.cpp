@@ -34,7 +34,6 @@ void Worker::stopProcessing()
 {
     qDebug("Stopping processing...");
     isProcessing = false;
-    wcWorkReady.wakeAll();
 
     if(wait(2000))
         qDebug("Stopped processing.");
@@ -53,7 +52,7 @@ void Worker::run()
     while(isProcessing){
         mutex.lock();
         // Data ready ?
-        if(wcWorkReady.wait(&mutex))
+        if(wcWorkReady.wait(&mutex,100))
             ofe->process();
         mutex.unlock();
     }
