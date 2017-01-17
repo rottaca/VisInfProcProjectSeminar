@@ -17,10 +17,15 @@ public:
      * @param _tempSteps Number of steps to go from t = 0 to t = tempEnd
      * @param _spatialSz Size of spatial filter, has to be odd
      * @param _timewindow timewindow for filter
+     * @param _alphaPNorm Normalization parameter
+     * @param _alphaQNorm Normalization parameter
+     * @param _betaNorm Normalization parameter
+     * @param _sigmaNorm Normalization parameter
      * @param _speed_px_per_sec Prefered motion speed
      */
     FilterSettings(float _f0, float _muBi1, float _tempEnd,
-                   float _tempSteps, int _spatialSz, int _timewindow_us, float _alphaPNorm, float _alphaQNorm, float _betaNorm, float _sigmaNorm,
+                   float _tempSteps, int _spatialSz, int _timewindow_us,
+                   float _alphaPNorm, float _alphaQNorm, float _betaNorm, float _sigmaNorm,
                    float _speed_px_per_sec);
 
     /**

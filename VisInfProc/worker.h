@@ -17,10 +17,20 @@ public:
     explicit Worker(QObject *parent = 0);
     ~Worker();
 
+    /**
+     * @brief createOpticFlowEstimator Creates an opticFlow estimator object with the specified filter settings
+     * @param settings
+     * @param orientations
+     */
     void createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations);
-
+    /**
+     * @brief stopProcessing Stops the asynchronous event processing
+     */
     void stopProcessing();
-
+    /**
+     * @brief nextEvent Queues the next event for asynchronous processing
+     * @param event
+     */
     void nextEvent(const SerialeDVSInterface::DVSEvent &event);
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
@@ -37,7 +47,10 @@ public:
     void getStats(long &recievedEvents, long &dischargedEvents){
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
-
+    /**
+     * @brief getIsProcessing Returns true, when the worker thread is active
+     * @return
+     */
     bool getIsProcessing(){
         return isProcessing;
     }

@@ -110,7 +110,7 @@ public:
     }
 
     /**
-     * @brief getConvBuffer Debugging function
+     * @brief getConvBuffer Debug function to return a copy of the current convolution buffer
      * @param bufferIdx
      * @return
      */
@@ -157,6 +157,7 @@ private:
 
     // Overall stream start time TODO: Remove and start stream at 0
     int startTime;
+    // The time of the last event; used to detect time jumps
     int lastEventTime;
     // Time per timeslot
     float timePerSlot;
@@ -182,6 +183,7 @@ private:
     // True, if a new event list is ready for processing
     bool eventListReady;
 
+    // Data for statistics computations
     long eventsSkipped;
     long eventsAll;
     QMutex eventStatisticsMutex;
