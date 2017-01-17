@@ -157,6 +157,7 @@ private:
 
     // Overall stream start time TODO: Remove and start stream at 0
     int startTime;
+    int lastEventTime;
     // Time per timeslot
     float timePerSlot;
 

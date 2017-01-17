@@ -293,9 +293,10 @@ void SerialeDVSInterface::_playbackFile()
     // Measure real time
     timeMeasure.start();
     do{
-        qApp->processEvents();
         // New event ready ?
         if(evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew)){
+//            if(eNew.On)
+//                continue;
             eventCount++;
 
             // send first event directly
@@ -317,6 +318,7 @@ void SerialeDVSInterface::_playbackFile()
                     //qDebug("Sleep: %ld",sleepTime);
                     QThread::usleep(sleepTime);
                 }
+                //qDebug("Time: %ld",eNew.timestamp);
                 processingWorker->nextEvent(eNew);
             }
         }

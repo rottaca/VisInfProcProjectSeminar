@@ -61,6 +61,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     eventsAll = 0;
     eventsSkipped = 0;
     gpuEventListSizeAllocated = 0;
+    lastEventTime = 0;
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
@@ -94,7 +95,7 @@ bool MotionEnergyEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent &e){
     eventStatisticsMutex.lock();
     eventsAll++;
     eventStatisticsMutex.unlock();
-    eventWriteMutex.lock();
+    QMutexLocker locker(&eventWriteMutex);
 
     SimpleEvent ev;
     ev.x = e.posX;
@@ -103,38 +104,50 @@ bool MotionEnergyEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent &e){
     // Get time from first event as reference
     if(startTime == -1){
         startTime = e.timestamp;
+        lastEventTime = startTime;
         eventsW->currWindowStartTime = startTime;
     }
+    // Do we have an event with older timestamp?
+    else if (lastEventTime > e.timestamp){
+        qDebug("Event is not in order according to timestamp! Skip.");
+        return false;
+    }
+
+    lastEventTime = startTime;
 
     int deltaT = e.timestamp - eventsW->currWindowStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor((float)deltaT/timePerSlot);
 
+    //qDebug("Skip Slots: %d",timeSlotsToSkip);
     if(timeSlotsToSkip != 0){
         // Flip lists
         eventReadMutex.lock();
         // Was the last block not processed by the worker thread ? Then it is lost
         if(eventListReady && eventsR->events.length() > 0){
+            //qDebug("Events skipped: %d",eventsR->events.length());
             eventStatisticsMutex.lock();
             eventsSkipped+=eventsR->events.length();
             eventStatisticsMutex.unlock();
         }
+        //qDebug("Flip lists");
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;
 
         eventsR->slotsToSkip=eventsROld->slotsToSkip+timeSlotsToSkip;
         eventsW->slotsToSkip = 0;
-        eventsW->currWindowStartTime=eventsR->currWindowStartTime + timePerSlot;
+        eventsW->currWindowStartTime=eventsR->currWindowStartTime + timePerSlot*timeSlotsToSkip;
 
         if(eventsR->events.length() > 0)
             eventListReady = true;
-
+        //qDebug("Lists flipped");
         eventReadMutex.unlock();
         // Clear events for new data
         eventsW->events.clear();
     }
     eventsW->events.append(ev);
+    //qDebug("Event added");
 
     // Update events in timewindow
     eventsInWindowMutex.lock();
@@ -143,7 +156,6 @@ bool MotionEnergyEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent &e){
        && timeWindowEvents.front().timestamp < eventsW->currWindowStartTime - fsettings.timewindow_us)
                     timeWindowEvents.pop_front();
     eventsInWindowMutex.unlock();
-    eventWriteMutex.unlock();
 
     return eventListReady;
 }
