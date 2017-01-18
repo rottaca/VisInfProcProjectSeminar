@@ -90,7 +90,7 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     if(gpuEventList != NULL)
         gpuErrchk(cudaFree(gpuEventList));
 }
-bool MotionEnergyEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent &e){
+bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e){
 
     eventStatisticsMutex.lock();
     eventsAll++;

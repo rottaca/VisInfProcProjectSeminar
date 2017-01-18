@@ -8,7 +8,7 @@ Worker::Worker(QObject *parent) : QThread(parent)
 
 
 Worker::~Worker(){
-    // TODO ABORT WORKER
+    qDebug("Destroying worker...");
     if(isProcessing)
         stopProcessing();
 
@@ -58,7 +58,7 @@ void Worker::run()
     }
 }
 
-void Worker::nextEvent(const SerialeDVSInterface::DVSEvent &event)
+void Worker::nextEvent(const eDVSInterface::DVSEvent &event)
 {
     if(ofe == NULL)
         return;

@@ -7,8 +7,9 @@
 #include <QTcpSocket>
 
 class Worker;
+class PushBotController;
 
-class SerialeDVSInterface: public QObject
+class eDVSInterface: public QObject
 {
     Q_OBJECT
 public:
@@ -22,9 +23,8 @@ public:
     typedef enum AddressVersion{Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
     typedef enum TimestampVersion{Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
 
-    SerialeDVSInterface(QObject* parent = 0);
-    ~SerialeDVSInterface();
-
+    eDVSInterface(QObject* parent = 0);
+    ~eDVSInterface();
 
     /**
      * @brief playbackFile Plays a given file with a given speed. Default = 1.0
@@ -89,6 +89,9 @@ signals:
      */
     void onCmdSent(QString cmd);
 
+    void onStartPushBotController();
+    void onStopPushBotController();
+
 public slots:
     /**
      * @brief process Starts the processing in the worker thread. Don't call this function by your own!
@@ -127,8 +130,13 @@ public:
      */
     void setWorker(Worker* worker){
         QMutexLocker locker(&operationMutex);
-        this->processingWorker = worker;
+        processingWorker = worker;
     }
+    /**
+     * @brief setPushBotCtrl Set the pointer to the async processor
+     * @param pushBotCtrl
+     */
+    void setPushBotCtrl(PushBotController* pushBotCtrl);
 
 private:
     // Playback function to parse and play an event file
@@ -166,6 +174,7 @@ private:
     OperationMode operationMode;
     // Pointer to processing thread
     Worker *processingWorker;
+    PushBotController *pushBotController;
     QMutex operationMutex;
 
     // Tcp connection for realtime processing

@@ -106,6 +106,38 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
+       <item row="0" column="2">
+        <widget class="AspectRatioPixmapLabel" name="l_ctrl_1">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="AspectRatioPixmapLabel" name="l_ctrl_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
@@ -293,16 +325,16 @@ QGroupBox::title {
                <number>9</number>
               </property>
               <property name="leftMargin">
-               <number>0</number>
+               <number>5</number>
               </property>
               <property name="topMargin">
-               <number>9</number>
+               <number>7</number>
               </property>
               <property name="rightMargin">
-               <number>0</number>
+               <number>5</number>
               </property>
               <property name="bottomMargin">
-               <number>2</number>
+               <number>5</number>
               </property>
               <item>
                <widget class="QPlainTextEdit" name="te_comands">
@@ -331,6 +363,9 @@ QGroupBox::title {
              <property name="maximum">
               <number>65535</number>
              </property>
+             <property name="value">
+              <number>56000</number>
+             </property>
             </widget>
            </item>
            <item row="1" column="0">
@@ -343,7 +378,7 @@ QGroupBox::title {
            <item row="1" column="1">
             <widget class="QLineEdit" name="le_host">
              <property name="text">
-              <string>IPWLANMODULE 56000</string>
+              <string>IPWLANMODULE </string>
              </property>
             </widget>
            </item>
@@ -515,7 +550,14 @@ QGroupBox::title {
            </widget>
           </item>
           <item row="1" column="2">
-           <widget class="QComboBox" name="cb_show_orient"/>
+           <widget class="QComboBox" name="cb_show_orient">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
           </item>
           <item row="0" column="2">
            <widget class="QLabel" name="label_8">
@@ -525,7 +567,14 @@ QGroupBox::title {
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QComboBox" name="cb_show_speed"/>
+           <widget class="QComboBox" name="cb_show_speed">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
           </item>
           <item row="2" column="0" colspan="3">
            <widget class="QLabel" name="label_2">
@@ -550,7 +599,7 @@ QGroupBox::title {
           <item row="1" column="0">
            <widget class="QLabel" name="label_9">
             <property name="text">
-             <string>Show Energy:</string>
+             <string>Show Info:</string>
             </property>
            </widget>
           </item>

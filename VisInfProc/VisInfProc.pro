@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     worker.cpp \
     aspectratiopixmaplabel.cpp \
     basebuffer.cpp \
-    serialedvsinterface.cpp
+    pushbotcontroller.cpp \
+    edvsinterface.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -51,7 +52,8 @@ HEADERS  += mainwindow.h \
     basebuffer.h \
     settings.h \
     datatypes.h \
-    serialedvsinterface.h
+    pushbotcontroller.h \
+    edvsinterface.h
 
 FORMS    += mainwindow.ui
 

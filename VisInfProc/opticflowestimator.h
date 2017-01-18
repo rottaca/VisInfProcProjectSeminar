@@ -2,7 +2,7 @@
 #define OPTICFLOWESTIMATOR_H
 
 #include "motionenergyestimator.h"
-#include "serialedvsinterface.h"
+#include "edvsinterface.h"
 
 #include <QList>
 #include <assert.h>
@@ -28,7 +28,7 @@ public:
      * @brief onNewEvent
      * @param e
      */
-    bool onNewEvent(const SerialeDVSInterface::DVSEvent &e);
+    bool onNewEvent(const eDVSInterface::DVSEvent &e);
     /**
      * @brief process Computes the motion energy in parallel and reads the result
      */
@@ -75,7 +75,7 @@ public:
      * @param filterNr Index of motion energy estimator
      * @return
      */
-    QVector<SerialeDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+    QVector<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         return motionEnergyEstimators[filterNr]->getEventsInWindow();

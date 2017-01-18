@@ -12,6 +12,9 @@
 // DO NOT CHANGE
 #define FILTERS_PER_ORIENTATION 2
 
+// Refresh rate of optic flow processing
+#define PUSH_BOT_PROCESS_FPS 10
+
 //#include "cuda_settings.h"
 
 #endif // SETTINGS_H

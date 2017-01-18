@@ -7,7 +7,7 @@
 #include <QWaitCondition>
 #include <QSemaphore>
 
-#include "serialedvsinterface.h"
+#include "edvsinterface.h"
 #include "opticflowestimator.h"
 
 class Worker : public QThread
@@ -31,7 +31,7 @@ public:
      * @brief nextEvent Queues the next event for asynchronous processing
      * @param event
      */
-    void nextEvent(const SerialeDVSInterface::DVSEvent &event);
+    void nextEvent(const eDVSInterface::DVSEvent &event);
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
         long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
@@ -55,8 +55,8 @@ public:
         return isProcessing;
     }
 
-    QVector<SerialeDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
-        QVector<SerialeDVSInterface::DVSEvent> events;
+    QVector<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+        QVector<eDVSInterface::DVSEvent> events;
         events = ofe->getEventsInWindow(filterNr);
         return events;
     }

@@ -85,7 +85,7 @@ OpticFlowEstimator::~OpticFlowEstimator()
     gpuArrGpuMotionEnergies = NULL;
 }
 
-bool OpticFlowEstimator::onNewEvent(const SerialeDVSInterface::DVSEvent& e)
+bool OpticFlowEstimator::onNewEvent(const eDVSInterface::DVSEvent& e)
 {
     bool dataRead = false;
     for(int i = 0; i < energyEstimatorCnt; i++){

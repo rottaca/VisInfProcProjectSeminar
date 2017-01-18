@@ -7,7 +7,7 @@
 #include "filtermanager.h"
 #include "filtersettings.h"
 #include "filterset.h"
-#include "serialedvsinterface.h"
+#include "edvsinterface.h"
 #include "settings.h"
 
 #include <assert.h>
@@ -49,7 +49,7 @@ public:
     }
 
 
-    bool onNewEvent(const SerialeDVSInterface::DVSEvent &e);
+    bool onNewEvent(const eDVSInterface::DVSEvent &e);
     bool isEventListReady(){
         eventWriteMutex.lock();
         bool cpy = eventListReady;
@@ -90,9 +90,9 @@ public:
      * @brief getEventsInWindow Returns a vector with all events in the current time window
      * @return
      */
-    QVector<SerialeDVSInterface::DVSEvent> getEventsInWindow(){
+    QVector<eDVSInterface::DVSEvent> getEventsInWindow(){
         eventsInWindowMutex.lock();
-        QVector<SerialeDVSInterface::DVSEvent> tmp = QVector<SerialeDVSInterface::DVSEvent>(timeWindowEvents);
+        QVector<eDVSInterface::DVSEvent> tmp = QVector<eDVSInterface::DVSEvent>(timeWindowEvents);
         eventsInWindowMutex.unlock();
         return tmp;
     }
@@ -163,7 +163,7 @@ private:
     float timePerSlot;
 
     // All events in the timewindow
-    QVector<SerialeDVSInterface::DVSEvent> timeWindowEvents;
+    QVector<eDVSInterface::DVSEvent> timeWindowEvents;
     // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
     // All events in the current timeslot

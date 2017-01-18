@@ -31,7 +31,6 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
-    delete worker;
     cudaStreamDestroy(cudaStream);
 }
 
@@ -70,15 +69,19 @@ void MainWindow::initSystem()
 //    orientations.append(qDegreesToRadians(-135.0f));
 //    orientations.append(qDegreesToRadians(135.0f));
 
-    worker = new Worker();
-    eDVSHandler.setWorker(worker);
+    pushBotController.setup(settings,orientations);
+
+    eDVSHandler.setWorker(&worker);
+    eDVSHandler.setPushBotCtrl(&pushBotController);
+    pushBotController.setWorker(&worker);
+    pushBotController.setRobotInterface(&eDVSHandler);
+
 }
 
 void MainWindow::initSignalsAndSlots()
 {
     connect(&updateTimer,SIGNAL(timeout()),this,SLOT(onUpdate()));
 
-    connect(this,SIGNAL(startProcessing()),worker,SLOT(start()));
     connect(this,SIGNAL(sendRawCmd(QString)),&eDVSHandler,SLOT(sendRawCmd(QString)));
 
     connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
@@ -95,13 +98,14 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
-    if(worker->getIsProcessing()){
+
+    if(worker.getIsProcessing()){
         int orientIdx = ui->cb_show_orient->currentIndex();
         int speedIdx = ui->cb_show_speed->currentIndex();
 
-        long time = worker->getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
+        long time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
         if(time != -1){
-            worker->getOpticFlow(flowX,flowY,speedIdx);
+            worker.getOpticFlow(flowX,flowY,speedIdx);
             flowX.setCudaStream(cudaStream);
             flowY.setCudaStream(cudaStream);
             oppMoEnergy1.setCudaStream(cudaStream);
@@ -109,7 +113,7 @@ void MainWindow::onUpdate()
 
             if(ui->cb_debug->isChecked()){
                 Buffer3D en;
-                worker->getConvBuffer(speedIdx,orientIdx,0,en);
+                worker.getConvBuffer(speedIdx,orientIdx,0,en);
                 QImage imgConv = en.toImageXZ(63);
                 ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
             }
@@ -134,7 +138,33 @@ void MainWindow::onUpdate()
             //qDebug("No new data available!");
         }
 
-        QVector<SerialeDVSInterface::DVSEvent> ev = worker->getEventsInWindow(0);
+        if(ui->cb_debug->isChecked()){
+            float fx,fy;
+            QImage imgAvg(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
+            imgAvg.fill(Qt::white);
+            QPainter paint2(&imgAvg);
+            QPoint p1,p2;
+
+            paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
+            float maxLDraw = DVS_RESOLUTION_WIDTH/2;
+            float maxL = 1200;
+            p1.setX(DVS_RESOLUTION_WIDTH/2);
+            p1.setY(DVS_RESOLUTION_HEIGHT/2);
+
+            for(int i = 0; i < settings.length(); i++){
+                pushBotController.getAvgSpeed(speedIdx,fx,fy);
+                float l = qSqrt(fx*fx+fy*fy);
+                float scale = l/maxL;
+
+                p2 = p1;
+                p2 += QPoint(maxLDraw*fx/l*scale,maxLDraw*fy/l*scale);
+                paint2.drawLine(p1,p2);
+            }
+
+            paint2.end();
+            ui->l_ctrl_1->setPixmap(QPixmap::fromImage(imgAvg));
+        }
+        QVector<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
         QPoint points[ev.length()];
         for(int i = 0; i < ev.length(); i++){
             points[i].setX(ev.at(i).posX);
@@ -149,7 +179,7 @@ void MainWindow::onUpdate()
 
         if(lastStatisticsUpdate.elapsed() > 500){
             long evRec, evDisc;
-            worker->getStats(evRec,evDisc);
+            worker.getStats(evRec,evDisc);
             float p = 0;
             if(evRec > 0)
                 p = 1- (float)evDisc/evRec;
@@ -183,7 +213,7 @@ void MainWindow::onClickStartPlayback(){
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
-        worker->createOpticFlowEstimator(settings,orientations);
+        worker.createOpticFlowEstimator(settings,orientations);
         eDVSHandler.playbackFile(file,speed);
     }
 }
@@ -227,12 +257,12 @@ void MainWindow::onClickStartStreaming()
     if(eDVSHandler.isStreaming()){
         ui->b_start_streaming->setText("Start Streaming");
         eDVSHandler.stopEventStreaming();
-        worker->stopProcessing();
+        worker.stopProcessing();
     }else{
         ui->b_start_streaming->setText("Stop Streaming");
         eDVSHandler.startEventStreaming();
-        worker->createOpticFlowEstimator(settings,orientations);
-        worker->start();
+        worker.createOpticFlowEstimator(settings,orientations);
+        worker.start();
     }
 }
 
@@ -245,7 +275,7 @@ void MainWindow::onClickConnect()
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
     }else{
-        worker->createOpticFlowEstimator(settings,orientations);
+        worker.createOpticFlowEstimator(settings,orientations);
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
     }
 }

@@ -13,8 +13,9 @@
 #include "filterset.h"
 #include "opticflowestimator.h"
 #include "worker.h"
-#include "serialedvsinterface.h"
+#include "edvsinterface.h"
 #include "settings.h"
+#include "pushbotcontroller.h"
 
 namespace Ui {
 class MainWindow;
@@ -49,14 +50,16 @@ private:
     cudaStream_t cudaStream;
     Ui::MainWindow *ui;
     FilterSettings fsettings;
-    //DVSEventHandler dvsEventHandler;
-    Worker* worker;
     QTimer updateTimer;
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-    SerialeDVSInterface eDVSHandler;
     Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
+
+
+    Worker worker;
+    eDVSInterface eDVSHandler;
+    PushBotController pushBotController;
 };
 
 #endif // MAINWINDOW_H

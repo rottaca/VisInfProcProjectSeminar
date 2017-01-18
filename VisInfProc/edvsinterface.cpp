@@ -1,11 +1,12 @@
-#include "serialedvsinterface.h"
+#include "edvsinterface.h"
 #include <QApplication>
 #include <QFile>
 #include <QElapsedTimer>
 
 #include "worker.h"
+#include "pushbotcontroller.h"
 
-SerialeDVSInterface::SerialeDVSInterface(QObject *parent):QObject(parent)
+eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 {
     operationMode = IDLE;
     evBuilderData = NULL;
@@ -15,6 +16,7 @@ SerialeDVSInterface::SerialeDVSInterface(QObject *parent):QObject(parent)
     evBuilderByteIdx = 0;
     evBuilderSyncTimestamp = 0;
     processingWorker = NULL;
+    pushBotController = NULL;
     playbackSpeed = 1;
     playbackFileName = "";
 
@@ -25,8 +27,10 @@ SerialeDVSInterface::SerialeDVSInterface(QObject *parent):QObject(parent)
     connect(&thread,SIGNAL(started()),this,SLOT(process()));
 }
 
-SerialeDVSInterface::~SerialeDVSInterface()
+eDVSInterface::~eDVSInterface()
 {
+    qDebug("Destroying eDVSInterface...");
+
     operationMutex.lock();
     operationMode = IDLE;
     operationMutex.unlock();
@@ -43,7 +47,13 @@ SerialeDVSInterface::~SerialeDVSInterface()
     evBuilderData = NULL;
 }
 
-void SerialeDVSInterface::connectToBot(QString host, int port)
+void eDVSInterface::setPushBotCtrl(PushBotController* pushBotCtrl){
+    QMutexLocker locker(&operationMutex);
+    pushBotController = pushBotCtrl;
+    connect(this,SIGNAL(onStartPushBotController()),pushBotController,SLOT(startProcessing()));
+    connect(this,SIGNAL(onStopPushBotController()),pushBotController,SLOT(stopProcessing()));
+}
+void eDVSInterface::connectToBot(QString host, int port)
 {
 
     {
@@ -60,7 +70,7 @@ void SerialeDVSInterface::connectToBot(QString host, int port)
     thread.start();
 }
 
-void SerialeDVSInterface::startEventStreaming()
+void eDVSInterface::startEventStreaming()
 {
     // TODO
 //    QMutexLocker locker2(&dataMutex);
@@ -76,7 +86,7 @@ void SerialeDVSInterface::startEventStreaming()
     operationMode = ONLINE_STREAMING;
     operationMutex.unlock();
 }
-void SerialeDVSInterface::stopEventStreaming()
+void eDVSInterface::stopEventStreaming()
 {
     // TODO
     operationMutex.lock();
@@ -87,7 +97,7 @@ void SerialeDVSInterface::stopEventStreaming()
     socket.write("E-\n");
     socket.waitForBytesWritten();
 }
-void SerialeDVSInterface::sendRawCmd(QString cmd)
+void eDVSInterface::sendRawCmd(QString cmd)
 {
 
     OperationMode opModeLocal;
@@ -103,7 +113,7 @@ void SerialeDVSInterface::sendRawCmd(QString cmd)
         emit onCmdSent(cmd);
     }
 }
-void SerialeDVSInterface::enableMotors(bool enable){
+void eDVSInterface::enableMotors(bool enable){
 
     OperationMode opModeLocal;
     {
@@ -120,7 +130,7 @@ void SerialeDVSInterface::enableMotors(bool enable){
         socket.waitForBytesWritten();
     }
 }
-void SerialeDVSInterface::setMotorVelocity(int motorId, int speed)
+void eDVSInterface::setMotorVelocity(int motorId, int speed)
 {
     OperationMode opModeLocal;
     {
@@ -135,22 +145,26 @@ void SerialeDVSInterface::setMotorVelocity(int motorId, int speed)
     }
 }
 
-void SerialeDVSInterface::process()
+void eDVSInterface::process()
 {
 
     OperationMode opModeLocal;
     Worker* workerLocal;
+    PushBotController* pushBotControllerLocal;
+
     {
         QMutexLocker locker(&operationMutex);
         opModeLocal = operationMode;
         workerLocal = processingWorker;
+        pushBotControllerLocal = pushBotController;
     }
 
     if(workerLocal == NULL)
         return;
 
     qDebug("Start worker");
-    processingWorker->start();
+    workerLocal->start();
+    emit onStartPushBotController();
 
     switch (opModeLocal) {
     case PLAYBACK:
@@ -165,9 +179,13 @@ void SerialeDVSInterface::process()
 
     {
         QMutexLocker locker(&operationMutex);
-        qDebug("Stop worker");
-        processingWorker->stopProcessing();
+        workerLocal = processingWorker;
+        pushBotControllerLocal = pushBotController;
     }
+    qDebug("Stop worker");
+    workerLocal->stopProcessing();
+    emit onStopPushBotController();
+
     // Wait for processing stopped
     thread.quit();
 
@@ -209,7 +227,7 @@ void SerialeDVSInterface::process()
 //        qApp->processEvents();
 //    }
 }
-void SerialeDVSInterface::_processSocket(){
+void eDVSInterface::_processSocket(){
     // Init serial port
     socket.connectToHost(host,port);
 
@@ -224,7 +242,7 @@ void SerialeDVSInterface::_processSocket(){
     }
 }
 
-void SerialeDVSInterface::stopWork()
+void eDVSInterface::stopWork()
 {
     operationMutex.lock();
     OperationMode localOpMode = operationMode;
@@ -253,7 +271,7 @@ void SerialeDVSInterface::stopWork()
     }
 }
 
-void SerialeDVSInterface::playbackFile(QString fileName, float speed)
+void eDVSInterface::playbackFile(QString fileName, float speed)
 {
     {
         QMutexLocker locker(&operationMutex);
@@ -267,7 +285,7 @@ void SerialeDVSInterface::playbackFile(QString fileName, float speed)
     }
     thread.start();
 }
-void SerialeDVSInterface::_playbackFile()
+void eDVSInterface::_playbackFile()
 {
     float speed;
     QString fileName;
@@ -348,7 +366,7 @@ void SerialeDVSInterface::_playbackFile()
     }
 }
 
-QByteArray SerialeDVSInterface::parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers)
+QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers)
 {
     QByteArray buff;
 
@@ -409,7 +427,7 @@ QByteArray SerialeDVSInterface::parseEventFile(QString file, AddressVersion &add
     return buff;
 }
 
-void SerialeDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers)
+void eDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers)
 {
 
     QMutexLocker locker(&evBuilderMutex);
@@ -449,7 +467,7 @@ void SerialeDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersio
     evBuilderData = new char[evBuilderBufferSz];
 }
 
-bool SerialeDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
+bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
 {
     QMutexLocker locker(&evBuilderMutex);
     // Store byte in buffer
@@ -476,7 +494,7 @@ bool SerialeDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
     return false;
 }
 
-SerialeDVSInterface::DVSEvent SerialeDVSInterface::evBuilderParseEvent()
+eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
 {
     u_int32_t ad = 0,time = 0;
     int idx = 0;
