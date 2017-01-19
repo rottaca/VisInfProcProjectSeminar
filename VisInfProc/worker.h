@@ -22,7 +22,9 @@ public:
      * @param settings
      * @param orientations
      */
-    void createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations);
+    void setComputationParameters(QVector<FilterSettings> settings, QVector<float> orientations);
+
+    void startProcessing();
     /**
      * @brief stopProcessing Stops the asynchronous event processing
      */
@@ -67,6 +69,8 @@ private:
 
     OpticFlowEstimator *ofe;
     QWaitCondition wcWorkReady;
+    QVector<FilterSettings> settings;
+    QVector<float> orientations;
     QMutex mutex;
 };
 

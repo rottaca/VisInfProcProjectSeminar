@@ -30,7 +30,7 @@ public:
     ~MainWindow();
 
 public slots:
-    void onConnectionResult(bool failed);
+    void onConnectionResult(bool error);
     void onUpdate();
     void onPlaybackFinished();
     void onClickStartPlayback();
@@ -40,6 +40,10 @@ public slots:
     void onClickStartStreaming();
     void onClickConnect();
     void onCmdEntered();
+    void onConnectionClosed(bool error);
+
+signals:
+    void sendRawCmd(QString cmd);
 
 private:
     void initUI();

@@ -76,30 +76,33 @@ void eDVSInterface::startEventStreaming()
 //    QMutexLocker locker2(&dataMutex);
 //    if(eventHandler != NULL)
 //        eventHandler->initStreaming(DVSEventHandler::TimeDelta);
-
-    QMutexLocker locker(&socketMutex);
-    socket.write("E1\n");
-    socket.write("E+\n");
-    socket.waitForBytesWritten();
-
-    operationMutex.lock();
-    operationMode = ONLINE_STREAMING;
-    operationMutex.unlock();
+    {
+        QMutexLocker locker(&socketMutex);
+        socket.write("E1\n");
+        socket.write("E+\n");
+        socket.waitForBytesWritten();
+    }
+    {
+        QMutexLocker locker(&operationMutex);
+        operationMode = ONLINE_STREAMING;
+    }
+    processingWorker->startProcessing();
 }
 void eDVSInterface::stopEventStreaming()
 {
-    // TODO
-    operationMutex.lock();
-    operationMode = ONLINE;
-    operationMutex.unlock();
-
-    QMutexLocker locker(&socketMutex);
-    socket.write("E-\n");
-    socket.waitForBytesWritten();
+    {
+        QMutexLocker locker(&operationMutex);
+        operationMode = ONLINE;
+    }
+    {
+        QMutexLocker locker(&socketMutex);
+        socket.write("E-\n");
+        socket.waitForBytesWritten();
+    }
+    processingWorker->stopProcessing();
 }
 void eDVSInterface::sendRawCmd(QString cmd)
 {
-
     OperationMode opModeLocal;
     {
         QMutexLocker locker(&operationMutex);
@@ -149,22 +152,12 @@ void eDVSInterface::process()
 {
 
     OperationMode opModeLocal;
-    Worker* workerLocal;
-    PushBotController* pushBotControllerLocal;
 
     {
         QMutexLocker locker(&operationMutex);
         opModeLocal = operationMode;
-        workerLocal = processingWorker;
-        pushBotControllerLocal = pushBotController;
     }
 
-    if(workerLocal == NULL)
-        return;
-
-    qDebug("Start worker");
-    workerLocal->start();
-    emit onStartPushBotController();
 
     switch (opModeLocal) {
     case PLAYBACK:
@@ -177,60 +170,17 @@ void eDVSInterface::process()
         break;
     }
 
-    {
-        QMutexLocker locker(&operationMutex);
-        workerLocal = processingWorker;
-        pushBotControllerLocal = pushBotController;
-    }
-    qDebug("Stop worker");
-    workerLocal->stopProcessing();
-    emit onStopPushBotController();
-
     // Wait for processing stopped
     thread.quit();
 
     qDebug("Done");
 
-//    dataMutex.lock();
-//    bool openedLocal = opened;
-//    bool streamingLocal = streaming;
-//    dataMutex.unlock();
 
-//    while(openedLocal){
-//        {
-//            QMutexLocker locker(&serialMutex);
-//            // Normal command mode
-//            if(!streamingLocal){
-//                if(serial.waitForReadyRead(10) &&
-//                        serial.canReadLine()){
-//                    QString line = serial.readLine();
-//                    emit onLineRecived(line);
-//                }
-//            // Streaming mode
-//            }else{
-//                if(serial.waitForReadyRead(10))
-//                {
-//                    char c;
-//                    serial.getChar(&c);
-//                    // Event read -> deliver
-//                    if(eventHandler != NULL){
-//                        eventHandler->nextRealtimeEventByte(c);
-//                    }
-//                }
-//            }
-//        }
-//        dataMutex.lock();
-//        openedLocal = opened;
-//        streamingLocal = streaming;
-//        dataMutex.unlock();
-
-//        qApp->processEvents();
-//    }
 }
 void eDVSInterface::_processSocket(){
     // Init serial port
     socket.connectToHost(host,port);
-
+    qDebug("Connecting to %s: %d",host.toLocal8Bit().data(),port);
     if(!socket.waitForConnected(2000)){
         operationMutex.lock();
         operationMode = IDLE;
@@ -239,6 +189,54 @@ void eDVSInterface::_processSocket(){
         qDebug("Can't connect to socket \"%s:%d\": %s"
                ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
         return;
+    }
+    emit onConnectionResult(false);
+    qDebug("Connection established");
+    OperationMode opModeLocal;
+    {
+        QMutexLocker locker2(&operationMutex);
+        opModeLocal = operationMode;
+    }
+    DVSEvent eNew;
+    while(opModeLocal == ONLINE || opModeLocal == ONLINE_STREAMING){
+        {
+            QMutexLocker locker(&socketMutex);
+            if(socket.state() != QTcpSocket::ConnectedState){
+                qDebug("Connection closed: %s",socket.errorString().toLocal8Bit().data());
+                QMutexLocker locker2(&operationMutex);
+                operationMode = IDLE;
+                emit onConnectionClosed(true);
+                break;
+            }
+
+            // Normal command mode
+            if(opModeLocal == ONLINE){
+                if(socket.waitForReadyRead(10)){
+                    QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
+                    qDebug("Recieved: %s",line.toLocal8Bit().data());
+                    emit onLineRecived(line);
+                }
+            // Streaming mode
+            }else{
+                if(socket.waitForReadyRead(10))
+                {
+                    char c;
+                    socket.getChar(&c);
+                    // Event read -> deliver
+                    if(processingWorker != NULL &&
+                            evBuilderProcessNextByte(c,eNew)){
+                        processingWorker->nextEvent(eNew);
+                    }
+                }
+            }
+        }
+
+        {
+            QMutexLocker locker2(&operationMutex);
+            opModeLocal = operationMode;
+        }
+
+        qApp->processEvents();
     }
 }
 
@@ -268,6 +266,7 @@ void eDVSInterface::stopWork()
     {
         QMutexLocker locker2(&socketMutex);
         socket.disconnectFromHost();
+        emit onConnectionClosed(false);
     }
 }
 
@@ -294,6 +293,23 @@ void eDVSInterface::_playbackFile()
         speed = playbackSpeed;
         fileName = playbackFileName;
     }
+
+    Worker* workerLocal;
+    PushBotController* pushBotControllerLocal;
+
+    {
+        QMutexLocker locker(&operationMutex);
+        workerLocal = processingWorker;
+        pushBotControllerLocal = pushBotController;
+    }
+
+    if(workerLocal == NULL)
+        return;
+
+    qDebug("Start worker");
+    workerLocal->startProcessing();
+    emit onStartPushBotController();
+
     // read file, parse header
     TimestampVersion timeVers;
     AddressVersion addrVers;
@@ -364,6 +380,16 @@ void eDVSInterface::_playbackFile()
         }
         emit onPlaybackFinished();
     }
+
+
+    {
+        QMutexLocker locker(&operationMutex);
+        workerLocal = processingWorker;
+        pushBotControllerLocal = pushBotController;
+    }
+    qDebug("Stop worker");
+    workerLocal->stopProcessing();
+    emit onStopPushBotController();
 }
 
 QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers)

@@ -43,6 +43,36 @@ public:
      */
     void stopWork();
 
+
+signals:
+    /**
+     * @brief onPlaybackFinished Emited when the playback has finished
+     */
+    void onPlaybackFinished();
+    /**
+     * @brief onConnectionClosed Emited when the connecion is closed
+     */
+    void onConnectionClosed(bool error);
+    /**
+     * @brief onConnectionResult Emitted after trying to connect to the robot.
+     * @param failed True if failed.
+     */
+    void onConnectionResult(bool failed);
+    /**
+     * @brief onLineRecived Emitted when a the robot sends a resonse.
+     * @param answ
+     */
+    void onLineRecived(QString answ);
+    /**
+     * @brief onCmdSent Emitted when a command was send
+     * @param cmd
+     */
+    void onCmdSent(QString cmd);
+
+    void onStartPushBotController();
+    void onStopPushBotController();
+
+public slots:
     /**
      * @brief sendRawCmd Sends the provided command to the robot if connected
      * @param cmd
@@ -68,31 +98,6 @@ public:
      */
     void setMotorVelocity(int motorId, int speed);
 
-signals:
-    /**
-     * @brief onPlaybackFinished Emited when the playback has finished
-     */
-    void onPlaybackFinished();
-    /**
-     * @brief onConnectionResult Emitted after trying to connect to the robot.
-     * @param failed True if failed.
-     */
-    void onConnectionResult(bool failed);
-    /**
-     * @brief onLineRecived Emitted when a the robot sends a resonse.
-     * @param answ
-     */
-    void onLineRecived(QString answ);
-    /**
-     * @brief onCmdSent Emitted when a command was send
-     * @param cmd
-     */
-    void onCmdSent(QString cmd);
-
-    void onStartPushBotController();
-    void onStopPushBotController();
-
-public slots:
     /**
      * @brief process Starts the processing in the worker thread. Don't call this function by your own!
      */

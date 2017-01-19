@@ -70,6 +70,7 @@ void MainWindow::initSystem()
 //    orientations.append(qDegreesToRadians(135.0f));
 
     pushBotController.setup(settings,orientations);
+    worker.setComputationParameters(settings,orientations);
 
     eDVSHandler.setWorker(&worker);
     eDVSHandler.setPushBotCtrl(&pushBotController);
@@ -88,6 +89,7 @@ void MainWindow::initSignalsAndSlots()
     connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
     connect(&eDVSHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
     connect(&eDVSHandler,SIGNAL(onConnectionResult(bool)),this,SLOT(onConnectionResult(bool)));
+    connect(&eDVSHandler,SIGNAL(onConnectionClosed(bool)),this,SLOT(onConnectionClosed(bool)));
 
     connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(onChangePlaybackFile()));
     connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(onClickStartPlayback()));
@@ -193,18 +195,19 @@ void MainWindow::onUpdate()
             ui->l_ctrl_1->setPixmap(QPixmap::fromImage(imgAvg));
         }
         QList<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
-        QPoint points[ev.length()];
-        for(int i = 0; i < ev.length(); i++){
-            points[i].setX(ev.at(i).posX);
-            points[i].setY(ev.at(i).posY);
+        if(ev.length() > 0){
+            QPoint points[ev.length()];
+            for(int i = 0; i < ev.length(); i++){
+                points[i].setX(ev.at(i).posX);
+                points[i].setY(ev.at(i).posY);
+            }
+            QImage img(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
+            img.fill(Qt::white);
+            QPainter painter(&img);
+            painter.drawPoints(points,ev.length());
+            painter.end();
+            ui->l_events->setPixmap(QPixmap::fromImage(img));
         }
-        QImage img(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
-        img.fill(Qt::white);
-        QPainter painter(&img);
-        painter.drawPoints(points,ev.length());
-        painter.end();
-        ui->l_events->setPixmap(QPixmap::fromImage(img));
-
         if(lastStatisticsUpdate.elapsed() > 500){
             long evRec, evDisc;
             worker.getStats(evRec,evDisc);
@@ -241,14 +244,26 @@ void MainWindow::onClickStartPlayback(){
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
-        worker.createOpticFlowEstimator(settings,orientations);
         eDVSHandler.playbackFile(file,speed);
     }
 }
 
-void MainWindow::onConnectionResult(bool failed)
+void MainWindow::onConnectionClosed(bool error)
 {
-    if(!failed){
+    ui->b_connect->setText("Connect");
+    ui->tab_playback->setEnabled(true);
+    ui->gb_cmdline->setEnabled(false);
+    ui->b_start_streaming->setEnabled(false);
+    ui->b_start_streaming->setText("Start Streaming");
+
+    if(error){
+        qDebug("Connection closed by error!");
+    }
+}
+
+void MainWindow::onConnectionResult(bool error)
+{
+    if(!error){
         ui->b_connect->setText("Disconnect");
         ui->tab_playback->setEnabled(false);
         ui->gb_cmdline->setEnabled(true);
@@ -270,7 +285,7 @@ void MainWindow::onChangePlaybackFile()
 void MainWindow::onLineRecived(QString answ)
 {
     ui->te_comands->moveCursor (QTextCursor::End);
-    ui->te_comands->insertPlainText (QString("Answer: %1").arg(answ));
+    ui->te_comands->insertPlainText (QString("Answer: %1").arg(answ.append("\n")));
     ui->te_comands->moveCursor (QTextCursor::End);
 }
 void MainWindow::onCmdSent(QString cmd)
@@ -285,12 +300,9 @@ void MainWindow::onClickStartStreaming()
     if(eDVSHandler.isStreaming()){
         ui->b_start_streaming->setText("Start Streaming");
         eDVSHandler.stopEventStreaming();
-        worker.stopProcessing();
     }else{
         ui->b_start_streaming->setText("Stop Streaming");
         eDVSHandler.startEventStreaming();
-        worker.createOpticFlowEstimator(settings,orientations);
-        worker.start();
     }
 }
 
@@ -303,7 +315,6 @@ void MainWindow::onClickConnect()
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
     }else{
-        worker.createOpticFlowEstimator(settings,orientations);
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
     }
 }
@@ -312,6 +323,7 @@ void MainWindow::onCmdEntered()
     if(eDVSHandler.isConnected()){
         QString txt = ui->le_cmd_input->text();
         txt.append("\n");
-        eDVSHandler.sendRawCmd(txt);
+        emit sendRawCmd(txt);
+        ui->le_cmd_input->clear();
     }
 }
