@@ -2,14 +2,14 @@
 
 Worker::Worker(QObject *parent) : QThread(parent)
 {
-    isProcessing = false;
+    processing = false;
     ofe = NULL;
 }
 
 
 Worker::~Worker(){
     qDebug("Destroying worker...");
-    if(isProcessing)
+    if(processing)
         stopProcessing();
 
     if(ofe != NULL){
@@ -20,7 +20,7 @@ Worker::~Worker(){
 
 void Worker::createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations)
 {
-    if(isProcessing)
+    if(processing)
         stopProcessing();
 
     if(ofe != NULL)
@@ -33,7 +33,7 @@ void Worker::createOpticFlowEstimator(QVector<FilterSettings> settings, QVector<
 void Worker::stopProcessing()
 {
     qDebug("Stopping processing...");
-    isProcessing = false;
+    processing = false;
 
     if(wait(2000))
         qDebug("Stopped processing.");
@@ -48,8 +48,8 @@ void Worker::run()
     if(ofe == NULL)
         return;
 
-    isProcessing = true;
-    while(isProcessing){
+    processing = true;
+    while(processing){
         mutex.lock();
         // Data ready ?
         if(wcWorkReady.wait(&mutex,100))

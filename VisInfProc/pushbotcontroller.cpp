@@ -49,16 +49,37 @@ void PushBotController::processFlow()
         eventProcessor->getOpticFlow(flowX[i],flowY[i],i);
     }
 
-    // Compute average flow
+    // Compute average flow on left and right image half
     for(int i = 0; i < speeds; i++){
+        int sxy = flowX[i].getSizeX()*flowX[i].getSizeY();
         // Compute average flow
         float * fxPtr = flowX[i].getCPUPtr();
         float * fyPtr = flowY[i].getCPUPtr();
-        flowVecX[i] = 0;
-        flowVecY[i] = 0;
-        for(int j = 0; j < flowX[i].getSizeX()*flowX[i].getSizeY();j++){
-            flowVecX[i] += fxPtr[j];
-            flowVecY[i] += fyPtr[j];
+
+        avgFlowVecXL[i] = 0;
+        avgFlowVecYL[i] = 0;
+        avgFlowVecXR[i] = 0;
+        avgFlowVecYR[i] = 0;
+
+        for(int j = 0; j < sxy;j++){
+            // Left or right image border
+            if(j % flowX[i].getSizeX() < flowX[i].getSizeX()/2){
+                avgFlowVecXL[i] += fxPtr[j];
+                avgFlowVecYL[i] += fyPtr[j];
+            }else{
+                avgFlowVecXR[i] += fxPtr[j];
+                avgFlowVecYR[i] += fyPtr[j];
+            }
         }
+
+        // Normalize
+        avgFlowVecXL[i] /= sxy/2;
+        avgFlowVecYL[i] /= sxy/2;
+        avgFlowVecXR[i] /= sxy/2;
+        avgFlowVecYR[i] /= sxy/2;
+
+        // Compute average deviation
+        avgFlowDeltaX[i] = avgFlowVecXR[i]-avgFlowVecXR[i];
+        avgFlowDeltaY[i] = avgFlowVecYR[i]-avgFlowVecYR[i];
     }
 }

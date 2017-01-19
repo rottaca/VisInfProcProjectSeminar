@@ -75,7 +75,7 @@ public:
      * @param filterNr Index of motion energy estimator
      * @return
      */
-    QVector<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         return motionEnergyEstimators[filterNr]->getEventsInWindow();

@@ -90,11 +90,9 @@ public:
      * @brief getEventsInWindow Returns a vector with all events in the current time window
      * @return
      */
-    QVector<eDVSInterface::DVSEvent> getEventsInWindow(){
-        eventsInWindowMutex.lock();
-        QVector<eDVSInterface::DVSEvent> tmp = QVector<eDVSInterface::DVSEvent>(timeWindowEvents);
-        eventsInWindowMutex.unlock();
-        return tmp;
+    QList<eDVSInterface::DVSEvent> getEventsInWindow(){
+        QMutexLocker locker(&eventsInWindowMutex);
+        return timeWindowEvents;
     }
 
     /**
@@ -163,7 +161,7 @@ private:
     float timePerSlot;
 
     // All events in the timewindow
-    QVector<eDVSInterface::DVSEvent> timeWindowEvents;
+    QList<eDVSInterface::DVSEvent> timeWindowEvents;
     // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
     // All events in the current timeslot

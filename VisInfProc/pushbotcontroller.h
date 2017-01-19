@@ -26,8 +26,12 @@ public:
         this->settings = settings;
         this->orientations = orientations;
 
-        flowVecX.resize(settings.length());
-        flowVecY.resize(settings.length());
+        avgFlowVecXL.resize(settings.length());
+        avgFlowVecYL.resize(settings.length());
+        avgFlowVecXR.resize(settings.length());
+        avgFlowVecYR.resize(settings.length());
+        avgFlowDeltaX.resize(settings.length());
+        avgFlowDeltaY.resize(settings.length());
     }
 
     void setWorker(Worker* worker){
@@ -39,10 +43,12 @@ public:
         robotInterface = interface;
     }
 
-    void getAvgSpeed(int speedIdx,float &X, float &Y){
+    void getAvgSpeed(int speedIdx,float &XL, float &YL,float &XR, float &YR){
         QMutexLocker locker(&mutex);
-        X = flowVecX[speedIdx];
-        Y = flowVecY[speedIdx];
+        XL = avgFlowVecXL[speedIdx];
+        YL = avgFlowVecYL[speedIdx];
+        XR = avgFlowVecXR[speedIdx];
+        YR = avgFlowVecYR[speedIdx];
     }
 
 public slots:
@@ -59,7 +65,9 @@ private:
     eDVSInterface* robotInterface;
     QVector<FilterSettings> settings;
     QVector<float> orientations;
-    QVector<float> flowVecX,flowVecY;
+    QVector<float> avgFlowVecXL,avgFlowVecYL;
+    QVector<float> avgFlowVecXR,avgFlowVecYR;
+    QVector<float> avgFlowDeltaX,avgFlowDeltaY;
 };
 
 #endif // PUSHBOTCONTROLLER_H

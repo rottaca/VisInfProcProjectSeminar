@@ -98,8 +98,8 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
-
-    if(worker.getIsProcessing()){
+    // TODO Speedup visualization code
+    if(worker.isInitialized() && !ui->cb_disable_render->isChecked()){
         int orientIdx = ui->cb_show_orient->currentIndex();
         int speedIdx = ui->cb_show_speed->currentIndex();
 
@@ -139,32 +139,60 @@ void MainWindow::onUpdate()
         }
 
         if(ui->cb_debug->isChecked()){
-            float fx,fy;
+            float fxL,fxR,fyL,fyR;
             QImage imgAvg(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
             imgAvg.fill(Qt::white);
             QPainter paint2(&imgAvg);
-            QPoint p1,p2;
+            QPoint p1L,p1R,p1C,p2L,p2R,p2C;
 
-            paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
+            //paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
             float maxLDraw = DVS_RESOLUTION_WIDTH/2;
-            float maxL = 1200;
-            p1.setX(DVS_RESOLUTION_WIDTH/2);
-            p1.setY(DVS_RESOLUTION_HEIGHT/2);
+            float maxLength = 0.2;
+            p1L.setX(DVS_RESOLUTION_WIDTH/4);
+            p1L.setY(DVS_RESOLUTION_HEIGHT/2);
+            p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4);
+            p1R.setY(DVS_RESOLUTION_HEIGHT/2);
+            p1C.setX(DVS_RESOLUTION_WIDTH/2);
+            p1C.setY(DVS_RESOLUTION_HEIGHT/2);
 
-            for(int i = 0; i < settings.length(); i++){
-                pushBotController.getAvgSpeed(speedIdx,fx,fy);
-                float l = qSqrt(fx*fx+fy*fy);
-                float scale = l/maxL;
+            pushBotController.getAvgSpeed(speedIdx,fxL,fyL,fxR,fyR);
+            float lL = qSqrt(fxL*fxL+fyL*fyL);
+            float scaleL = lL/maxLength;
+            float lR = qSqrt(fxR*fxR+fyR*fyR);
+            float scaleR = lR/maxLength;
+            float lC = qAbs(lR-lL);
+            float scaleC = lC/maxLength;
+            QPen black(Qt::black);
+            paint2.setPen(black);
+            QRect rectL(0,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
+            QRect rectR(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
 
-                p2 = p1;
-                p2 += QPoint(maxLDraw*fx/l*scale,maxLDraw*fy/l*scale);
-                paint2.drawLine(p1,p2);
+            QColor c;
+            if(scaleL > 0.01){
+                p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
+                int angle = ((int)(atan2(fyL,fxL)*180/M_PI + 360) % 360);
+
+                c.setHsv(angle,255,255);
+                paint2.fillRect(rectL,QBrush(c));
+                paint2.drawLine(p1L,p2L);
             }
+            if(scaleR > 0.01){
+                p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
+                int angle = ((int)(atan2(fyR,fxR)*180/M_PI + 360) % 360);
+
+                c.setHsv(angle,255,255);
+                paint2.fillRect(rectR,QBrush(c));
+                paint2.drawLine(p1R,p2R);
+            }
+//            if(scaleC > 0.01){
+//                p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
+//                paint2.drawLine(p1C,p2C);
+//            }
 
             paint2.end();
             ui->l_ctrl_1->setPixmap(QPixmap::fromImage(imgAvg));
         }
-        QVector<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
+        QList<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
         QPoint points[ev.length()];
         for(int i = 0; i < ev.length(); i++){
             points[i].setX(ev.at(i).posX);

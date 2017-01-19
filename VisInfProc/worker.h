@@ -47,24 +47,23 @@ public:
     void getStats(long &recievedEvents, long &dischargedEvents){
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
-    /**
-     * @brief getIsProcessing Returns true, when the worker thread is active
-     * @return
-     */
-    bool getIsProcessing(){
-        return isProcessing;
+
+    bool isProcessing(){
+        return processing;
     }
 
-    QVector<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
-        QVector<eDVSInterface::DVSEvent> events;
-        events = ofe->getEventsInWindow(filterNr);
-        return events;
+    bool isInitialized(){
+        return ofe != NULL;
+    }
+
+    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+        return ofe->getEventsInWindow(filterNr);
     }
 
     void run();
 
 private:
-    bool isProcessing;
+    bool processing;
 
     OpticFlowEstimator *ofe;
     QWaitCondition wcWorkReady;

@@ -45,7 +45,6 @@ HEADERS  += mainwindow.h \
     motionenergyestimator.h \
     opticflowestimator.h \
     cuda_helper.h \
-    cuda_convolution3d.h \
     cuda_settings.h \
     worker.h \
     aspectratiopixmaplabel.h \
@@ -59,7 +58,6 @@ FORMS    += mainwindow.ui
 
 # CUDA Settings
 CUDA_SOURCES =  cuda_helper.cu \
-                cuda_convolution3d.cu \
                 cuda_filtermanager.cu \
                 cuda_buffer.cu \
                 cuda_motionenergy.cu \
@@ -81,7 +79,6 @@ QMAKE_EXTRA_COMPILERS += cuda
 
 DISTFILES += \
     cuda_helper.cu \
-    cuda_convolution3d.cu \
     cuda_motionenergy.cu \
     cuda_opticflow.cu \
     cuda_filtermanager.cu \
