@@ -218,6 +218,8 @@ void eDVSInterface::_processSocket(){
                             evBuilderProcessNextByte(c,eNew)){
                         processingWorker->nextEvent(eNew);
                     }
+                }else{
+                    QThread::usleep(1);
                 }
             }
         }

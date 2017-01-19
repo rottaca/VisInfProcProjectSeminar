@@ -287,13 +287,13 @@ void MainWindow::onChangePlaybackFile()
 void MainWindow::onLineRecived(QString answ)
 {
     ui->te_comands->moveCursor (QTextCursor::End);
-    ui->te_comands->insertPlainText (QString("Answer: %1").arg(answ.append("\n")));
+    ui->te_comands->insertPlainText (QString("Response: %1").arg(answ.append("\n")));
     ui->te_comands->moveCursor (QTextCursor::End);
 }
 void MainWindow::onCmdSent(QString cmd)
 {
     ui->te_comands->moveCursor (QTextCursor::End);
-    ui->te_comands->insertPlainText (QString("Cmd: %1").arg(cmd));
+    ui->te_comands->insertPlainText (QString("Command: %1").arg(cmd));
     ui->te_comands->moveCursor (QTextCursor::End);
 }
 
@@ -324,6 +324,8 @@ void MainWindow::onCmdEntered()
 {
     if(eDVSHandler.isConnected()){
         QString txt = ui->le_cmd_input->text();
+        if(txt.trimmed().isEmpty())
+            return;
         txt.append("\n");
         emit sendRawCmd(txt);
         ui->le_cmd_input->clear();
