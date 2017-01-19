@@ -44,6 +44,8 @@ public slots:
 
 signals:
     void sendRawCmd(QString cmd);
+    void startEventStreaming();
+    void stopEventStreaming();
 
 private:
     void initUI();

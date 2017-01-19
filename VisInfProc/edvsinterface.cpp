@@ -72,16 +72,13 @@ void eDVSInterface::connectToBot(QString host, int port)
 
 void eDVSInterface::startEventStreaming()
 {
-    // TODO
-//    QMutexLocker locker2(&dataMutex);
-//    if(eventHandler != NULL)
-//        eventHandler->initStreaming(DVSEventHandler::TimeDelta);
     {
         QMutexLocker locker(&socketMutex);
         socket.write("E1\n");
         socket.write("E+\n");
         socket.waitForBytesWritten();
     }
+    initEvBuilder(Addr2Byte,TimeDelta);
     {
         QMutexLocker locker(&operationMutex);
         operationMode = ONLINE_STREAMING;
@@ -109,12 +106,10 @@ void eDVSInterface::sendRawCmd(QString cmd)
         opModeLocal = operationMode;
     }
 
-    if(opModeLocal == ONLINE){
-        QMutexLocker locker(&socketMutex);
-        socket.write(cmd.toLocal8Bit());
-        socket.waitForBytesWritten();
-        emit onCmdSent(cmd);
-    }
+    QMutexLocker locker(&socketMutex);
+    socket.write(cmd.toLocal8Bit());
+    socket.waitForBytesWritten();
+    emit onCmdSent(cmd);
 }
 void eDVSInterface::enableMotors(bool enable){
 
@@ -152,12 +147,10 @@ void eDVSInterface::process()
 {
 
     OperationMode opModeLocal;
-
     {
         QMutexLocker locker(&operationMutex);
         opModeLocal = operationMode;
     }
-
 
     switch (opModeLocal) {
     case PLAYBACK:
@@ -174,8 +167,6 @@ void eDVSInterface::process()
     thread.quit();
 
     qDebug("Done");
-
-
 }
 void eDVSInterface::_processSocket(){
     // Init serial port
@@ -197,6 +188,7 @@ void eDVSInterface::_processSocket(){
         QMutexLocker locker2(&operationMutex);
         opModeLocal = operationMode;
     }
+
     DVSEvent eNew;
     while(opModeLocal == ONLINE || opModeLocal == ONLINE_STREAMING){
         {
@@ -218,11 +210,10 @@ void eDVSInterface::_processSocket(){
                 }
             // Streaming mode
             }else{
-                if(socket.waitForReadyRead(10))
+                if(socket.bytesAvailable())
                 {
                     char c;
                     socket.getChar(&c);
-                    // Event read -> deliver
                     if(processingWorker != NULL &&
                             evBuilderProcessNextByte(c,eNew)){
                         processingWorker->nextEvent(eNew);

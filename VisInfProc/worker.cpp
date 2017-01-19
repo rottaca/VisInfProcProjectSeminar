@@ -61,7 +61,6 @@ void Worker::stopProcessing()
 }
 void Worker::run()
 {
-
     processing = true;
     while(processing){
         mutex.lock();
@@ -77,6 +76,7 @@ void Worker::nextEvent(const eDVSInterface::DVSEvent &event)
     if(!processing)
         return;
 
+    // Notify if work ready
     if(ofe->onNewEvent(event))
         wcWorkReady.wakeAll();
 }

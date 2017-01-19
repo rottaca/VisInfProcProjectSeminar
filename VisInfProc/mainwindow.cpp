@@ -84,6 +84,8 @@ void MainWindow::initSignalsAndSlots()
     connect(&updateTimer,SIGNAL(timeout()),this,SLOT(onUpdate()));
 
     connect(this,SIGNAL(sendRawCmd(QString)),&eDVSHandler,SLOT(sendRawCmd(QString)));
+    connect(this,SIGNAL(startEventStreaming()),&eDVSHandler,SLOT(startEventStreaming()));
+    connect(this,SIGNAL(stopEventStreaming()),&eDVSHandler,SLOT(stopEventStreaming()));
 
     connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
     connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
@@ -299,10 +301,10 @@ void MainWindow::onClickStartStreaming()
 {
     if(eDVSHandler.isStreaming()){
         ui->b_start_streaming->setText("Start Streaming");
-        eDVSHandler.stopEventStreaming();
+        emit stopEventStreaming();
     }else{
         ui->b_start_streaming->setText("Stop Streaming");
-        eDVSHandler.startEventStreaming();
+        emit startEventStreaming();
     }
 }
 

@@ -36,17 +36,29 @@ public:
     void nextEvent(const eDVSInterface::DVSEvent &event);
 
     long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return -1;
         long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
         return time;
     }
     void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY, int speedNr){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return;
         ofe->getOpticFlow(flowX,flowY,speedNr);
     }
     void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return;
         ofe->getConvBuffer(filterNr,orientationIdx,pairIdx,convBuffer);
     }
 
     void getStats(long &recievedEvents, long &dischargedEvents){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return;
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
 
@@ -59,6 +71,9 @@ public:
     }
 
     QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return QList<eDVSInterface::DVSEvent>();
         return ofe->getEventsInWindow(filterNr);
     }
 
