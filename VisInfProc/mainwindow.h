@@ -41,11 +41,13 @@ public slots:
     void onClickConnect();
     void onCmdEntered();
     void onConnectionClosed(bool error);
+    void onClickReset();
 
 signals:
     void sendRawCmd(QString cmd);
     void startEventStreaming();
     void stopEventStreaming();
+    void reset();
 
 private:
     void initUI();

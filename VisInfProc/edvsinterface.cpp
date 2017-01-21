@@ -6,6 +6,18 @@
 #include "worker.h"
 #include "pushbotcontroller.h"
 
+
+
+
+#define CMD_SET_TYPESTAMP_MODE "!E1\n"
+#define CMD_ENABLE_EVENT_STREAMING "!E+\n"
+#define CMD_DISABLE_EVENT_STREAMING "!E-\n"
+#define CMD_ENABLE_MOTORS "!M+\n"
+#define CMD_DISABLE_MOTORS "!M-\n"
+#define CMD_SET_VELOCITY "!MV%1=%2\n"
+#define CMD_RESET_BOARD "R\n"
+
+
 eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 {
     operationMode = IDLE;
@@ -74,8 +86,9 @@ void eDVSInterface::startEventStreaming()
 {
     {
         QMutexLocker locker(&socketMutex);
-        socket.write("E1\n");
-        socket.write("E+\n");
+        socket.write(CMD_SET_TYPESTAMP_MODE);
+        socket.write(CMD_ENABLE_EVENT_STREAMING);
+        socket.write(CMD_ENABLE_MOTORS);
         socket.waitForBytesWritten();
     }
     initEvBuilder(Addr2Byte,TimeDelta);
@@ -93,7 +106,10 @@ void eDVSInterface::stopEventStreaming()
     }
     {
         QMutexLocker locker(&socketMutex);
-        socket.write("E-\n");
+        socket.write(QString(CMD_SET_VELOCITY).arg(0).arg(0).toLocal8Bit());
+        socket.write(QString(CMD_SET_VELOCITY).arg(1).arg(0).toLocal8Bit());
+        socket.write(CMD_DISABLE_MOTORS);
+        socket.write(CMD_DISABLE_EVENT_STREAMING);
         socket.waitForBytesWritten();
     }
     processingWorker->stopProcessing();
@@ -122,9 +138,9 @@ void eDVSInterface::enableMotors(bool enable){
     if(opModeLocal == ONLINE){
         QMutexLocker locker(&socketMutex);
         if(enable)
-            socket.write("M+\n");
+            socket.write(CMD_ENABLE_MOTORS);
         else
-            socket.write("M-\n");
+            socket.write(CMD_DISABLE_MOTORS);
         socket.waitForBytesWritten();
     }
 }
@@ -138,7 +154,21 @@ void eDVSInterface::setMotorVelocity(int motorId, int speed)
 
     if(opModeLocal == ONLINE){
         QMutexLocker locker(&socketMutex);
-        socket.write(QString("MV%1=%2\n").arg(motorId).arg(speed).toLocal8Bit());
+        socket.write(QString(CMD_SET_VELOCITY).arg(motorId).arg(speed).toLocal8Bit());
+        socket.waitForBytesWritten();
+    }
+}
+void eDVSInterface::resetBoard()
+{
+    OperationMode opModeLocal;
+    {
+        QMutexLocker locker(&operationMutex);
+        opModeLocal = operationMode;
+    }
+
+    if(opModeLocal == ONLINE){
+        QMutexLocker locker(&socketMutex);
+        socket.write(CMD_RESET_BOARD);
         socket.waitForBytesWritten();
     }
 }
@@ -426,7 +456,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     for(int i = 0; i < lineIdx; i++)
         dataToSkip += lines.at(i).length()+1;
 
-    qDebug(QString("HeaderSize: %1").arg(dataToSkip).toLocal8Bit());
+    qDebug(QString("Header Size: %1 bytes").arg(dataToSkip).toLocal8Bit());
 
     // Remove header
     buff.remove(0,dataToSkip);
@@ -441,7 +471,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     timeVers = Time4Byte;
 
     int eventCnt = buff.size()/numBytesPerEvent;
-    qDebug(QString("Num Events: %1").arg(eventCnt).toLocal8Bit());
+    qDebug(QString("%1 Events.").arg(eventCnt).toLocal8Bit());
 
     return buff;
 }

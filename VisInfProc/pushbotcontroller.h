@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QThread>
 #include <QTimer>
+#include <QTime>
 #include <QMutex>
 #include <QMutexLocker>
 #include <QVector>
@@ -30,8 +31,6 @@ public:
         avgFlowVecYL.resize(settings.length());
         avgFlowVecXR.resize(settings.length());
         avgFlowVecYR.resize(settings.length());
-        avgFlowDeltaX.resize(settings.length());
-        avgFlowDeltaY.resize(settings.length());
     }
 
     void setWorker(Worker* worker){
@@ -51,6 +50,25 @@ public:
         YR = avgFlowVecYR[speedIdx];
     }
 
+    void setP(float _P){
+        QMutexLocker locker(&pidMutex);
+        P = _P;
+    }
+    void setI(float _I){
+        QMutexLocker locker(&pidMutex);
+        I = _I;
+    }
+    void setD(float _D){
+        QMutexLocker locker(&pidMutex);
+        D = _D;
+    }
+
+    float getCtrlOutput(){
+        QMutexLocker locker(&pidMutex);
+        return out;
+    }
+
+
 public slots:
     void startProcessing();
     void stopProcessing();
@@ -67,7 +85,13 @@ private:
     QVector<float> orientations;
     QVector<float> avgFlowVecXL,avgFlowVecYL;
     QVector<float> avgFlowVecXR,avgFlowVecYR;
-    QVector<float> avgFlowDeltaX,avgFlowDeltaY;
+
+    // Control parameters
+    QTime loopTime;
+    QMutex pidMutex;
+    float P,I,D;
+    float out,eOld,eSum, eSumMax;
+
 };
 
 #endif // PUSHBOTCONTROLLER_H

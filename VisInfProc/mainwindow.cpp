@@ -15,6 +15,7 @@
 #include <QFileDialog>
 #include <QtSerialPort/QSerialPortInfo>
 #include <QtSerialPort/QSerialPort>
+#include <QMessageBox>
 
 #include "settings.h"
 
@@ -86,6 +87,7 @@ void MainWindow::initSignalsAndSlots()
     connect(this,SIGNAL(sendRawCmd(QString)),&eDVSHandler,SLOT(sendRawCmd(QString)));
     connect(this,SIGNAL(startEventStreaming()),&eDVSHandler,SLOT(startEventStreaming()));
     connect(this,SIGNAL(stopEventStreaming()),&eDVSHandler,SLOT(stopEventStreaming()));
+    connect(this,SIGNAL(reset()),&eDVSHandler,SLOT(resetBoard()));
 
     connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
     connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
@@ -98,6 +100,7 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->b_connect,SIGNAL(clicked()),this,SLOT(onClickConnect()));
     connect(ui->b_start_streaming,SIGNAL(clicked()),this,SLOT(onClickStartStreaming()));
     connect(ui->le_cmd_input,SIGNAL(editingFinished()),this,SLOT(onCmdEntered()));
+    connect(ui->b_reset,SIGNAL(clicked()),this,SLOT(onClickReset()));
 }
 
 void MainWindow::onUpdate()
@@ -129,7 +132,6 @@ void MainWindow::onUpdate()
             char* gpuImage;
             gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
-
             cudaFlowToRGB(flowX.getGPUPtr(),flowY.getGPUPtr(),gpuImage,
                           DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
             gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
@@ -157,7 +159,7 @@ void MainWindow::onUpdate()
             p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4);
             p1R.setY(DVS_RESOLUTION_HEIGHT/2);
             p1C.setX(DVS_RESOLUTION_WIDTH/2);
-            p1C.setY(DVS_RESOLUTION_HEIGHT/2);
+            p1C.setY(DVS_RESOLUTION_HEIGHT*2/3);
 
             pushBotController.getAvgSpeed(speedIdx,fxL,fyL,fxR,fyR);
             float lL = qSqrt(fxL*fxL+fyL*fyL);
@@ -188,10 +190,10 @@ void MainWindow::onUpdate()
                 paint2.fillRect(rectR,QBrush(c));
                 paint2.drawLine(p1R,p2R);
             }
-//            if(scaleC > 0.01){
-//                p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
-//                paint2.drawLine(p1C,p2C);
-//            }
+            if(scaleC > 0.01){
+                p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
+                paint2.drawLine(p1C,p2C);
+            }
 
             paint2.end();
             ui->l_ctrl_1->setPixmap(QPixmap::fromImage(imgAvg));
@@ -221,6 +223,7 @@ void MainWindow::onUpdate()
             ui->l_skip_ev_cnt->setNum((int)evDisc);
             ui->l_rec_ev_cnt->setNum((int)evRec);
             ui->l_timestamp->setNum((int)time);
+            ui->l_ctrl_output->setText(QString("%1").arg(pushBotController.getCtrlOutput()));
             lastStatisticsUpdate.restart();
         }
     }
@@ -256,10 +259,10 @@ void MainWindow::onConnectionClosed(bool error)
     ui->tab_playback->setEnabled(true);
     ui->gb_cmdline->setEnabled(false);
     ui->b_start_streaming->setEnabled(false);
-    ui->b_start_streaming->setText("Start Streaming");
+    ui->b_start_streaming->setText("Start");
 
     if(error){
-        qDebug("Connection closed by error!");
+        QMessageBox::critical(this,"Error","Connection closed unexpectedly!");
     }
 }
 
@@ -270,8 +273,9 @@ void MainWindow::onConnectionResult(bool error)
         ui->tab_playback->setEnabled(false);
         ui->gb_cmdline->setEnabled(true);
         ui->b_start_streaming->setEnabled(true);
+        ui->b_reset->setEnabled(true);
     }else{
-        qDebug("Failed to connect!");
+        QMessageBox::critical(this,"Error","Failed to connect!");
     }
 }
 
@@ -300,10 +304,12 @@ void MainWindow::onCmdSent(QString cmd)
 void MainWindow::onClickStartStreaming()
 {
     if(eDVSHandler.isStreaming()){
-        ui->b_start_streaming->setText("Start Streaming");
+        ui->b_start_streaming->setText("Start");
+        ui->b_reset->setEnabled(true);
         emit stopEventStreaming();
     }else{
-        ui->b_start_streaming->setText("Stop Streaming");
+        ui->b_start_streaming->setText("Stop");
+        ui->b_reset->setEnabled(false);
         emit startEventStreaming();
     }
 }
@@ -316,7 +322,9 @@ void MainWindow::onClickConnect()
         ui->tab_playback->setEnabled(true);
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
+        ui->b_reset->setEnabled(false);
     }else{
+        ui->te_comands->clear();
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
     }
 }
@@ -329,5 +337,11 @@ void MainWindow::onCmdEntered()
         txt.append("\n");
         emit sendRawCmd(txt);
         ui->le_cmd_input->clear();
+    }
+}
+void MainWindow::onClickReset()
+{
+    if(eDVSHandler.isConnected()){
+        emit reset();
     }
 }

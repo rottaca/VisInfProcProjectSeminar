@@ -5,6 +5,8 @@
 
 #include "buffer2d.h"
 
+#include <QDateTime>
+
 PushBotController::PushBotController(QObject* parent):QObject(parent)
 {
     thread.start();
@@ -13,6 +15,13 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eventProcessor = NULL;
     robotInterface = NULL;
 
+    P = 100;
+    I = 0;
+    D = 0;
+    out = 0;
+    eOld = 0;
+    eSum = 0;
+    eSumMax = 0;
     connect(&processIntervalTimer,SIGNAL(timeout()),this,SLOT(processFlow()));
 }
 PushBotController::~PushBotController()
@@ -77,9 +86,22 @@ void PushBotController::processFlow()
         avgFlowVecYL[i] /= sxy/2;
         avgFlowVecXR[i] /= sxy/2;
         avgFlowVecYR[i] /= sxy/2;
+    }
+    float deltaT;
+    if(!loopTime.isValid())
+        deltaT = 0;
+    else{
+        deltaT = loopTime.elapsed()/1000.0f;
+    }
+    loopTime.restart();
 
-        // Compute average deviation
-        avgFlowDeltaX[i] = avgFlowVecXR[i]-avgFlowVecXR[i];
-        avgFlowDeltaY[i] = avgFlowVecYR[i]-avgFlowVecYR[i];
+    {
+        QMutexLocker locker(&pidMutex);
+        // Simple PID-Controller
+        float e = avgFlowVecXL[0]-avgFlowVecXR[0];
+
+        eSum = qMax(-eSumMax,qMin(eSum + e,eSumMax));
+        out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
+        eOld = e;
     }
 }

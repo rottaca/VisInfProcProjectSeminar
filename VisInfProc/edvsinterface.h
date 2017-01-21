@@ -98,6 +98,8 @@ public slots:
      */
     void setMotorVelocity(int motorId, int speed);
 
+    void resetBoard();
+
     /**
      * @brief process Starts the processing in the worker thread. Don't call this function by your own!
      */
