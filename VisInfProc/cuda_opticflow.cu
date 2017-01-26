@@ -19,8 +19,6 @@ __global__ void kernelComputeOpticFlow(int n,
             localFlowX += gpuEnergy[j][idx]*cos(orientations[j]);
             localFlowY += gpuEnergy[j][idx]*sin(orientations[j]);
         }
-        //float energy = sqrt(localFlowX*localFlowX+localFlowY*localFlowY);
-
         gpuFlowX[idx] = localFlowX;
         gpuFlowY[idx] = localFlowY;
     }

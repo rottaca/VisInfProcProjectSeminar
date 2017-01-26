@@ -56,9 +56,11 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
 
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(180.0f));
@@ -77,7 +79,6 @@ void MainWindow::initSystem()
     eDVSHandler.setPushBotCtrl(&pushBotController);
     pushBotController.setWorker(&worker);
     pushBotController.setRobotInterface(&eDVSHandler);
-
 }
 
 void MainWindow::initSignalsAndSlots()
@@ -112,18 +113,33 @@ void MainWindow::onUpdate()
 
         long time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
         if(time != -1){
+            if(ui->cb_debug->isChecked()){
+//                Buffer3D en;
+//                worker.getConvBuffer(speedIdx,orientIdx,0,en);
+//                QImage imgConv = en.toImageXZ(63);
+//                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
+                pushBotController.getFlowCombined(flowX,flowY);
+                QImage rgbFlow(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
+                char* gpuImage;
+                gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
+
+                cudaFlowToRGB(flowX.getGPUPtr(),flowY.getGPUPtr(),gpuImage,
+                              DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,60,cudaStream);
+                gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
+                                          DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
+                                          cudaMemcpyDeviceToHost,cudaStream));
+                cudaStreamSynchronize(cudaStream);
+                gpuErrchk(cudaFree(gpuImage));
+                ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbFlow));
+            }
+
             worker.getOpticFlow(flowX,flowY,speedIdx);
             flowX.setCudaStream(cudaStream);
             flowY.setCudaStream(cudaStream);
             oppMoEnergy1.setCudaStream(cudaStream);
             oppMoEnergy2.setCudaStream(cudaStream);
 
-            if(ui->cb_debug->isChecked()){
-                Buffer3D en;
-                worker.getConvBuffer(speedIdx,orientIdx,0,en);
-                QImage imgConv = en.toImageXZ(63);
-                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
-            }
+
 
             QImage img1 = oppMoEnergy1.toImage(0,1.0f);
             ui->l_motion->setPixmap(QPixmap::fromImage(img1));
@@ -138,6 +154,7 @@ void MainWindow::onUpdate()
                                       DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                       cudaMemcpyDeviceToHost,cudaStream));
             cudaStreamSynchronize(cudaStream);
+            gpuErrchk(cudaFree(gpuImage));
             ui->l_flow->setPixmap(QPixmap::fromImage(rgbFlow));
 
         }else{
@@ -152,8 +169,8 @@ void MainWindow::onUpdate()
             QPoint p1L,p1R,p1C,p2L,p2R,p2C;
 
             //paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
-            float maxLDraw = DVS_RESOLUTION_WIDTH/2;
-            float maxLength = 0.2;
+            float maxLDraw = DVS_RESOLUTION_WIDTH/4;
+            float maxLength = 60;
             p1L.setX(DVS_RESOLUTION_WIDTH/4);
             p1L.setY(DVS_RESOLUTION_HEIGHT/2);
             p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4);
@@ -161,7 +178,7 @@ void MainWindow::onUpdate()
             p1C.setX(DVS_RESOLUTION_WIDTH/2);
             p1C.setY(DVS_RESOLUTION_HEIGHT*2/3);
 
-            pushBotController.getAvgSpeed(speedIdx,fxL,fyL,fxR,fyR);
+            pushBotController.getAvgSpeed(fxL,fyL,fxR,fyR);
             float lL = qSqrt(fxL*fxL+fyL*fyL);
             float scaleL = lL/maxLength;
             float lR = qSqrt(fxR*fxR+fyR*fyR);
@@ -178,7 +195,7 @@ void MainWindow::onUpdate()
                 p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
                 int angle = ((int)(atan2(fyL,fxL)*180/M_PI + 360) % 360);
 
-                c.setHsv(angle,255,255);
+                c.setHsv(angle,(int)qMin(255.f,255*scaleL),255);
                 paint2.fillRect(rectL,QBrush(c));
                 paint2.drawLine(p1L,p2L);
             }
@@ -186,7 +203,7 @@ void MainWindow::onUpdate()
                 p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
                 int angle = ((int)(atan2(fyR,fxR)*180/M_PI + 360) % 360);
 
-                c.setHsv(angle,255,255);
+                c.setHsv(angle,(int)qMin(255.f,255*scaleR),255);
                 paint2.fillRect(rectR,QBrush(c));
                 paint2.drawLine(p1R,p2R);
             }

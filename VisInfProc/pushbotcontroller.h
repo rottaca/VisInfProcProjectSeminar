@@ -11,6 +11,7 @@
 
 #include "settings.h"
 #include "filtersettings.h"
+#include "buffer2d.h"
 
 class Worker;
 class eDVSInterface;
@@ -26,11 +27,6 @@ public:
         QMutexLocker locker(&mutex);
         this->settings = settings;
         this->orientations = orientations;
-
-        avgFlowVecXL.resize(settings.length());
-        avgFlowVecYL.resize(settings.length());
-        avgFlowVecXR.resize(settings.length());
-        avgFlowVecYR.resize(settings.length());
     }
 
     void setWorker(Worker* worker){
@@ -42,12 +38,12 @@ public:
         robotInterface = interface;
     }
 
-    void getAvgSpeed(int speedIdx,float &XL, float &YL,float &XR, float &YR){
+    void getAvgSpeed(float &XL, float &YL,float &XR, float &YR){
         QMutexLocker locker(&mutex);
-        XL = avgFlowVecXL[speedIdx];
-        YL = avgFlowVecYL[speedIdx];
-        XR = avgFlowVecXR[speedIdx];
-        YR = avgFlowVecYR[speedIdx];
+        XL = avgFlowVecXL;
+        YL = avgFlowVecYL;
+        XR = avgFlowVecXR;
+        YR = avgFlowVecYR;
     }
 
     void setP(float _P){
@@ -68,6 +64,10 @@ public:
         return out;
     }
 
+    void getFlowCombined(Buffer2D &flowX, Buffer2D &flowY){
+        flowX = flowXCombined;
+        flowY = flowYCombined;
+    }
 
 public slots:
     void startProcessing();
@@ -83,8 +83,10 @@ private:
     eDVSInterface* robotInterface;
     QVector<FilterSettings> settings;
     QVector<float> orientations;
-    QVector<float> avgFlowVecXL,avgFlowVecYL;
-    QVector<float> avgFlowVecXR,avgFlowVecYR;
+    float avgFlowVecXL,avgFlowVecYL;
+    float avgFlowVecXR,avgFlowVecYR;
+
+    Buffer2D flowXCombined,flowYCombined;
 
     // Control parameters
     QTime loopTime;
