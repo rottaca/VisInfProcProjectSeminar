@@ -64,15 +64,12 @@ public:
         return out;
     }
 
-    void getFlowCombined(Buffer2D &flowX, Buffer2D &flowY){
-        flowX = flowXCombined;
-        flowY = flowYCombined;
-    }
-
 public slots:
     void startProcessing();
     void stopProcessing();
     void processFlow();
+signals:
+    void stopTimer();
 
 private:
     QThread thread;
@@ -86,7 +83,7 @@ private:
     float avgFlowVecXL,avgFlowVecYL;
     float avgFlowVecXR,avgFlowVecYR;
 
-    Buffer2D flowXCombined,flowYCombined;
+    Buffer2D opticFlowDir,opticFlowSpeed,opticFlowEnergy;
 
     // Control parameters
     QTime loopTime;

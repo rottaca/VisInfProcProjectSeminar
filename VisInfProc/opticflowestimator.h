@@ -8,13 +8,13 @@
 #include <assert.h>
 #include <QVector>
 
-extern void cudaComputeOpticFlow(int sx, int sy,
-                                 float* gpuFlowX, float* gpuFlowY,
+extern void cudaComputeFlowEnergyAndDir(int sx, int sy,
+                                 float* gpuEnergy, float* gpuDir,
                                  float** gpuArrGpuEnergy,
                                  float* gpuArrOrientations, int orientationCnt,
                                  float speed,
                                  cudaStream_t stream);
-extern void cudaFlowToRGB(float* gpuFlowX, float* gpuFlowY, char* gpuImage,
+extern void cudaFlowToRGB(float* gpuEnergy, float* gpuDir, char* gpuImage,
                             int sx, int sy,
                             float maxLength, cudaStream_t stream);
 
@@ -53,20 +53,39 @@ public:
     }
 
     /**
-     * @brief getOpticFlow Returns the optic flow in x and y direction
+     * @brief getOpticFlow Returns the optic flow energy in x and y direction for a given speed idx
      * @param flowX
      * @param flowY
+     * @param speedIdx
      */
-    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY, int speedIdx){
+    void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedIdx){
 
         assert(speedIdx >= 0 && speedIdx < energyEstimatorCnt);
 
         motionEnergyMutex.lock();
-        if(!opticFlowUpToDate[speedIdx])
-            computeOpticFlow(speedIdx);
+        if(!opticFlowEnergyUpToDate[speedIdx])
+            computeOpticFlowEnergy(speedIdx);
 
-        flowX = opticFlowVec[0][speedIdx];
-        flowY = opticFlowVec[1][speedIdx];
+        energy = opticFlowEnergies[speedIdx];
+        dir = opticFlowDirs[speedIdx];
+        motionEnergyMutex.unlock();
+    }
+
+    void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy){
+
+        motionEnergyMutex.lock();
+
+        if(!opticFlowUpToDate){
+            for(int i = 0; i < energyEstimatorCnt; i++){
+                if(!opticFlowEnergyUpToDate[i])
+                    computeOpticFlowEnergy(i);
+            }
+            computeOpticFlow();
+        }
+
+        speed = opticFlowSpeed;
+        dir = opticFlowDir;
+        energy = opticFlowEnergy;
         motionEnergyMutex.unlock();
     }
 
@@ -117,9 +136,11 @@ public:
 
 private:
     /**
-     * @brief computeOpticFlow Computes the optic flow based on the currently stored information
+     * @brief computeOpticFlow Computes the optic flow energy based on the currently stored information
      */
-    void computeOpticFlow(int speedIdx);
+    void computeOpticFlowEnergy(int speedIdx);
+
+    void computeOpticFlow();
 
 private:
     // Cuda stream for concurrent operations
@@ -133,9 +154,15 @@ private:
     float * gpuArrOrientations;
     // All covered filter settings
     QVector<FilterSettings> settings;
-    // Contains the optic flow in x and y direction for each pixel
-    Buffer2D* opticFlowVec[2];
-    // Mutex for accessing the stored opponent motion energies
+    // Contains the optic flow in x and y direction for each pixel and for each speed
+    Buffer2D* opticFlowEnergies;
+    Buffer2D* opticFlowDirs;
+    // Contains the combined optic flow
+    Buffer2D opticFlowSpeed;
+    Buffer2D opticFlowDir;
+    Buffer2D opticFlowEnergy;
+
+    // Mutex for accessing the stored motion energies
     QMutex motionEnergyMutex;
     // Pointer to array of 2d buffer pointers
     Buffer2D **motionEnergyBuffers;
@@ -147,8 +174,9 @@ private:
     float *gpuArrSpeeds;
     // Array of timestamps of last opponent motion energy updates
     long *updateTimeStamps;
-    // True if optic flow is the newest available computation
-    bool *opticFlowUpToDate;
+    // True if optic flow energy is the newest available computation
+    bool *opticFlowEnergyUpToDate;
+    bool opticFlowUpToDate;
 };
 
 #endif // OPTICFLOWESTIMATOR_H

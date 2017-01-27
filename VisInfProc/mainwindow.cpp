@@ -19,6 +19,10 @@
 
 #include "settings.h"
 
+bool sortSettingsBySpeed(const FilterSettings &a, const FilterSettings &b){
+    return a.speed_px_per_sec < b.speed_px_per_sec;
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -56,11 +60,14 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
+    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
+
+    // Sort list of settings by speed for interpolation
+    std::sort(settings.begin(),settings.end(),sortSettingsBySpeed);
 
     orientations.append(qDegreesToRadians(0.0f));
     orientations.append(qDegreesToRadians(180.0f));
@@ -118,12 +125,12 @@ void MainWindow::onUpdate()
 //                worker.getConvBuffer(speedIdx,orientIdx,0,en);
 //                QImage imgConv = en.toImageXZ(63);
 //                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
-                pushBotController.getFlowCombined(flowX,flowY);
+                worker.getOpticFlow(speed,dir,energy);
                 QImage rgbFlow(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
                 char* gpuImage;
                 gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
-                cudaFlowToRGB(flowX.getGPUPtr(),flowY.getGPUPtr(),gpuImage,
+                cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuImage,
                               DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,60,cudaStream);
                 gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
                                           DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
@@ -131,15 +138,16 @@ void MainWindow::onUpdate()
                 cudaStreamSynchronize(cudaStream);
                 gpuErrchk(cudaFree(gpuImage));
                 ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbFlow));
+
+                QImage engImage = energy.toImage(0,1);
+                ui->l_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
             }
 
-            worker.getOpticFlow(flowX,flowY,speedIdx);
-            flowX.setCudaStream(cudaStream);
-            flowY.setCudaStream(cudaStream);
+            worker.getOpticFlowEnergy(energy,dir,speedIdx);
+            energy.setCudaStream(cudaStream);
+            dir.setCudaStream(cudaStream);
             oppMoEnergy1.setCudaStream(cudaStream);
             oppMoEnergy2.setCudaStream(cudaStream);
-
-
 
             QImage img1 = oppMoEnergy1.toImage(0,1.0f);
             ui->l_motion->setPixmap(QPixmap::fromImage(img1));
@@ -148,7 +156,7 @@ void MainWindow::onUpdate()
             char* gpuImage;
             gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
-            cudaFlowToRGB(flowX.getGPUPtr(),flowY.getGPUPtr(),gpuImage,
+            cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuImage,
                           DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
             gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
                                       DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,

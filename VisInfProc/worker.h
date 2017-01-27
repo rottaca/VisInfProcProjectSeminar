@@ -42,12 +42,19 @@ public:
         long time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
         return time;
     }
-    void getOpticFlow(Buffer2D &flowX, Buffer2D &flowY, int speedNr){
+    void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedNr){
         QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
-        ofe->getOpticFlow(flowX,flowY,speedNr);
+        ofe->getOpticFlowEnergy(energy,dir,speedNr);
     }
+    void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy){
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return;
+        ofe->getOpticFlow(speed,dir,energy);
+    }
+
     void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer){
         QMutexLocker locker(&mutex);
         if(ofe == NULL)

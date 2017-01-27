@@ -17,5 +17,17 @@
 
 //#include "cuda_settings.h"
 
+/*****************************************************************
+// Debug Section
+*****************************************************************/
+// Uses the direction channel to encode the interpolation state
+// (Interpolate, Out of range, no interpolation,...)
+// Destroys optic flow and disables push bot control
+//#define DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
+
+// Disables the interpolation between speeds and takes the maximum response
+#define DISABLE_INTERPOLATION
+
+
 #endif // SETTINGS_H
 

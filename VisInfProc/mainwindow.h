@@ -62,7 +62,7 @@ private:
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-    Buffer2D oppMoEnergy1,oppMoEnergy2, flowX,flowY;
+    Buffer2D oppMoEnergy1,oppMoEnergy2, speed,energy,dir;
 
 
     Worker worker;

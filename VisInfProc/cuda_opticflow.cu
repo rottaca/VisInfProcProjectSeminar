@@ -5,9 +5,9 @@
 #include "cuda_helper.h"
 
 
-__global__ void kernelComputeOpticFlow(int n,
-                                       float* gpuFlowX,float* gpuFlowY,
-                                       float** gpuEnergy,
+__global__ void kernelComputeFlowEnergyAndDir(int n,
+                                       float* gpuEnergy,float* gpuDir,
+                                       float** gpuArrGpuEnergy,
                                        float* orientations, int orientationCnt,
                                        float speed){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -16,16 +16,16 @@ __global__ void kernelComputeOpticFlow(int n,
         float localFlowY = 0;
         for(int j = 0; j  < orientationCnt; j++)
         {
-            localFlowX += gpuEnergy[j][idx]*cos(orientations[j]);
-            localFlowY += gpuEnergy[j][idx]*sin(orientations[j]);
+            localFlowX += gpuArrGpuEnergy[j][idx]*cos(orientations[j]);
+            localFlowY += gpuArrGpuEnergy[j][idx]*sin(orientations[j]);
         }
-        gpuFlowX[idx] = localFlowX;
-        gpuFlowY[idx] = localFlowY;
+        gpuDir[idx] = atan2(localFlowY,localFlowX);
+        gpuEnergy[idx] = sqrt(localFlowX*localFlowX+localFlowY*localFlowY);
     }
 }
 
-__host__ void cudaComputeOpticFlow(int sx, int sy,
-                                   float* gpuFlowX, float* gpuFlowY,
+__host__ void cudaComputeFlowEnergyAndDir(int sx, int sy,
+                                   float* gpuEnergy, float* gpuDir,
                                    float** gpuArrGpuEnergy,
                                    float* gpuArrOrientations, int orientationCnt,
                                    float speed,
@@ -33,24 +33,22 @@ __host__ void cudaComputeOpticFlow(int sx, int sy,
 {
     int n = sx*sy;
     long blocks = ceil((float)n/THREADS_PER_BLOCK);
-    kernelComputeOpticFlow<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
+    kernelComputeFlowEnergyAndDir<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
                          n,
-                         gpuFlowX,gpuFlowY,
+                         gpuEnergy,gpuDir,
                          gpuArrGpuEnergy,
                          gpuArrOrientations,orientationCnt,
                         speed);
 }
 
-__global__ void kernelFlowToRGB(float* gpuFlowX, float* gpuFlowY, char *gpuImage,
+__global__ void kernelFlowToRGB(float* gpuEnergy, float* gpuDir, char *gpuImage,
                                 int n,
                                 float maxLength){
 
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < n){
-        float fx = gpuFlowX[idx];
-        float fy = gpuFlowY[idx];
-        float length = sqrt(fx*fx+fy*fy);
-        float h = atan2(fy,fx)/(2*M_PI)*360;
+        float length = gpuEnergy[idx];
+        float h = gpuDir[idx]/(2*M_PI)*360;
         if(h < 0)
             h+= 360;
         else if(h>= 360)
@@ -85,13 +83,13 @@ __global__ void kernelFlowToRGB(float* gpuFlowX, float* gpuFlowY, char *gpuImage
     }
 }
 
-__host__ void cudaFlowToRGB(float* gpuFlowX, float* gpuFlowY, char *gpuImage,
+__host__ void cudaFlowToRGB(float* gpuEnergy, float* gpuDir, char *gpuImage,
                             int sx, int sy,
                             float maxLength, cudaStream_t stream){
     int n = sx*sy;
     long blocks = ceil((float)n/THREADS_PER_BLOCK);
     kernelFlowToRGB<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
-                         gpuFlowX,gpuFlowY,gpuImage,
+                         gpuEnergy,gpuDir,gpuImage,
                          n,
                          maxLength);
 }

@@ -40,7 +40,7 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
     sigmaBi2 = 3.f/2*sigmaBi1;
     muMono = 1.f/5*muBi1*(1 + qSqrt(36 + 10*qLn(s1/s2)));
     sigmaMono = muMono/3;
-    sigmaGabor = 25.f;
+    sigmaGabor = 20.f;
     temporalEnd = _tempEnd;
     temporalSteps = _tempSteps;
     spatialSize = _spatialSz;
@@ -61,19 +61,19 @@ FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
             return FilterSettings(0.08f,0.2f,0.7,100,25,135000,0.1,0.002,1,3.6, 0);
         break;
     case SPEED_1:
-            return FilterSettings(0.15f,0.23f,0.7,20,13,100000,0.1,0.002,1,3.6,66.733f);
+            return FilterSettings(0.15f,0.23f,0.7,20,11,100000,0.1,0.002,1,3.6,66.733f);
         break;
     case SPEED_2:
-            return FilterSettings(0.15f,0.23f,0.7,20,13,200000,0.1,0.002,1,3.6,33.366f);
+            return FilterSettings(0.15f,0.23f,0.7,20,11,200000,0.1,0.002,1,3.6,33.366f);
         break;
     case SPEED_3:
-            return FilterSettings(0.15f,0.23f,0.7,20,13,300000,0.1,0.002,1,3.6,16.683f);
+            return FilterSettings(0.15f,0.23f,0.7,20,11,300000,0.1,0.002,1,3.6,16.683f);
         break;
     case SPEED_4:
-            return FilterSettings(0.15f,0.23f,0.7,20,13,400000,0.1,0.002,1,3.6,8.3415f);
+            return FilterSettings(0.15f,0.23f,0.7,20,11,400000,0.1,0.002,1,3.6,8.3415f);
         break;
     case SPEED_5:
-            return FilterSettings(0.15f,0.23f,0.7,20,13,50000,0.1,0.002,1,3.6,133.466f);
+            return FilterSettings(0.15f,0.23f,0.7,20,11,50000,0.1,0.002,1,3.6,133.466f);
         break;
     default:
             return FilterSettings();
