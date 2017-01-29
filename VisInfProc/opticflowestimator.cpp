@@ -30,9 +30,6 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowEnergy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowEnergy.fill(0);
 
-
-
-
     float cpuArrSpeeds[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++)
         {

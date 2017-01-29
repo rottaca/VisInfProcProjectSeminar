@@ -253,7 +253,7 @@ void MainWindow::onUpdate()
                 }
             if(lastStatisticsUpdate.elapsed() > 500)
                 {
-                    long evRec, evDisc;
+                    long evRec = 0, evDisc = 0;
                     worker.getStats(evRec,evDisc);
                     float p = 0;
                     if(evRec > 0)

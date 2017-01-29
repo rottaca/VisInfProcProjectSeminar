@@ -14,7 +14,7 @@
 // GUI refresh rate
 #define FPS 25
 // Refresh rate of optic flow processing
-#define PUSH_BOT_PROCESS_FPS 5
+#define PUSH_BOT_PROCESS_FPS 15
 
 /*****************************************************************
 // Pushbot
