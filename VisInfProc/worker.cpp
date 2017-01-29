@@ -8,7 +8,7 @@ Worker::Worker(QObject *parent) : QThread(parent)
 
 
 Worker::~Worker(){
-    qDebug("Destroying worker...");
+    qDebug("Destroying worker");
     if(processing)
         stopProcessing();
 
@@ -34,7 +34,7 @@ void Worker::startProcessing()
         stopProcessing();
     }
 
-    qDebug("Starting processing...");
+    qDebug("Starting Worker...");
     {
         QMutexLocker locker(&mutex);
         if(ofe != NULL)
@@ -42,19 +42,19 @@ void Worker::startProcessing()
         ofe = NULL;
         ofe = new OpticFlowEstimator(settings,orientations);
     }
-    qDebug("Started processing.");
+    qDebug("Worker started.");
     start();
 }
 
 void Worker::stopProcessing()
 {
-    qDebug("Stopping processing...");
+    qDebug("Stopping Worker...");
     processing = false;
 
     if(wait(2000))
-        qDebug("Stopped processing.");
+        qDebug("Worker stopped.");
     else{
-        qDebug("Failed to stop processing thread!");
+        qDebug("Failed to stop worker thread!");
         terminate();
         wait();
     }

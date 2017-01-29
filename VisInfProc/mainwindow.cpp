@@ -63,8 +63,8 @@ void MainWindow::initSystem()
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
+    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
 
     // Sort list of settings by speed for interpolation
     std::sort(settings.begin(),settings.end(),sortSettingsBySpeed);

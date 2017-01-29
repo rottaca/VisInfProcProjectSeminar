@@ -22,6 +22,7 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eOld = 0;
     eSum = 0;
     eSumMax = 0;
+
     connect(&processIntervalTimer,SIGNAL(timeout()),this,SLOT(processFlow()));
     connect(this,SIGNAL(stopTimer()),&processIntervalTimer,SLOT(stop()));
 }
@@ -37,13 +38,26 @@ PushBotController::~PushBotController()
         thread.wait();
     }
 }
-
+void PushBotController::setRobotInterface(eDVSInterface* interface){
+    QMutexLocker locker(&mutex);
+    robotInterface = interface;
+    connect(this,SIGNAL(setMotorVelocity(int,int)),robotInterface,SLOT(setMotorVelocity(int,int)));
+    connect(this,SIGNAL(enableMotors(bool)),robotInterface,SLOT(enableMotors(bool)));
+}
 void PushBotController::startProcessing(){
+    qDebug("Start pushbot controller");
     processIntervalTimer.start(1000/PUSH_BOT_PROCESS_FPS);
+    emit enableMotors(true);
+    emit setMotorVelocity(0,PUSHBOT_VELOCITY_DEFAULT);
+    emit setMotorVelocity(1,PUSHBOT_VELOCITY_DEFAULT);
 }
 
 void PushBotController::stopProcessing(){
+    qDebug("Stop pushbot controller");
     processIntervalTimer.stop();
+    emit setMotorVelocity(1,0);
+    emit setMotorVelocity(0,0);
+    emit enableMotors(false);
 }
 
 void PushBotController::processFlow()
@@ -90,10 +104,14 @@ void PushBotController::processFlow()
     }
 
     // Normalize
-    avgFlowVecXL /= cntL;
-    avgFlowVecYL /= cntL;
-    avgFlowVecXR /= cntR;
-    avgFlowVecYR /= cntR;
+    if(cntL > 0){
+        avgFlowVecXL /= cntL;
+        avgFlowVecYL /= cntL;
+    }
+    if(cntR > 0){
+        avgFlowVecXR /= cntR;
+        avgFlowVecYR /= cntR;
+    }
 
 //    qDebug("%f %f", sqrt(avgFlowVecXL*avgFlowVecXL+avgFlowVecYL*avgFlowVecYL),
 //           sqrt(avgFlowVecXR*avgFlowVecXR+avgFlowVecYR*avgFlowVecYR));
@@ -105,14 +123,29 @@ void PushBotController::processFlow()
         deltaT = loopTime.elapsed()/1000.0f;
     }
     loopTime.restart();
-
     {
         QMutexLocker locker(&pidMutex);
         // Simple PID-Controller
         float e = avgFlowVecXL-avgFlowVecXR;
 
         eSum = qMax(-eSumMax,qMin(eSum + e,eSumMax));
-        out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
+        // Ignore differential part in first run
+        if(deltaT > 0)
+            out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
+        else
+            out = P*e + I*deltaT*eSum;
+
         eOld = e;
+
+        // Send commands to pushbot
+        int speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
+                              PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
+        int speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
+                               PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
+
+        if(robotInterface->isStreaming()){
+            emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
+            emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
+        }
     }
 }

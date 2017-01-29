@@ -90,6 +90,20 @@ OpticFlowEstimator::~OpticFlowEstimator()
     motionEnergyEstimators = NULL;
     delete[] updateTimeStamps;
     updateTimeStamps = NULL;
+    delete[] opticFlowEnergyUpToDate;
+    opticFlowEnergyUpToDate = NULL;
+    delete[] opticFlowEnergyUpToDate;
+    opticFlowEnergyUpToDate = NULL;
+    delete[] motionEnergyBuffers;
+    motionEnergyBuffers = NULL;
+    delete[] cpuArrGpuMotionEnergies;
+    cpuArrGpuMotionEnergies = NULL;
+    delete[] cudaStreams;
+    cudaStreams = NULL;
+    delete[] opticFlowEnergies;
+    opticFlowEnergies = NULL;
+    delete[] opticFlowDirs;
+    opticFlowDirs = NULL;
 
     gpuErrchk(cudaFree(gpuArrOrientations));
     gpuArrOrientations = NULL;

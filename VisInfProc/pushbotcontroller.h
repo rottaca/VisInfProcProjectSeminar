@@ -33,10 +33,7 @@ public:
         QMutexLocker locker(&mutex);
         eventProcessor = worker;
     }
-    void setRobotInterface(eDVSInterface* interface){
-        QMutexLocker locker(&mutex);
-        robotInterface = interface;
-    }
+    void setRobotInterface(eDVSInterface* interface);
 
     void getAvgSpeed(float &XL, float &YL,float &XR, float &YR){
         QMutexLocker locker(&mutex);
@@ -68,8 +65,11 @@ public slots:
     void startProcessing();
     void stopProcessing();
     void processFlow();
+
 signals:
     void stopTimer();
+    void setMotorVelocity(int motorId, int speed);
+    void enableMotors(bool enable);
 
 private:
     QThread thread;
@@ -90,7 +90,6 @@ private:
     QMutex pidMutex;
     float P,I,D;
     float out,eOld,eSum, eSumMax;
-
 };
 
 #endif // PUSHBOTCONTROLLER_H

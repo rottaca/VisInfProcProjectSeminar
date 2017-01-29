@@ -7,17 +7,6 @@
 #include "pushbotcontroller.h"
 
 
-
-
-#define CMD_SET_TYPESTAMP_MODE "!E1\n"
-#define CMD_ENABLE_EVENT_STREAMING "!E+\n"
-#define CMD_DISABLE_EVENT_STREAMING "!E-\n"
-#define CMD_ENABLE_MOTORS "!M+\n"
-#define CMD_DISABLE_MOTORS "!M-\n"
-#define CMD_SET_VELOCITY "!MV%1=%2\n"
-#define CMD_RESET_BOARD "R\n"
-
-
 eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 {
     operationMode = IDLE;
@@ -86,10 +75,11 @@ void eDVSInterface::startEventStreaming()
 {
     {
         QMutexLocker locker(&socketMutex);
-        socket.write(CMD_SET_TYPESTAMP_MODE);
+        socket.write(CMD_SET_TIMESTAMP_MODE);
         socket.write(CMD_ENABLE_EVENT_STREAMING);
-        socket.write(CMD_ENABLE_MOTORS);
         socket.waitForBytesWritten();
+        emit onCmdSent(CMD_SET_TIMESTAMP_MODE);
+        emit onCmdSent(CMD_ENABLE_EVENT_STREAMING);
     }
     initEvBuilder(Addr2Byte,TimeDelta);
     {
@@ -97,6 +87,7 @@ void eDVSInterface::startEventStreaming()
         operationMode = ONLINE_STREAMING;
     }
     processingWorker->startProcessing();
+    emit onStartPushBotController();
 }
 void eDVSInterface::stopEventStreaming()
 {
@@ -106,70 +97,53 @@ void eDVSInterface::stopEventStreaming()
     }
     {
         QMutexLocker locker(&socketMutex);
-        socket.write(QString(CMD_SET_VELOCITY).arg(0).arg(0).toLocal8Bit());
-        socket.write(QString(CMD_SET_VELOCITY).arg(1).arg(0).toLocal8Bit());
-        socket.write(CMD_DISABLE_MOTORS);
         socket.write(CMD_DISABLE_EVENT_STREAMING);
         socket.waitForBytesWritten();
+        emit onCmdSent(CMD_DISABLE_EVENT_STREAMING);
     }
     processingWorker->stopProcessing();
+    emit onStopPushBotController();
 }
 void eDVSInterface::sendRawCmd(QString cmd)
 {
-    OperationMode opModeLocal;
-    {
-        QMutexLocker locker(&operationMutex);
-        opModeLocal = operationMode;
+    if(isConnected()){
+        QMutexLocker locker(&socketMutex);
+        socket.write(cmd.toLocal8Bit());
+        socket.waitForBytesWritten();
+        emit onCmdSent(cmd);
     }
-
-    QMutexLocker locker(&socketMutex);
-    socket.write(cmd.toLocal8Bit());
-    socket.waitForBytesWritten();
-    emit onCmdSent(cmd);
 }
 void eDVSInterface::enableMotors(bool enable){
-
-    OperationMode opModeLocal;
-    {
-        QMutexLocker locker(&operationMutex);
-        opModeLocal = operationMode;
-    }
-
-    if(opModeLocal == ONLINE){
+    if(isConnected()){
         QMutexLocker locker(&socketMutex);
         if(enable)
             socket.write(CMD_ENABLE_MOTORS);
         else
             socket.write(CMD_DISABLE_MOTORS);
         socket.waitForBytesWritten();
+        if(enable)
+            emit onCmdSent(CMD_ENABLE_MOTORS);
+        else
+            emit onCmdSent(CMD_DISABLE_MOTORS);
     }
 }
 void eDVSInterface::setMotorVelocity(int motorId, int speed)
 {
-    OperationMode opModeLocal;
-    {
-        QMutexLocker locker(&operationMutex);
-        opModeLocal = operationMode;
-    }
-
-    if(opModeLocal == ONLINE){
+    if(isConnected()){
         QMutexLocker locker(&socketMutex);
-        socket.write(QString(CMD_SET_VELOCITY).arg(motorId).arg(speed).toLocal8Bit());
+        QString cmd = QString(CMD_SET_VELOCITY).arg(motorId).arg(speed);
+        socket.write(cmd.toLocal8Bit());
         socket.waitForBytesWritten();
+        emit onCmdSent(cmd);
     }
 }
 void eDVSInterface::resetBoard()
 {
-    OperationMode opModeLocal;
-    {
-        QMutexLocker locker(&operationMutex);
-        opModeLocal = operationMode;
-    }
-
-    if(opModeLocal == ONLINE){
+    if(isConnected()){
         QMutexLocker locker(&socketMutex);
         socket.write(CMD_RESET_BOARD);
         socket.waitForBytesWritten();
+        emit onCmdSent(CMD_RESET_BOARD);
     }
 }
 
@@ -193,6 +167,8 @@ void eDVSInterface::process()
         break;
     }
 
+    // Process all remaining events
+    qApp->processEvents();
     // Wait for processing stopped
     thread.quit();
 
@@ -220,7 +196,8 @@ void eDVSInterface::_processSocket(){
     }
 
     DVSEvent eNew;
-    while(opModeLocal == ONLINE || opModeLocal == ONLINE_STREAMING){
+    while(opModeLocal == ONLINE ||
+          opModeLocal == ONLINE_STREAMING){
         {
             QMutexLocker locker(&socketMutex);
             if(socket.state() != QTcpSocket::ConnectedState){
@@ -244,11 +221,15 @@ void eDVSInterface::_processSocket(){
                 {
                     char c;
                     socket.getChar(&c);
+                    qDebug("Get streaming char :%c",c);
                     if(processingWorker != NULL &&
                             evBuilderProcessNextByte(c,eNew)){
+                        // TODO Sleep necessary time
                         processingWorker->nextEvent(eNew);
+                        qDebug("Event ready");
                     }
                 }else{
+                    // TODO Busy waiting
                     QThread::usleep(1);
                 }
             }
@@ -524,12 +505,15 @@ bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
 
     if(evBuilderTimestampVersion == TimeDelta){
         // addressbytes done ?
-        if(evBuilderByteIdx > evBuilderAddressVersion){
+        if(evBuilderByteIdx == evBuilderAddressVersion){
             // Check for leading 1 in timestamp bytes
             if(c & 0x80){
                 event = evBuilderParseEvent();
                 evBuilderByteIdx = 0;
                 return true;
+            }else if(evBuilderByteIdx == evBuilderBufferSz){
+                qCritical("Event not recognized! Skipped %d data bytes !",evBuilderBufferSz);
+                evBuilderByteIdx = 0;
             }
         }
     }else{
