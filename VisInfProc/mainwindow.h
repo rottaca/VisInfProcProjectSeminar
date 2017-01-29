@@ -17,7 +17,8 @@
 #include "settings.h"
 #include "pushbotcontroller.h"
 
-namespace Ui {
+namespace Ui
+{
 class MainWindow;
 }
 

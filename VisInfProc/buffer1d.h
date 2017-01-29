@@ -17,7 +17,8 @@ public:
 
     float& operator()(int i);
 
-    int getSize() const{
+    int getSize() const
+    {
         return itemCnt;
     }
 

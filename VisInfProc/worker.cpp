@@ -7,15 +7,17 @@ Worker::Worker(QObject *parent) : QThread(parent)
 }
 
 
-Worker::~Worker(){
+Worker::~Worker()
+{
     qDebug("Destroying worker");
     if(processing)
         stopProcessing();
 
-    if(ofe != NULL){
-        delete ofe;
-        ofe = NULL;
-    }
+    if(ofe != NULL)
+        {
+            delete ofe;
+            ofe = NULL;
+        }
 }
 
 void Worker::setComputationParameters(QVector<FilterSettings> settings, QVector<float> orientations)
@@ -30,9 +32,10 @@ void Worker::setComputationParameters(QVector<FilterSettings> settings, QVector<
 
 void Worker::startProcessing()
 {
-    if(processing){
-        stopProcessing();
-    }
+    if(processing)
+        {
+            stopProcessing();
+        }
 
     qDebug("Starting Worker...");
     {
@@ -53,22 +56,24 @@ void Worker::stopProcessing()
 
     if(wait(2000))
         qDebug("Worker stopped.");
-    else{
-        qDebug("Failed to stop worker thread!");
-        terminate();
-        wait();
-    }
+    else
+        {
+            qDebug("Failed to stop worker thread!");
+            terminate();
+            wait();
+        }
 }
 void Worker::run()
 {
     processing = true;
-    while(processing){
-        mutex.lock();
-        // Data ready ?
-        if(wcWorkReady.wait(&mutex,100))
-            ofe->process();
-        mutex.unlock();
-    }
+    while(processing)
+        {
+            mutex.lock();
+            // Data ready ?
+            if(wcWorkReady.wait(&mutex,100))
+                ofe->process();
+            mutex.unlock();
+        }
 }
 
 void Worker::nextEvent(const eDVSInterface::DVSEvent &event)

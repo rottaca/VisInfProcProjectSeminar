@@ -14,14 +14,15 @@ class eDVSInterface: public QObject
     Q_OBJECT
 public:
 
-    typedef struct DVSEvent{
+    typedef struct DVSEvent
+    {
         u_int8_t posX, posY;
         u_int8_t On;
         u_int32_t timestamp;
     } DVSEvent;
 
-    typedef enum AddressVersion{Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
-    typedef enum TimestampVersion{Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
+    typedef enum AddressVersion {Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
+    typedef enum TimestampVersion {Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
 
     eDVSInterface(QObject* parent = 0);
     ~eDVSInterface();
@@ -31,7 +32,7 @@ public:
      * @param fileName
      * @param speed
      */
-    void playbackFile(QString fileName, float speed = 1.0f);
+    void playbackFile(QString fileName, double speed = 1.0f);
     /**
      * @brief connectToBot Connects to the robot platform.
      * @param host
@@ -111,7 +112,8 @@ public:
      * @brief isConnected Returns true, when the system is connected to the robot
      * @return
      */
-    bool isConnected(){
+    bool isConnected()
+    {
         QMutexLocker locker(&operationMutex);
         return operationMode == ONLINE_STREAMING || operationMode == ONLINE;
     }
@@ -119,7 +121,8 @@ public:
      * @brief isStreaming Returns true when online event streaming from the robot is enabled
      * @return
      */
-    bool isStreaming(){
+    bool isStreaming()
+    {
         QMutexLocker locker(&operationMutex);
         return operationMode == ONLINE_STREAMING;
     }
@@ -127,7 +130,8 @@ public:
      * @brief isWorking Returns true, when the eDVS interface is online or in playback mode
      * @return
      */
-    bool isWorking(){
+    bool isWorking()
+    {
         QMutexLocker locker(&operationMutex);
         return operationMode != IDLE;
     }
@@ -135,7 +139,8 @@ public:
      * @brief setWorker Set the pointer to the async processor
      * @param worker
      */
-    void setWorker(Worker* worker){
+    void setWorker(Worker* worker)
+    {
         QMutexLocker locker(&operationMutex);
         processingWorker = worker;
     }
@@ -177,7 +182,7 @@ private:
     // Thread for async processing of playback file and tcp socket
     QThread thread;
     // Operation mode
-    typedef enum OperationMode{IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
+    typedef enum OperationMode {IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
     OperationMode operationMode;
     // Pointer to processing thread
     Worker *processingWorker;
@@ -192,7 +197,7 @@ private:
 
     // Playback data
     QString playbackFileName;
-    float playbackSpeed;
+    double playbackSpeed;
     QMutex playbackDataMutex;
 
     // Data for the event builder

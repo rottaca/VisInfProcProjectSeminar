@@ -44,6 +44,7 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
 //    gaborOdd.toImage().save(&file,"PNG");
 
 }
-FilterSet::~FilterSet(){
+FilterSet::~FilterSet()
+{
 
 }

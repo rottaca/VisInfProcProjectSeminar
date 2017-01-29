@@ -44,13 +44,15 @@ public:
     MotionEnergyEstimator(FilterSettings fs, QVector<float> orientations);
     ~MotionEnergyEstimator();
 
-    FilterSettings getSettings(){
+    FilterSettings getSettings()
+    {
         return fsettings;
     }
 
 
     bool onNewEvent(const eDVSInterface::DVSEvent &e);
-    bool isEventListReady(){
+    bool isEventListReady()
+    {
         eventWriteMutex.lock();
         bool cpy = eventListReady;
         eventWriteMutex.unlock();
@@ -81,7 +83,8 @@ public:
     /**
      * @brief syncStreams Synchronizes all streams of this motion energy estimator
      */
-    void syncStreams(){
+    void syncStreams()
+    {
         for(int i = 0; i < orientations.length()*FILTERS_PER_ORIENTATION; i ++)
             cudaStreamSynchronize(cudaStreams[i]);
     }
@@ -90,7 +93,8 @@ public:
      * @brief getEventsInWindow Returns a vector with all events in the current time window
      * @return
      */
-    QList<eDVSInterface::DVSEvent> getEventsInWindow(){
+    QList<eDVSInterface::DVSEvent> getEventsInWindow()
+    {
         QMutexLocker locker(&eventsInWindowMutex);
         return timeWindowEvents;
     }
@@ -100,7 +104,8 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics(long &all, long &skipped){
+    void getEventStatistics(long &all, long &skipped)
+    {
         eventStatisticsMutex.lock();
         all = eventsAll;
         skipped = eventsSkipped;
@@ -112,7 +117,8 @@ public:
      * @param bufferIdx
      * @return
      */
-    Buffer3D getConvBuffer(int bufferIdx){
+    Buffer3D getConvBuffer(int bufferIdx)
+    {
         return *cpuArrCpuConvBuffers[bufferIdx];
     }
 
@@ -120,11 +126,12 @@ public:
     // -> Number of slots to skip after processing
     // -> The starttime of the current time slot
     // -> All event positions
-    typedef struct SlotEventData{
+    typedef struct SlotEventData
+    {
         QVector<SimpleEvent> events;        // Event list (only x and y)
         int slotsToSkip;                    // Timeslots to skip after processing the events
         float currWindowStartTime;         // The start time in us of the current window
-    }SlotEventData;
+    } SlotEventData;
 
 private:
     // Stream for concurrent execution
@@ -156,7 +163,7 @@ private:
     // Overall stream start time TODO: Remove and start stream at 0
     int startTime;
     // The time of the last event; used to detect time jumps
-    int lastEventTime;
+    unsigned int lastEventTime;
     // Time per timeslot
     float timePerSlot;
 

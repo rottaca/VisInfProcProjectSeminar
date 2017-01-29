@@ -2,7 +2,8 @@
 #include <QtMath>
 
 #define LUT_COLORMAP_SZ 256
-static uchar rgbColormapLUT[LUT_COLORMAP_SZ*3] = {
+static uchar rgbColormapLUT[LUT_COLORMAP_SZ*3] =
+{
     0,0,255,
     0,2,253,
     0,4,251,

@@ -71,12 +71,13 @@ QImage Buffer2D::toImage(float min, float max) const
     nvtxRangeId_t id = nvtxRangeStart("2D-Buffer to Image");
 #endif
     // Compute max and min on cpu if necessary -> BAD
-    if(min == 0 && max == 0){
-        if(!cpuValid)
-            downloadBuffer();
-        mx = *std::max_element(cpuBuffer,cpuBuffer+sx*sy);
-        mn = *std::min_element(cpuBuffer,cpuBuffer+sx*sy);
-    }
+    if(min == 0 && max == 0)
+        {
+            if(!cpuValid)
+                downloadBuffer();
+            mx = *std::max_element(cpuBuffer,cpuBuffer+sx*sy);
+            mn = *std::min_element(cpuBuffer,cpuBuffer+sx*sy);
+        }
 
     // Process data on GPU
     if(!gpuValid)
@@ -96,5 +97,3 @@ QImage Buffer2D::toImage(float min, float max) const
 
     return img;
 }
-
-

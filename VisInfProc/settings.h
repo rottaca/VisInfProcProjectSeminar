@@ -47,8 +47,8 @@
 //#define DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
 
 #ifndef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-    // Disables the interpolation between speeds and takes the maximum response
-    #define DISABLE_INTERPOLATION
+// Disables the interpolation between speeds and takes the maximum response
+#define DISABLE_INTERPOLATION
 #endif
 
 /*****************************************************************
@@ -64,4 +64,3 @@
 #define CLAMP(v,mn,mx) qMin(mx,qMax(mn,v))
 
 #endif // SETTINGS_H
-

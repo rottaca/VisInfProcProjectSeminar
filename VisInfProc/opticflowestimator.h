@@ -9,14 +9,14 @@
 #include <QVector>
 
 extern void cudaComputeFlowEnergyAndDir(int sx, int sy,
-                                 float* gpuEnergy, float* gpuDir,
-                                 float** gpuArrGpuEnergy,
-                                 float* gpuArrOrientations, int orientationCnt,
-                                 float speed,
-                                 cudaStream_t stream);
+                                        float* gpuEnergy, float* gpuDir,
+                                        float** gpuArrGpuEnergy,
+                                        float* gpuArrOrientations, int orientationCnt,
+                                        float speed,
+                                        cudaStream_t stream);
 extern void cudaFlowToRGB(float* gpuEnergy, float* gpuDir, char* gpuImage,
-                            int sx, int sy,
-                            float maxLength, cudaStream_t stream);
+                          int sx, int sy,
+                          float maxLength, cudaStream_t stream);
 
 class OpticFlowEstimator
 {
@@ -41,7 +41,8 @@ public:
      * @param opponentMotionEnergy Reference to the destination buffer
      * @return Returns the timestamp of the provided data
      */
-    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &motionEnergy){
+    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &motionEnergy)
+    {
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         assert(orientationIdx >= 0);
@@ -58,7 +59,8 @@ public:
      * @param flowY
      * @param speedIdx
      */
-    void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedIdx){
+    void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedIdx)
+    {
 
         assert(speedIdx >= 0 && speedIdx < energyEstimatorCnt);
 
@@ -71,17 +73,20 @@ public:
         motionEnergyMutex.unlock();
     }
 
-    void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy){
+    void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy)
+    {
 
         motionEnergyMutex.lock();
 
-        if(!opticFlowUpToDate){
-            for(int i = 0; i < energyEstimatorCnt; i++){
-                if(!opticFlowEnergyUpToDate[i])
-                    computeOpticFlowEnergy(i);
+        if(!opticFlowUpToDate)
+            {
+                for(int i = 0; i < energyEstimatorCnt; i++)
+                    {
+                        if(!opticFlowEnergyUpToDate[i])
+                            computeOpticFlowEnergy(i);
+                    }
+                computeOpticFlow();
             }
-            computeOpticFlow();
-        }
 
         speed = opticFlowSpeed;
         dir = opticFlowDir;
@@ -94,7 +99,8 @@ public:
      * @param filterNr Index of motion energy estimator
      * @return
      */
-    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr){
+    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr)
+    {
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         return motionEnergyEstimators[filterNr]->getEventsInWindow();
@@ -105,17 +111,19 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics(long &all, long &skipped){
+    void getEventStatistics(long &all, long &skipped)
+    {
         long tmp1,tmp2;
         all = 0;
         skipped = 0;
-        for(int i = 0; i < energyEstimatorCnt; i++){
-            motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
-            if(tmp1 > all)
-                all = tmp1;
-            if(tmp2 > skipped)
-                skipped = tmp2;
-        }
+        for(int i = 0; i < energyEstimatorCnt; i++)
+            {
+                motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
+                if(tmp1 > all)
+                    all = tmp1;
+                if(tmp2 > skipped)
+                    skipped = tmp2;
+            }
     }
 
     /**
@@ -124,7 +132,8 @@ public:
      * @param orientationIdx
      * @param convBuffer
      */
-    void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer){
+    void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer)
+    {
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
         assert(orientationIdx >= 0);

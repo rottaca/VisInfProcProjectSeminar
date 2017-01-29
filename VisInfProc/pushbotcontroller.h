@@ -23,19 +23,22 @@ public:
     PushBotController(QObject *parent = 0);
     ~PushBotController();
 
-    void setup(QVector<FilterSettings> settings, QVector<float> orientations){
+    void setup(QVector<FilterSettings> settings, QVector<float> orientations)
+    {
         QMutexLocker locker(&mutex);
         this->settings = settings;
         this->orientations = orientations;
     }
 
-    void setWorker(Worker* worker){
+    void setWorker(Worker* worker)
+    {
         QMutexLocker locker(&mutex);
         eventProcessor = worker;
     }
     void setRobotInterface(eDVSInterface* interface);
 
-    void getAvgSpeed(float &XL, float &YL,float &XR, float &YR){
+    void getAvgSpeed(float &XL, float &YL,float &XR, float &YR)
+    {
         QMutexLocker locker(&mutex);
         XL = avgFlowVecXL;
         YL = avgFlowVecYL;
@@ -43,20 +46,24 @@ public:
         YR = avgFlowVecYR;
     }
 
-    void setP(float _P){
+    void setP(float _P)
+    {
         QMutexLocker locker(&pidMutex);
         P = _P;
     }
-    void setI(float _I){
+    void setI(float _I)
+    {
         QMutexLocker locker(&pidMutex);
         I = _I;
     }
-    void setD(float _D){
+    void setD(float _D)
+    {
         QMutexLocker locker(&pidMutex);
         D = _D;
     }
 
-    float getCtrlOutput(){
+    float getCtrlOutput()
+    {
         QMutexLocker locker(&pidMutex);
         return out;
     }

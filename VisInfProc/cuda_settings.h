@@ -8,7 +8,8 @@
 
 
 #define GPU_LUT_COLORMAP_SZ 256
-__constant__ unsigned char GPUrgbColormapLUT[GPU_LUT_COLORMAP_SZ*3] = {
+__constant__ unsigned char GPUrgbColormapLUT[GPU_LUT_COLORMAP_SZ*3] =
+{
     0,0,255,
     0,2,253,
     0,4,251,
@@ -268,4 +269,3 @@ __constant__ unsigned char GPUrgbColormapLUT[GPU_LUT_COLORMAP_SZ*3] = {
 };
 
 #endif // CUDA_SETTINGS_H
-

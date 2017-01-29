@@ -9,7 +9,7 @@
 #include <cuda_runtime.h>
 
 extern void cuda2DBufferToRGBImage(int sx, int sy,float min, float max,
-                                        float* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream);
+                                   float* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream);
 
 /**
  * @brief The Filter2D class stores the filter coefficients for a 2d filter.
@@ -25,10 +25,12 @@ public:
     Buffer2D &operator=(const Buffer2D& other);
     float& operator()(int x, int y);
 
-    int getSizeX() const{
+    int getSizeX() const
+    {
         return sx;
     }
-    int getSizeY() const{
+    int getSizeY() const
+    {
         return sy;
     }
 

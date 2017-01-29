@@ -18,13 +18,16 @@ public:
     Buffer3D &operator=(const Buffer3D& other);
     float& operator()(int x,int y,int z);
 
-    int getSizeX() const{
+    int getSizeX() const
+    {
         return sx;
     }
-    int getSizeY() const{
+    int getSizeY() const
+    {
         return sy;
     }
-    int getSizeZ() const{
+    int getSizeZ() const
+    {
         return sz;
     }
 

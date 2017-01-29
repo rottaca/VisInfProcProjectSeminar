@@ -16,7 +16,7 @@ public:
 public:
     Buffer1D tempMono, tempBi;
     Buffer2D gaborOdd, gaborEven;
-    enum FilterName{ODD_MONO,ODD_BI,EVEN_MONO,EVEN_BI,PHASE1,PHASE2,CNT};
+    enum FilterName {ODD_MONO,ODD_BI,EVEN_MONO,EVEN_BI,PHASE1,PHASE2,CNT};
     Buffer3D spatialTemporal[CNT];
     float orientation;
     FilterSettings fs;
