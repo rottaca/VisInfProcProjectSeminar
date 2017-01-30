@@ -46,6 +46,6 @@ __global__ void kernelSetDoubleBuffer(float* gpuBuffPtr, float v, size_t size)
 __host__ void cudaSetDoubleBuffer(float* gpuBuffPtr,float v, size_t size,cudaStream_t stream)
 {
     // Run through filter buffer
-    long blocks = ceil((float)size/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)size/THREADS_PER_BLOCK);
     kernelSetDoubleBuffer<<<blocks,THREADS_PER_BLOCK,0,stream>>>(gpuBuffPtr,v,size);
 }

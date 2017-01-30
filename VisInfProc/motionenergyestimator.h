@@ -73,7 +73,7 @@ public:
      * @param gpuEnergyBuffers cpu Pointer to an cpu array of gpu buffer pointers (amount == orientations.length()
      * @return Returns the start time for the current time slot
      */
-    long startReadMotionEnergyAsync(float** gpuEnergyBuffers);
+    quint32 startReadMotionEnergyAsync(float** gpuEnergyBuffers);
     /**
      * @brief startNormalizeEnergiesAsync Normalizes the previously computed motion energy inplace
      * @param gpuEnergyBuffers
@@ -104,7 +104,7 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics(long &all, long &skipped)
+    void getEventStatistics(quint32 &all, quint32 &skipped)
     {
         eventStatisticsMutex.lock();
         all = eventsAll;
@@ -161,9 +161,9 @@ private:
     int bsx,bsy,bsz;
 
     // Overall stream start time TODO: Remove and start stream at 0
-    int startTime;
+    quint32 startTime;
     // The time of the last event; used to detect time jumps
-    unsigned int lastEventTime;
+    quint32 lastEventTime;
     // Time per timeslot
     float timePerSlot;
 
@@ -189,8 +189,8 @@ private:
     bool eventListReady;
 
     // Data for statistics computations
-    long eventsSkipped;
-    long eventsAll;
+    quint32 eventsSkipped;
+    quint32 eventsAll;
     QMutex eventStatisticsMutex;
 };
 

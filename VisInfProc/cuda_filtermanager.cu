@@ -21,7 +21,7 @@ __host__ void cudaCombineFilters(int sx, int sy, int sz,
                                  float* gpuCombined)
 {
 
-    long blocks = ceil((float)(sx*sy*sz)/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)(sx*sy*sz)/THREADS_PER_BLOCK);
     kernelCombineFilters<<<blocks,THREADS_PER_BLOCK>>>(
         sx,sy,sz,gpuTemp,gpuSpatial,gpuCombined);
 }

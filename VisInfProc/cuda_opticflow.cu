@@ -34,7 +34,7 @@ __host__ void cudaComputeFlowEnergyAndDir(int sx, int sy,
         cudaStream_t stream)
 {
     int n = sx*sy;
-    long blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
     kernelComputeFlowEnergyAndDir<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
         n,
         gpuEnergy,gpuDir,
@@ -117,7 +117,7 @@ __host__ void cudaFlowToRGB(float* gpuEnergy, float* gpuDir, char *gpuImage,
                             float maxLength, cudaStream_t stream)
 {
     int n = sx*sy;
-    long blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
     kernelFlowToRGB<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
         gpuEnergy,gpuDir,gpuImage,
         n,

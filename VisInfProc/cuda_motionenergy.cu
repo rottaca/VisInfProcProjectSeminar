@@ -82,7 +82,7 @@ __host__ void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEvent
 {
     int fs_xy = fsx*fsy;
     int fn = fs_xy*fsz;
-    long blocks = ceil((float)fn/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)fn/THREADS_PER_BLOCK);
     kernelProcessEventsBatchAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuEventList,gpuEventListSize,
             gpuFilter,fsx,fsy,fsz,
             gpuBuffer,ringBufferIdx,
@@ -118,7 +118,7 @@ __host__ void cudaReadMotionEnergyAsync(float* gpuConvBufferl1,
                                         cudaStream_t cudaStream)
 {
     int n = bsx*bsy;
-    long blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
     kernelReadMotionEnergyAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuConvBufferl1,
             gpuConvBufferl2,
             ringBufferIdx,bsx,bsy,n,
@@ -179,7 +179,7 @@ __host__ void cudaNormalizeMotionEnergyAsync(int bsx, int bsy,
         cudaStream_t cudaStream)
 {
     int n = bsx*bsy;
-    long blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
     kernelNormalizeMotionEnergyAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(bsx,bsy,n,
             alphaPNorm,alphaQNorm,betaNorm,sigmaNorm,
             gpuEnergyBuffer);

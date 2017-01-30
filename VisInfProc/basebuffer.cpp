@@ -41,7 +41,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
     if(this == &other)
         return;
 
-    long szNew = other.getBufferItemCnt();
+    size_t szNew = other.getBufferItemCnt();
     // Does the size differ ?
     if(szNew != itemCnt)
         {
@@ -142,14 +142,14 @@ void BaseBuffer::uploadBuffer() const
     //qDebug("Uploading buffer");
 }
 
-void BaseBuffer::createCPUBuffer(long sz)
+void BaseBuffer::createCPUBuffer(size_t sz)
 {
     if(cpuBuffer != NULL)
         delete[] cpuBuffer;
     cpuBuffer = new float[sz];
 }
 
-void BaseBuffer::createGPUBuffer(long sz)
+void BaseBuffer::createGPUBuffer(size_t sz)
 {
     if(gpuBuffer != NULL)
         cudaFreeBuffer(gpuBuffer);

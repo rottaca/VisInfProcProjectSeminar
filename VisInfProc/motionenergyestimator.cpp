@@ -25,7 +25,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     eventsW->events.clear();
     eventsW->slotsToSkip = 0;
 
-    startTime = -1;
+    startTime = UINT64_MAX;
     timePerSlot =(float)fs.timewindow_us/fs.temporalSteps;
     eventListReady = false;
     ringBufferIdx = 0;
@@ -106,7 +106,7 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     ev.y = e.posY;
 
     // Get time from first event as reference
-    if(startTime == -1)
+    if(startTime == UINT32_MAX)
         {
             startTime = e.timestamp;
             lastEventTime = startTime;
@@ -121,9 +121,9 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
 
     lastEventTime = startTime;
 
-    int deltaT = e.timestamp - eventsW->currWindowStartTime;
+    float deltaT = e.timestamp - eventsW->currWindowStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
-    int timeSlotsToSkip = qFloor((float)deltaT/timePerSlot);
+    int timeSlotsToSkip = qFloor(deltaT/timePerSlot);
 
     //qDebug("Skip Slots: %d",timeSlotsToSkip);
     if(timeSlotsToSkip != 0)
@@ -229,7 +229,7 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
         }
 }
 
-long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
+quint32 MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
 {
     eventReadMutex.lock();
     int sxy = bsx*bsy;
@@ -289,7 +289,7 @@ long MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
         }
 
     // Go to next timeslice
-    long tmp = eventsR->currWindowStartTime;
+    quint32 tmp = floor(eventsR->currWindowStartTime);
     ringBufferIdx = (ringBufferIdx+eventsR->slotsToSkip) % cpuArrCpuConvBuffers[0]->getSizeZ();
     eventsR->slotsToSkip = 0;
     eventReadMutex.unlock();

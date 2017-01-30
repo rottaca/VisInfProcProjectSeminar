@@ -16,9 +16,9 @@ public:
 
     typedef struct DVSEvent
     {
-        u_int8_t posX, posY;
-        u_int8_t On;
-        u_int32_t timestamp;
+        quint8 posX, posY;
+        quint8 On;
+        quint32 timestamp;
     } DVSEvent;
 
     typedef enum AddressVersion {Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
@@ -210,7 +210,9 @@ private:
     // Pointer to the event builder data (currently stored bytes for the next event)
     char* evBuilderData;
     // Timestamp for events with delta times
-    long evBuilderSyncTimestamp;
+    quint32 evBuilderSyncTimestamp;
+    // Timestamp of last event to detect overflows
+    quint32 evBuilderLastTimestamp;
     QMutex evBuilderMutex;
 
 };

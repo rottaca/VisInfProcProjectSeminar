@@ -17,7 +17,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowEnergyUpToDate = new bool[energyEstimatorCnt];
     motionEnergyEstimators = new MotionEnergyEstimator*[energyEstimatorCnt];
     motionEnergyBuffers = new Buffer2D*[energyEstimatorCnt*orientations.length()];
-    updateTimeStamps = new long[energyEstimatorCnt];
+    updateTimeStamps = new quint32[energyEstimatorCnt];
     cpuArrGpuMotionEnergies = new float*[energyEstimatorCnt*orientations.length()];
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
     opticFlowEnergies = new Buffer2D[energyEstimatorCnt];

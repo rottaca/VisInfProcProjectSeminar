@@ -127,8 +127,8 @@ void MainWindow::onUpdate()
             int orientIdx = ui->cb_show_orient->currentIndex();
             int speedIdx = ui->cb_show_speed->currentIndex();
 
-            long time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
-            if(time != -1)
+            quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
+            if(time != UINT32_MAX)
                 {
                     if(ui->cb_debug->isChecked())
                         {
@@ -251,7 +251,7 @@ void MainWindow::onUpdate()
                 }
             if(lastStatisticsUpdate.elapsed() > 500)
                 {
-                    long evRec = 0, evDisc = 0;
+                    quint32 evRec = 0, evDisc = 0;
                     worker.getStats(evRec,evDisc);
                     float p = 0;
                     if(evRec > 0)

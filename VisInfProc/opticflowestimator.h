@@ -41,7 +41,7 @@ public:
      * @param opponentMotionEnergy Reference to the destination buffer
      * @return Returns the timestamp of the provided data
      */
-    long getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &motionEnergy)
+    quint32 getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &motionEnergy)
     {
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
@@ -111,9 +111,9 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics(long &all, long &skipped)
+    void getEventStatistics(quint32 &all, quint32 &skipped)
     {
-        long tmp1,tmp2;
+        quint32 tmp1,tmp2;
         all = 0;
         skipped = 0;
         for(int i = 0; i < energyEstimatorCnt; i++)
@@ -190,7 +190,7 @@ private:
     // GPU array of speeds for which the filers are sensitive
     float *gpuArrSpeeds;
     // Array of timestamps of last opponent motion energy updates
-    long *updateTimeStamps;
+    quint32 *updateTimeStamps;
     // True if optic flow energy is the newest available computation
     bool *opticFlowEnergyUpToDate;
     bool opticFlowUpToDate;

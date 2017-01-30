@@ -31,6 +31,6 @@ __host__ void cuda2DBufferToRGBImage(int sx, int sy,float min, float max,
                                      float* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream)
 {
     int s = sx*sy;
-    long blocks = ceil((float)(s)/THREADS_PER_BLOCK);
+    size_t blocks = ceil((float)(s)/THREADS_PER_BLOCK);
     kernel2DBufferToRGBImage<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(sx,sy,s,min, max,gpuBuffer,gpuImage);
 }

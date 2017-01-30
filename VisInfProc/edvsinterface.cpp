@@ -341,10 +341,10 @@ void eDVSInterface::_playbackFile()
     OperationMode opModeLocal;
     QElapsedTimer timeMeasure;
 
-    long bufferIdx = 0;
+    int bufferIdx = 0;
     DVSEvent eNew;
-    long startTimestamp = -1;
-    long eventCount = 0;
+    quint32 startTimestamp = UINT32_MAX;
+    int eventCount = 0;
     // Measure real time
     timeMeasure.start();
     do
@@ -357,7 +357,7 @@ void eDVSInterface::_playbackFile()
                     eventCount++;
 
                     // send first event directly
-                    if(startTimestamp == -1)
+                    if(startTimestamp == UINT32_MAX)
                         {
                             processingWorker->nextEvent(eNew);
                             startTimestamp = eNew.timestamp;
@@ -365,20 +365,15 @@ void eDVSInterface::_playbackFile()
                     // Compute sleep time
                     else
                         {
-                            long elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
-                            long elapsedTimeEvents = (eNew.timestamp - startTimestamp)/speed;
-                            long sleepTime = elapsedTimeEvents - elapsedTimeReal;
-
-                            //qDebug("%ld %ld %ld",elapsedTimeReal,elapsedTimeEvents,sleepTime);
-
+                            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+                            quint32 elapsedTimeEvents = (eNew.timestamp - startTimestamp)/speed;
                             // Sleep if necessary
-                            sleepTime = qMax(0L,sleepTime);
-                            if(sleepTime > 0)
+                            if(elapsedTimeEvents > elapsedTimeReal)
                                 {
-                                    //qDebug("Sleep: %ld",sleepTime);
+                                    quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
                                     QThread::usleep(sleepTime);
                                 }
-                            //qDebug("Time: %ld",eNew.timestamp);
+
                             processingWorker->nextEvent(eNew);
                         }
                 }
@@ -393,8 +388,8 @@ void eDVSInterface::_playbackFile()
     // Debug info and finished event
     if(bufferIdx == bytes.length())
         {
-            long elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
-            long elapsedTimeEvents = eNew.timestamp - startTimestamp;
+            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+            quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
             qDebug("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
                    .arg(eventCount)
                    .arg(elapsedTimeReal/1000.0)
@@ -493,6 +488,7 @@ void eDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion time
     evBuilderAddressVersion = addrVers;
     evBuilderByteIdx = 0;
     evBuilderSyncTimestamp = 0;
+    evBuilderLastTimestamp = 0;
 
     switch(addrVers)
         {
@@ -532,11 +528,10 @@ bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
     QMutexLocker locker(&evBuilderMutex);
     // Store byte in buffer
     evBuilderData[evBuilderByteIdx++] = c;
-
     if(evBuilderTimestampVersion == TimeDelta)
         {
             // addressbytes done ?
-            if(evBuilderByteIdx == evBuilderAddressVersion)
+            if(evBuilderByteIdx >= evBuilderAddressVersion)
                 {
                     // Check for leading 1 in timestamp bytes
                     if(c & 0x80)
@@ -547,7 +542,8 @@ bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
                         }
                     else if(evBuilderByteIdx == evBuilderBufferSz)
                         {
-                            qCritical("Event not recognized! Skipped %d data bytes !",evBuilderBufferSz);
+                            qCritical("Event not recognized! Skipped %d data bytes! "
+                                      "Please restart!",evBuilderBufferSz);
                             evBuilderByteIdx = 0;
                         }
                 }
@@ -573,33 +569,46 @@ eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
     switch (evBuilderAddressVersion)
         {
         case Addr2Byte:
-            ad |= ((uchar)evBuilderData[idx++] << 0x08);
-            ad |= ((uchar)evBuilderData[idx++] << 0x00);
+            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
             break;
         case Addr4Byte:
-            ad = ((uchar)evBuilderData[idx++] << 0x18);
-            ad |= ((uchar)evBuilderData[idx++] << 0x10);
-            ad |= ((uchar)evBuilderData[idx++] << 0x08);
-            ad |= ((uchar)evBuilderData[idx++] << 0x00);
+            ad = uint32_t((uchar)evBuilderData[idx++] << 0x18);
+            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
+            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
             break;
         }
-
+    // TODO Use evBuilderSyncTimestamp for all types of timestamps to avoid overflows in time
     switch(evBuilderTimestampVersion)
         {
         case Time4Byte:
-            time = ((uchar)evBuilderData[idx++] << 0x18);
-            time |= ((uchar)evBuilderData[idx++] << 0x10);
-            time |= ((uchar)evBuilderData[idx++] << 0x08);
-            time |= ((uchar)evBuilderData[idx++] << 0x00);
+            time = uint32_t((uchar)evBuilderData[idx++] << 0x18);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+            // No overflow handling when using 4 bytes
             break;
         case Time3Byte:
-            time = ((uchar)evBuilderData[idx++] << 0x10);
-            time |= ((uchar)evBuilderData[idx++] << 0x08);
-            time |= ((uchar)evBuilderData[idx++] << 0x00);
+            time = uint32_t((uchar)evBuilderData[idx++] << 0x10);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+            // Timestamp overflow ?
+            if(time < evBuilderLastTimestamp)
+                {
+                    evBuilderSyncTimestamp += 0xFFFFFF;
+                }
+            time += evBuilderSyncTimestamp;
             break;
         case Time2Byte:
-            time = ((uchar)evBuilderData[idx++] << 0x08);
-            time |= ((uchar)evBuilderData[idx++] << 0x00);
+            time = uint32_t((uchar)evBuilderData[idx++] << 0x08);
+            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+            // Timestamp overflow ?
+            if(time < evBuilderLastTimestamp)
+                {
+                    evBuilderSyncTimestamp += 0xFFFF;
+                }
+            time += evBuilderSyncTimestamp;
             break;
         case TimeDelta:
         {
@@ -609,7 +618,7 @@ eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
             int pos = (evBuilderByteIdx-1)*7;
             for(int j = 0; j < evBuilderByteIdx-addrBytes; j++)
                 {
-                    time |= (((uchar)evBuilderData[idx++] & 0x7F) << pos);
+                    time |= uint32_t(((uchar)evBuilderData[idx++] & 0x7F) << pos);
                     pos-=7;
                 }
             // Convert relative to absolute timestamp
@@ -621,6 +630,8 @@ eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
             time = 0;
             break;
         }
+
+    evBuilderLastTimestamp = time;
 
     DVSEvent e;
     // Extract event from address by assuming a DVS128 camera
