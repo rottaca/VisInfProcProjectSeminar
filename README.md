@@ -9,16 +9,37 @@ My tasks:
 # Implementation Overview
 The host software based on Qt communiates with the PushBot (eDVS) and computes the optic flow and the steering commands. The optic flow is used to manage the navigation of the push bot. In a first attempt I am going to implement the basic processing software (optic flow estimator) in MATLAB to speed-up prototyping.
 
-The eDVS firmware recognices commands to control the camera and the motors. The firmware is able to stream the DVS events in differnt formats over UART.
-This should be easier instead of reimplementing the pushbot firmware and doing the computations on the internal (ARM 32-bit) controller.
+The eDVS firmware recognices commands to control the camera and the motors. The firmware is able to stream the DVS events in differnt formats over WLAN.
 
-## Software Components
-The software consists of the following components:
-- **Serial COM controller**: Sends commands, recieves answers and events.
-- **DVS event handler**: Recieves individual on/off events from the DVS camera as binary data, interprets them and keeps the events from a fixed time window.
-- **OpticFlow estimator**: Computes the optic flow by using the recieved on/off events.
-- **Navigation planner**: Plans the robot navigation based on the estimated optic flow. Here the biological inspired algorithms are involved.
-- **Visualisation component**: Visualizes the events by either integrating the events in a small time window (shows moving edges) or by displaying optic flow vectors. Additionally the component shows the current robot navigation plan (turning rate, speed,...).
+# Implementation Details
+Filled with information when the project is done. :)
+
+# User Interface
+## Playback mode
+In Playback mode the software is able to process DVS events from a ".aedat" file. The software plays the data in realtime by simulating the exact delta between timestamps or it slows down the playback of the file down to a rate of 1 percent of the real time.
+
+The UI shows currently 6 figures when debug mode is enabled. From top to bottom, left to right.
+1. Energy of the specific motion energy estimator responsible for a fixed speed and orientation. (Comboboxes on the right panel)
+2. OpticFlow for a fixed speed, specified by the combobox on the right. HSV-Color model used for visualization. The hue encodes the dominant orientation for each pixel. The saturation encodes the energy normalized to approx. 1.
+3. The next figure shows the events (black pixels) involved into the computation for the selected speed. The amount of black pixels depends on the timewindow of the selected filter speed.
+4. Actual optic flow, combined from the motion energy of all filters. The hue indicates the flow direction and the saturation indicates the speed. Higher saturation equals higher speeds.
+5. Shows the averaged optic flow in the left and right image half (color encoded and as line). Below the center of the image, the error between both image halfs, used to compute the steering signal, is shown.
+6. The last figure shows the normalized energy of the combined optic flow. This figure can be used as propability of the computed optic flow.
+
+Figures 4 to 6 are only generated when debug mode on the bottom right is enabled.
+
+![UI 1](Doc/ui1.png)
+
+## Online mode
+The online mode is similar to the playback mode but reads the events from a  pushbot connected per WLAN. In online mode the pushbot controller generates steering commands and sends them to the robot.
+
+The image below shows the user interface. This time, the user has to specify the pushbots ip address and the port. After clicking connect, a simple commandline is enabled. The commands entered in the textfield below are send to the pushbot when the user hits enter.
+
+The start button below the textfield enables the event streaming and starts the system to process the incoming event data.
+
+This time, the computed steering signal is transmitted to the pushbot and the commands are shown in the commandline.
+
+![UI 1](Doc/ui5.png)
 
 
 ## eDVS Streaming Formats
