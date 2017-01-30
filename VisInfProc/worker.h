@@ -73,7 +73,13 @@ public:
             return;
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
-
+    void setEnergyThreshold(float v)
+    {
+        QMutexLocker locker(&mutex);
+        if(ofe == NULL)
+            return;
+        ofe->setEnergyThreshold(v);
+    }
     bool isProcessing()
     {
         return processing;

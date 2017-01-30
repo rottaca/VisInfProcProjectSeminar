@@ -143,6 +143,13 @@ public:
         motionEnergyMutex.unlock();
     }
 
+    void setEnergyThreshold(float v)
+    {
+        motionEnergyMutex.lock();
+        energyThreshold = v;
+        motionEnergyMutex.unlock();
+    }
+
 private:
     /**
      * @brief computeOpticFlow Computes the optic flow energy based on the currently stored information
@@ -170,6 +177,7 @@ private:
     Buffer2D opticFlowSpeed;
     Buffer2D opticFlowDir;
     Buffer2D opticFlowEnergy;
+    float energyThreshold;
 
     // Mutex for accessing the stored motion energies
     QMutex motionEnergyMutex;

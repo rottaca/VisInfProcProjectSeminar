@@ -36,6 +36,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 MainWindow::~MainWindow()
 {
+    gpuErrchk(cudaFree(gpuRgbImage));
     delete ui;
     cudaStreamDestroy(cudaStream);
 }
@@ -55,6 +56,9 @@ void MainWindow::initUI()
         {
             ui->cb_show_orient->addItem(QString("%1").arg(qRadiansToDegrees(o)));
         }
+
+    rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
+    gpuErrchk(cudaMalloc(&gpuRgbImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
 }
 
@@ -112,6 +116,7 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->b_start_streaming,SIGNAL(clicked()),this,SLOT(onClickStartStreaming()));
     connect(ui->le_cmd_input,SIGNAL(editingFinished()),this,SLOT(onCmdEntered()));
     connect(ui->b_reset,SIGNAL(clicked()),this,SLOT(onClickReset()));
+    connect(ui->hs_threshold,SIGNAL(valueChanged(int)),this,SLOT(onChangeThreshold(int)));
 }
 
 void MainWindow::onUpdate()
@@ -132,18 +137,16 @@ void MainWindow::onUpdate()
 //                QImage imgConv = en.toImageXZ(63);
 //                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
                             worker.getOpticFlow(speed,dir,energy);
-                            QImage rgbFlow(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
-                            char* gpuImage;
-                            gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
-                            cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuImage,
-                                          DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,60,cudaStream);
-                            gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
+                            cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
+                                          DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,
+                                          settings.back().speed_px_per_sec,
+                                          cudaStream);
+                            gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
                                                       DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                                       cudaMemcpyDeviceToHost,cudaStream));
                             cudaStreamSynchronize(cudaStream);
-                            gpuErrchk(cudaFree(gpuImage));
-                            ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbFlow));
+                            ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbImg));
 
                             QImage engImage = energy.toImage(0,1);
                             ui->l_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
@@ -158,18 +161,13 @@ void MainWindow::onUpdate()
                     QImage img1 = oppMoEnergy1.toImage(0,1.0f);
                     ui->l_motion->setPixmap(QPixmap::fromImage(img1));
 
-                    QImage rgbFlow(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
-                    char* gpuImage;
-                    gpuErrchk(cudaMalloc(&gpuImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
-
-                    cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuImage,
+                    cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
                                   DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
-                    gpuErrchk(cudaMemcpyAsync(rgbFlow.bits(),gpuImage,
+                    gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
                                               DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                               cudaMemcpyDeviceToHost,cudaStream));
                     cudaStreamSynchronize(cudaStream);
-                    gpuErrchk(cudaFree(gpuImage));
-                    ui->l_flow->setPixmap(QPixmap::fromImage(rgbFlow));
+                    ui->l_flow->setPixmap(QPixmap::fromImage(rgbImg));
 
                 }
             else
@@ -208,21 +206,21 @@ void MainWindow::onUpdate()
                     QRect rectR(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
 
                     QColor c;
-                    if(scaleL > 0.01)
+                    if(scaleL > 0.01f)
                         {
                             p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
-                            int angle = ((int)(atan2(fyL,fxL)*180/M_PI + 360) % 360);
+                            int angle = (static_cast<int>(atan2(fyL,fxL)*180/M_PI + 360) % 360);
 
-                            c.setHsv(angle,(int)qMin(255.f,255*scaleL),255);
+                            c.setHsv(angle,static_cast<int>(qMin(255.f,255*scaleL)),255);
                             paint2.fillRect(rectL,QBrush(c));
                             paint2.drawLine(p1L,p2L);
                         }
-                    if(scaleR > 0.01)
+                    if(scaleR > 0.01f)
                         {
                             p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
-                            int angle = ((int)(atan2(fyR,fxR)*180/M_PI + 360) % 360);
+                            int angle = (static_cast<int>(atan2(fyR,fxR)*180/M_PI + 360) % 360);
 
-                            c.setHsv(angle,(int)qMin(255.f,255*scaleR),255);
+                            c.setHsv(angle,static_cast<int>(qMin(255.f,255*scaleR)),255);
                             paint2.fillRect(rectR,QBrush(c));
                             paint2.drawLine(p1R,p2R);
                         }
@@ -274,6 +272,7 @@ void MainWindow::onPlaybackFinished()
     qDebug("PlaybackFinished");
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
+    QMessageBox::information(this,"Information","Playback finished!");
 }
 
 void MainWindow::onClickStartPlayback()
@@ -400,4 +399,11 @@ void MainWindow::onClickReset()
         {
             emit reset();
         }
+}
+
+void MainWindow::onChangeThreshold(int v)
+{
+    float val = static_cast<float>(v)/100;
+    worker.setEnergyThreshold(val);
+    ui->l_threshold->setText(QString("%1").arg(val));
 }

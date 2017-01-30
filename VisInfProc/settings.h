@@ -38,6 +38,11 @@
 #define CMD_SET_VELOCITY "!MV%1=%2\n"
 #define CMD_RESET_BOARD "R\n"
 
+// Minimum detection energy
+// Summed energy over an image half hast to be greater as the value below
+// Otherwise not steering signal is generated
+#define PUSHBOT_MIN_DETECTION_ENERGY 80
+
 /*****************************************************************
 // Debug Section
 *****************************************************************/

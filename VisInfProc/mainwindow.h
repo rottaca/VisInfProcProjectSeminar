@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <QTime>
+#include <QImage>
 
 #include "buffer1d.h"
 #include "buffer2d.h"
@@ -43,7 +44,7 @@ public slots:
     void onCmdEntered();
     void onConnectionClosed(bool error);
     void onClickReset();
-
+    void onChangeThreshold(int v);
 signals:
     void sendRawCmd(QString cmd);
     void startEventStreaming();
@@ -64,7 +65,8 @@ private:
     QVector<float> orientations;
     QVector<FilterSettings> settings;
     Buffer2D oppMoEnergy1,oppMoEnergy2, speed,energy,dir;
-
+    QImage rgbImg;
+    char* gpuRgbImage;
 
     Worker worker;
     eDVSInterface eDVSHandler;

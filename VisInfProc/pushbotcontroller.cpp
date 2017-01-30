@@ -15,7 +15,7 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eventProcessor = NULL;
     robotInterface = NULL;
 
-    P = 100;
+    P = 1;
     I = 0;
     D = 0;
     out = 0;
@@ -81,8 +81,7 @@ void PushBotController::processFlow()
     int sy = opticFlowSpeed.getSizeY();
 
     // Compute average flow on left and right image half
-    // Weighted by their normalized energy
-
+    // Weighted by their normalized energy (to ignore values with low propability)
     avgFlowVecXL = 0;
     avgFlowVecYL = 0;
     avgFlowVecXR = 0;
@@ -105,23 +104,33 @@ void PushBotController::processFlow()
                         }
                     else
                         {
-                            avgFlowVecXR += cos(dir)*s;
-                            avgFlowVecYR += sin(dir)*s;
+                            avgFlowVecXR += cos(dir)*s*e;
+                            avgFlowVecYR += sin(dir)*s*e;
                             cntR+=e;
                         }
                 }
         }
 
     // Normalize
-    if(cntL > 0)
+    if(cntL > PUSHBOT_MIN_DETECTION_ENERGY)
         {
             avgFlowVecXL /= cntL;
             avgFlowVecYL /= cntL;
         }
-    if(cntR > 0)
+    else
+        {
+            avgFlowVecXL = 0;
+            avgFlowVecYL = 0;
+        }
+    if(cntR > PUSHBOT_MIN_DETECTION_ENERGY)
         {
             avgFlowVecXR /= cntR;
             avgFlowVecYR /= cntR;
+        }
+    else
+        {
+            avgFlowVecXR = 0;
+            avgFlowVecYR = 0;
         }
 
 //    qDebug("%f %f", sqrt(avgFlowVecXL*avgFlowVecXL+avgFlowVecYL*avgFlowVecYL),

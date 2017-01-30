@@ -22,7 +22,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
     opticFlowEnergies = new Buffer2D[energyEstimatorCnt];
     opticFlowDirs = new Buffer2D[energyEstimatorCnt];
-
+    energyThreshold = 0.25f;
     opticFlowSpeed.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowSpeed.fill(0);
     opticFlowDir.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
@@ -256,7 +256,6 @@ void OpticFlowEstimator::computeOpticFlow()
     float* combinedFlowDirPtr = opticFlowDir.getCPUPtr();
     float* combinedFlowEnergyPtr = opticFlowEnergy.getCPUPtr();
 
-    float threshold = 0.25f;
     for(int i = 0; i < sx*sy; i++)
         {
             float outSpeed = 0;
@@ -268,7 +267,7 @@ void OpticFlowEstimator::computeOpticFlow()
                     float energy = opticFlowEnergyPtr[j][i];
                     float dir = opticFlowDirPtr[j][i];
 
-                    if(energy >= threshold && energy > outEnergy)
+                    if(energy >= energyThreshold && energy > outEnergy)
                         {
                             outSpeed = settings.at(j).speed_px_per_sec;
                             outDir = dir;
