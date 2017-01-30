@@ -57,7 +57,6 @@ void MainWindow::initUI()
 
     rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
     gpuErrchk(cudaMalloc(&gpuRgbImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
-
 }
 
 void MainWindow::initSystem()

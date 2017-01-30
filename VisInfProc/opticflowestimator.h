@@ -24,6 +24,9 @@ public:
     OpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations);
     ~OpticFlowEstimator();
 
+
+    void reset();
+
     /**
      * @brief onNewEvent
      * @param e

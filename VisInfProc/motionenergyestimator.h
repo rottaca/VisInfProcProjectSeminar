@@ -49,6 +49,7 @@ public:
         return fsettings;
     }
 
+    void reset();
 
     bool onNewEvent(const eDVSInterface::DVSEvent &e);
     bool isEventListReady()

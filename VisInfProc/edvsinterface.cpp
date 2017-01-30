@@ -225,7 +225,7 @@ void eDVSInterface::_processSocket()
                     socket.getChar(&c);
                     if(processingWorker != NULL &&
                             evBuilderProcessNextByte(c,eNew)) {
-                        // TODO Sleep necessary time
+                        // TODO Sleep delta time
                         processingWorker->nextEvent(eNew);
                     }
                 } else {

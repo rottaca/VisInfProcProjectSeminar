@@ -16,23 +16,17 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     this->fsettings = fs;
     this->orientations = orientations;
 
-    eventsR = &timeSlotEvents[0];
-    eventsW = &timeSlotEvents[1];
-    eventsR->currWindowStartTime = -1;
-    eventsR->events.clear();
-    eventsR->slotsToSkip = 0;
-    eventsW->currWindowStartTime = -1;
-    eventsW->events.clear();
-    eventsW->slotsToSkip = 0;
-
-    startTime = UINT32_MAX;
-    timePerSlot =(float)fs.timewindow_us/fs.temporalSteps;
-    eventListReady = false;
-    ringBufferIdx = 0;
+    timePerSlot =(float)fsettings.timewindow_us/fsettings.temporalSteps;
     bufferFilterCount = orientations.length()*FILTERS_PER_ORIENTATION;
+
+    gpuEventList = NULL;
+    gpuEventListSize = 0;
+    gpuEventListSizeAllocated = 0;
+
+    eventsR = new SlotEventData();
+    eventsW = new SlotEventData();
     fset = new FilterSet*[orientations.length()];
     cpuArrCpuConvBuffers = new Buffer3D*[bufferFilterCount];
-
     cpuArrGpuFilters = new float* [bufferFilterCount];
     cpuArrGpuConvBuffers = new float* [bufferFilterCount];
     cudaStreams = new cudaStream_t[bufferFilterCount];
@@ -55,12 +49,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     bsy = DVS_RESOLUTION_HEIGHT;
     bsz = fsz;
 
-    gpuEventList = NULL;
-    gpuEventListSize = 0;
-    eventsAll = 0;
-    eventsSkipped = 0;
-    gpuEventListSizeAllocated = 0;
-    lastEventTime = 0;
+    reset();
 }
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
@@ -74,7 +63,10 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
             delete cpuArrCpuConvBuffers[i*FILTERS_PER_ORIENTATION+j];
         }
     }
-
+    delete eventsR;
+    eventsR = NULL;
+    delete eventsW;
+    eventsW = NULL;
     delete[] cudaStreams;
     cudaStreams = NULL;
     delete[] fset;
@@ -89,6 +81,42 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     if(gpuEventList != NULL)
         gpuErrchk(cudaFree(gpuEventList));
 }
+void MotionEnergyEstimator::reset()
+{
+    eventReadMutex.lock();
+    eventsR->currWindowStartTime = 0;
+    eventsR->events.clear();
+    eventsR->slotsToSkip = 0;
+    eventReadMutex.unlock();
+
+    eventWriteMutex.lock();
+    eventsW->currWindowStartTime = 0;
+    eventsW->events.clear();
+    eventsW->slotsToSkip = 0;
+    eventListReady = false;
+    eventWriteMutex.unlock();
+
+    startTime = UINT32_MAX;
+    ringBufferIdx = 0;
+
+    for(int i = 0; i < orientations.length(); i++) {
+        for(int j = 0; j < FILTERS_PER_ORIENTATION; j++) {
+            cpuArrCpuConvBuffers[i*FILTERS_PER_ORIENTATION+j]->fill(0);
+        }
+    }
+
+    eventStatisticsMutex.lock();
+    eventsAll = 0;
+    eventsSkipped = 0;
+    eventStatisticsMutex.unlock();
+
+    eventsInWindowMutex.lock();
+    timeWindowEvents.clear();
+    eventsInWindowMutex.unlock();
+
+    lastEventTime = UINT32_MAX;
+}
+
 bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
 {
 
@@ -109,8 +137,9 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     }
     // Do we have an event with older timestamp?
     else if (lastEventTime > e.timestamp) {
-        qDebug("Event is not in order according to timestamp! Skip.");
-        return false;
+        // TODO Check
+        qDebug("Event is not in order according to timestamp! Restarting Buffers...");
+        reset();
     }
 
     lastEventTime = startTime;

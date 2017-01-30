@@ -27,6 +27,10 @@ void Worker::setComputationParameters(QVector<FilterSettings> settings, QVector<
     QMutexLocker locker(&mutex);
     this->settings = settings;
     this->orientations = orientations;
+
+    if(ofe != NULL)
+        delete ofe;
+    ofe = NULL;
 }
 
 void Worker::startProcessing()
@@ -38,10 +42,10 @@ void Worker::startProcessing()
     qDebug("Starting Worker...");
     {
         QMutexLocker locker(&mutex);
-        if(ofe != NULL)
-            delete ofe;
-        ofe = NULL;
-        ofe = new OpticFlowEstimator(settings,orientations);
+        if(ofe == NULL)
+            ofe = new OpticFlowEstimator(settings,orientations);
+        else
+            ofe->reset();
     }
     qDebug("Worker started.");
     start();

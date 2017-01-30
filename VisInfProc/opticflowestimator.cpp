@@ -24,19 +24,14 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowDirs = new Buffer2D[energyEstimatorCnt];
     energyThreshold = 0.25f;
     opticFlowSpeed.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-    opticFlowSpeed.fill(0);
     opticFlowDir.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-    opticFlowDir.fill(0);
     opticFlowEnergy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-    opticFlowEnergy.fill(0);
 
     float cpuArrSpeeds[energyEstimatorCnt];
     for(int i = 0; i < energyEstimatorCnt; i++) {
         cudaStreamCreate(&cudaStreams[i]);
         motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
-        updateTimeStamps[i] = UINT32_MAX;
         cpuArrSpeeds[i] = settings.at(i).speed_px_per_sec;
-        opticFlowEnergyUpToDate[i] = false;
 
         for(int j= 0; j < orientations.length(); j++) {
             int idx = i*orientations.length() + j;
@@ -45,10 +40,9 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
         }
 
         opticFlowEnergies[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-        opticFlowEnergies[i].fill(0);
         opticFlowDirs[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-        opticFlowDirs[i].fill(0);
     }
+    reset();
 
     qDebug("Uploading orientations to GPU...");
     gpuArrOrientations = NULL;
@@ -106,6 +100,24 @@ OpticFlowEstimator::~OpticFlowEstimator()
     gpuArrOrientations = NULL;
     gpuErrchk(cudaFree(gpuArrGpuMotionEnergies));
     gpuArrGpuMotionEnergies = NULL;
+}
+
+void OpticFlowEstimator::reset()
+{
+    opticFlowUpToDate = false;
+    opticFlowSpeed.fill(0);
+    opticFlowDir.fill(0);
+    opticFlowEnergy.fill(0);
+
+    motionEnergyMutex.lock();
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        opticFlowEnergyUpToDate[i] = false;
+        updateTimeStamps[i] = UINT32_MAX;
+        opticFlowEnergies[i].fill(0);
+        opticFlowDirs[i].fill(0);
+        motionEnergyEstimators[i]->reset();
+    }
+    motionEnergyMutex.unlock();
 }
 
 bool OpticFlowEstimator::onNewEvent(const eDVSInterface::DVSEvent& e)
