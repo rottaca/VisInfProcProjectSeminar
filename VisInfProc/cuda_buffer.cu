@@ -9,22 +9,21 @@ __global__ void kernel2DBufferToRGBImage(int sx, int sy, int s, float min, float
 {
 
     int buffIdx = threadIdx.x + blockIdx.x * blockDim.x;
-    if(buffIdx < s)
-        {
-            float v = gpuBuffer[buffIdx];
+    if(buffIdx < s) {
+        float v = gpuBuffer[buffIdx];
 
-            int colorIdx = round((v - min)/(max-min)*(GPU_LUT_COLORMAP_SZ-1));
-            if(colorIdx < 0)
-                colorIdx = 0;
-            else if(colorIdx >= GPU_LUT_COLORMAP_SZ)
-                colorIdx = GPU_LUT_COLORMAP_SZ-1;
+        int colorIdx = round((v - min)/(max-min)*(GPU_LUT_COLORMAP_SZ-1));
+        if(colorIdx < 0)
+            colorIdx = 0;
+        else if(colorIdx >= GPU_LUT_COLORMAP_SZ)
+            colorIdx = GPU_LUT_COLORMAP_SZ-1;
 
-            colorIdx *= 3;
-            buffIdx *= 3;
-            gpuImage[buffIdx++] = GPUrgbColormapLUT[colorIdx++];
-            gpuImage[buffIdx++] = GPUrgbColormapLUT[colorIdx++];
-            gpuImage[buffIdx] = GPUrgbColormapLUT[colorIdx];
-        }
+        colorIdx *= 3;
+        buffIdx *= 3;
+        gpuImage[buffIdx++] = GPUrgbColormapLUT[colorIdx++];
+        gpuImage[buffIdx++] = GPUrgbColormapLUT[colorIdx++];
+        gpuImage[buffIdx] = GPUrgbColormapLUT[colorIdx];
+    }
 }
 
 __host__ void cuda2DBufferToRGBImage(int sx, int sy,float min, float max,

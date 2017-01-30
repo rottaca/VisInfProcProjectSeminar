@@ -2,8 +2,7 @@
 #define DATATYPES_H
 
 // Only stores the necessary information for further processing on gpu
-typedef struct SimpleEvent
-{
+typedef struct SimpleEvent {
     int x;
     int y;
 } SimpleEvent;

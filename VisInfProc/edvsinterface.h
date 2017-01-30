@@ -14,8 +14,7 @@ class eDVSInterface: public QObject
     Q_OBJECT
 public:
 
-    typedef struct DVSEvent
-    {
+    typedef struct DVSEvent {
         quint8 posX, posY;
         quint8 On;
         quint32 timestamp;

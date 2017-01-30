@@ -38,11 +38,10 @@ eDVSInterface::~eDVSInterface()
 
     thread.quit();
 
-    if(!thread.wait(2000))
-        {
-            thread.terminate();
-            thread.wait();
-        }
+    if(!thread.wait(2000)) {
+        thread.terminate();
+        thread.wait();
+    }
 
     if(evBuilderData != NULL)
         delete[] evBuilderData;
@@ -108,50 +107,46 @@ void eDVSInterface::stopEventStreaming()
 }
 void eDVSInterface::sendRawCmd(QString cmd)
 {
-    if(isConnected())
-        {
-            QMutexLocker locker(&socketMutex);
-            socket.write(cmd.toLocal8Bit());
-            socket.waitForBytesWritten();
-            emit onCmdSent(cmd);
-        }
+    if(isConnected()) {
+        QMutexLocker locker(&socketMutex);
+        socket.write(cmd.toLocal8Bit());
+        socket.waitForBytesWritten();
+        emit onCmdSent(cmd);
+    }
 }
 void eDVSInterface::enableMotors(bool enable)
 {
-    if(isConnected())
-        {
-            QMutexLocker locker(&socketMutex);
-            if(enable)
-                socket.write(CMD_ENABLE_MOTORS);
-            else
-                socket.write(CMD_DISABLE_MOTORS);
-            socket.waitForBytesWritten();
-            if(enable)
-                emit onCmdSent(CMD_ENABLE_MOTORS);
-            else
-                emit onCmdSent(CMD_DISABLE_MOTORS);
-        }
+    if(isConnected()) {
+        QMutexLocker locker(&socketMutex);
+        if(enable)
+            socket.write(CMD_ENABLE_MOTORS);
+        else
+            socket.write(CMD_DISABLE_MOTORS);
+        socket.waitForBytesWritten();
+        if(enable)
+            emit onCmdSent(CMD_ENABLE_MOTORS);
+        else
+            emit onCmdSent(CMD_DISABLE_MOTORS);
+    }
 }
 void eDVSInterface::setMotorVelocity(int motorId, int speed)
 {
-    if(isConnected())
-        {
-            QMutexLocker locker(&socketMutex);
-            QString cmd = QString(CMD_SET_VELOCITY).arg(motorId).arg(speed);
-            socket.write(cmd.toLocal8Bit());
-            socket.waitForBytesWritten();
-            emit onCmdSent(cmd);
-        }
+    if(isConnected()) {
+        QMutexLocker locker(&socketMutex);
+        QString cmd = QString(CMD_SET_VELOCITY).arg(motorId).arg(speed);
+        socket.write(cmd.toLocal8Bit());
+        socket.waitForBytesWritten();
+        emit onCmdSent(cmd);
+    }
 }
 void eDVSInterface::resetBoard()
 {
-    if(isConnected())
-        {
-            QMutexLocker locker(&socketMutex);
-            socket.write(CMD_RESET_BOARD);
-            socket.waitForBytesWritten();
-            emit onCmdSent(CMD_RESET_BOARD);
-        }
+    if(isConnected()) {
+        QMutexLocker locker(&socketMutex);
+        socket.write(CMD_RESET_BOARD);
+        socket.waitForBytesWritten();
+        emit onCmdSent(CMD_RESET_BOARD);
+    }
 }
 
 void eDVSInterface::process()
@@ -163,17 +158,16 @@ void eDVSInterface::process()
         opModeLocal = operationMode;
     }
 
-    switch (opModeLocal)
-        {
-        case PLAYBACK:
-            _playbackFile();
-            break;
-        case ONLINE:
-            _processSocket();
-            break;
-        default:
-            break;
-        }
+    switch (opModeLocal) {
+    case PLAYBACK:
+        _playbackFile();
+        break;
+    case ONLINE:
+        _processSocket();
+        break;
+    default:
+        break;
+    }
 
     // Process all remaining events
     qApp->processEvents();
@@ -187,16 +181,15 @@ void eDVSInterface::_processSocket()
     // Init serial port
     socket.connectToHost(host,port);
     qDebug("Connecting to %s: %d",host.toLocal8Bit().data(),port);
-    if(!socket.waitForConnected(2000))
-        {
-            operationMutex.lock();
-            operationMode = IDLE;
-            operationMutex.unlock();
-            emit onConnectionResult(true);
-            qDebug("Can't connect to socket \"%s:%d\": %s"
-                   ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
-            return;
-        }
+    if(!socket.waitForConnected(2000)) {
+        operationMutex.lock();
+        operationMode = IDLE;
+        operationMutex.unlock();
+        emit onConnectionResult(true);
+        qDebug("Can't connect to socket \"%s:%d\": %s"
+               ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
+        return;
+    }
     emit onConnectionResult(false);
     qDebug("Connection established");
     OperationMode opModeLocal;
@@ -207,60 +200,48 @@ void eDVSInterface::_processSocket()
 
     DVSEvent eNew;
     while(opModeLocal == ONLINE ||
-            opModeLocal == ONLINE_STREAMING)
+            opModeLocal == ONLINE_STREAMING) {
         {
-            {
-                QMutexLocker locker(&socketMutex);
-                if(socket.state() != QTcpSocket::ConnectedState)
-                    {
-                        qDebug("Connection closed: %s",socket.errorString().toLocal8Bit().data());
-                        QMutexLocker locker2(&operationMutex);
-                        operationMode = IDLE;
-                        emit onConnectionClosed(true);
-                        break;
-                    }
-
-                // Normal command mode
-                if(opModeLocal == ONLINE)
-                    {
-                        if(socket.waitForReadyRead(10))
-                            {
-                                QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
-                                qDebug("Recieved: %s",line.toLocal8Bit().data());
-                                emit onLineRecived(line);
-                            }
-                        // Streaming mode
-                    }
-                else
-                    {
-                        if(socket.bytesAvailable())
-                            {
-                                char c;
-                                socket.getChar(&c);
-                                qDebug("Get streaming char :%c",c);
-                                if(processingWorker != NULL &&
-                                        evBuilderProcessNextByte(c,eNew))
-                                    {
-                                        // TODO Sleep necessary time
-                                        processingWorker->nextEvent(eNew);
-                                        qDebug("Event ready");
-                                    }
-                            }
-                        else
-                            {
-                                // TODO Busy waiting
-                                QThread::usleep(1);
-                            }
-                    }
-            }
-
-            {
+            QMutexLocker locker(&socketMutex);
+            if(socket.state() != QTcpSocket::ConnectedState) {
+                qDebug("Connection closed: %s",socket.errorString().toLocal8Bit().data());
                 QMutexLocker locker2(&operationMutex);
-                opModeLocal = operationMode;
+                operationMode = IDLE;
+                emit onConnectionClosed(true);
+                break;
             }
 
-            qApp->processEvents();
+            // Normal command mode
+            if(opModeLocal == ONLINE) {
+                if(socket.waitForReadyRead(10)) {
+                    QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
+                    qDebug("Recieved: %s",line.toLocal8Bit().data());
+                    emit onLineRecived(line);
+                }
+                // Streaming mode
+            } else {
+                if(socket.bytesAvailable()) {
+                    char c;
+                    socket.getChar(&c);
+                    if(processingWorker != NULL &&
+                            evBuilderProcessNextByte(c,eNew)) {
+                        // TODO Sleep necessary time
+                        processingWorker->nextEvent(eNew);
+                    }
+                } else {
+                    // TODO Busy waiting
+                    QThread::usleep(1);
+                }
+            }
         }
+
+        {
+            QMutexLocker locker2(&operationMutex);
+            opModeLocal = operationMode;
+        }
+
+        qApp->processEvents();
+    }
 }
 
 void eDVSInterface::stopWork()
@@ -279,19 +260,17 @@ void eDVSInterface::stopWork()
     operationMutex.unlock();
 
     qDebug("Stopping playback/stream/communication...");
-    if(!thread.wait(2000))
-        {
-            thread.terminate();
-            thread.wait();
-            qDebug("Stopped.");
-        }
+    if(!thread.wait(2000)) {
+        thread.terminate();
+        thread.wait();
+        qDebug("Stopped.");
+    }
     // Close socket
-    if(localOpMode == ONLINE)
-        {
-            QMutexLocker locker2(&socketMutex);
-            socket.disconnectFromHost();
-            emit onConnectionClosed(false);
-        }
+    if(localOpMode == ONLINE) {
+        QMutexLocker locker2(&socketMutex);
+        socket.disconnectFromHost();
+        emit onConnectionClosed(false);
+    }
 }
 
 void eDVSInterface::playbackFile(QString fileName, double speed)
@@ -347,62 +326,55 @@ void eDVSInterface::_playbackFile()
     int eventCount = 0;
     // Measure real time
     timeMeasure.start();
-    do
-        {
-            // New event ready ?
-            if(evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew))
-                {
+    do {
+        // New event ready ?
+        if(evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew)) {
 //            if(eNew.On)
 //                continue;
-                    eventCount++;
+            eventCount++;
 
-                    // send first event directly
-                    if(startTimestamp == UINT32_MAX)
-                        {
-                            processingWorker->nextEvent(eNew);
-                            startTimestamp = eNew.timestamp;
-                        }
-                    // Compute sleep time
-                    else
-                        {
-                            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
-                            quint32 elapsedTimeEvents = (eNew.timestamp - startTimestamp)/speed;
-                            // Sleep if necessary
-                            if(elapsedTimeEvents > elapsedTimeReal)
-                                {
-                                    quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
-                                    QThread::usleep(sleepTime);
-                                }
-
-                            processingWorker->nextEvent(eNew);
-                        }
+            // send first event directly
+            if(startTimestamp == UINT32_MAX) {
+                processingWorker->nextEvent(eNew);
+                startTimestamp = eNew.timestamp;
+            }
+            // Compute sleep time
+            else {
+                quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+                quint32 elapsedTimeEvents = (eNew.timestamp - startTimestamp)/speed;
+                // Sleep if necessary
+                if(elapsedTimeEvents > elapsedTimeReal) {
+                    quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
+                    QThread::usleep(sleepTime);
                 }
 
-            {
-                QMutexLocker locker2(&operationMutex);
-                opModeLocal = operationMode;
+                processingWorker->nextEvent(eNew);
             }
         }
-    while(opModeLocal == PLAYBACK && bufferIdx < bytes.length());
+
+        {
+            QMutexLocker locker2(&operationMutex);
+            opModeLocal = operationMode;
+        }
+    } while(opModeLocal == PLAYBACK && bufferIdx < bytes.length());
 
     // Debug info and finished event
-    if(bufferIdx == bytes.length())
-        {
-            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
-            quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
-            qDebug("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
-                   .arg(eventCount)
-                   .arg(elapsedTimeReal/1000.0)
-                   .arg(elapsedTimeEvents/speed/1000.0)
-                   .arg((static_cast<double>(elapsedTimeReal)/(elapsedTimeEvents/speed) - 1) *100)
-                   .toLocal8Bit().data());
+    if(bufferIdx == bytes.length()) {
+        quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+        quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
+        qDebug("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
+               .arg(eventCount)
+               .arg(elapsedTimeReal/1000.0)
+               .arg(elapsedTimeEvents/speed/1000.0)
+               .arg((static_cast<double>(elapsedTimeReal)/(elapsedTimeEvents/speed) - 1) *100)
+               .toLocal8Bit().data());
 
-            {
-                QMutexLocker locker2(&operationMutex);
-                operationMode = IDLE;
-            }
-            emit onPlaybackFinished();
+        {
+            QMutexLocker locker2(&operationMutex);
+            operationMode = IDLE;
         }
+        emit onPlaybackFinished();
+    }
 
 
     {
@@ -419,20 +391,18 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     QByteArray buff;
 
     QFile f(file);
-    if(!f.open(QIODevice::ReadOnly))
-        {
-            qDebug("Can't open file!");
-            return buff;
-        }
+    if(!f.open(QIODevice::ReadOnly)) {
+        qDebug("Can't open file!");
+        return buff;
+    }
 
     buff = f.readAll();
     f.close();
 
-    if(buff.size() == 0)
-        {
-            qDebug("File is empty");
-            return buff;
-        }
+    if(buff.size() == 0) {
+        qDebug("File is empty");
+        return buff;
+    }
 
     // Parse events from file
     QString versionToken = "#!AER-DAT";
@@ -441,18 +411,16 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     // Parse header
     QList<QByteArray> lines = buff.split('\n');
     int lineIdx =  0;
-    for(; lineIdx < lines.length(); lineIdx++)
-        {
-            if(!lines.at(lineIdx).startsWith("#"))
-                break;
-            if(lines.at(lineIdx).contains(versionToken.toLocal8Bit()))
-                {
-                    QByteArray b = lines.at(lineIdx);
-                    b.remove(0,versionToken.length());
-                    b.chop(3);
-                    versionNr = b.toInt();
-                }
+    for(; lineIdx < lines.length(); lineIdx++) {
+        if(!lines.at(lineIdx).startsWith("#"))
+            break;
+        if(lines.at(lineIdx).contains(versionToken.toLocal8Bit())) {
+            QByteArray b = lines.at(lineIdx);
+            b.remove(0,versionToken.length());
+            b.chop(3);
+            versionNr = b.toInt();
         }
+    }
     qDebug("%s", QString("File Version: %1").arg(versionNr).toLocal8Bit().data());
 
     int dataToSkip = 0;
@@ -467,11 +435,10 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     // Extract events
     int numBytesPerEvent = 6;
     addrVers = Addr2Byte;
-    if(versionNr == 2)
-        {
-            numBytesPerEvent = 8;
-            addrVers = Addr4Byte;
-        }
+    if(versionNr == 2) {
+        numBytesPerEvent = 8;
+        addrVers = Addr4Byte;
+    }
     timeVers = Time4Byte;
 
     int eventCnt = buff.size()/numBytesPerEvent;
@@ -490,33 +457,31 @@ void eDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion time
     evBuilderSyncTimestamp = 0;
     evBuilderLastTimestamp = 0;
 
-    switch(addrVers)
-        {
-        case Addr2Byte:
-            evBuilderBufferSz = 2;
-            break;
-        case Addr4Byte:
-            evBuilderBufferSz = 4;
-        }
+    switch(addrVers) {
+    case Addr2Byte:
+        evBuilderBufferSz = 2;
+        break;
+    case Addr4Byte:
+        evBuilderBufferSz = 4;
+    }
 
-    switch(timeVers)
-        {
-        case Time4Byte:
-            evBuilderBufferSz += 4;
-            break;
-        case Time3Byte:
-            evBuilderBufferSz += 3;
-            break;
-        case Time2Byte:
-            evBuilderBufferSz += 2;
-            break;
-        case TimeNoTime:
-            evBuilderBufferSz += 0;
-            break;
-        case TimeDelta:
-            evBuilderBufferSz += 4;
-            break;
-        }
+    switch(timeVers) {
+    case Time4Byte:
+        evBuilderBufferSz += 4;
+        break;
+    case Time3Byte:
+        evBuilderBufferSz += 3;
+        break;
+    case Time2Byte:
+        evBuilderBufferSz += 2;
+        break;
+    case TimeNoTime:
+        evBuilderBufferSz += 0;
+        break;
+    case TimeDelta:
+        evBuilderBufferSz += 4;
+        break;
+    }
 
     if(evBuilderData != NULL)
         delete[] evBuilderData;
@@ -528,36 +493,28 @@ bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
     QMutexLocker locker(&evBuilderMutex);
     // Store byte in buffer
     evBuilderData[evBuilderByteIdx++] = c;
-    if(evBuilderTimestampVersion == TimeDelta)
-        {
-            // addressbytes done ?
-            if(evBuilderByteIdx >= evBuilderAddressVersion)
-                {
-                    // Check for leading 1 in timestamp bytes
-                    if(c & 0x80)
-                        {
-                            event = evBuilderParseEvent();
-                            evBuilderByteIdx = 0;
-                            return true;
-                        }
-                    else if(evBuilderByteIdx == evBuilderBufferSz)
-                        {
-                            qCritical("Event not recognized! Skipped %d data bytes! "
-                                      "Please restart!",evBuilderBufferSz);
-                            evBuilderByteIdx = 0;
-                        }
-                }
+    if(evBuilderTimestampVersion == TimeDelta) {
+        // addressbytes done ?
+        if(evBuilderByteIdx >= evBuilderAddressVersion) {
+            // Check for leading 1 in timestamp bytes
+            if(c & 0x80) {
+                event = evBuilderParseEvent();
+                evBuilderByteIdx = 0;
+                return true;
+            } else if(evBuilderByteIdx == evBuilderBufferSz) {
+                qCritical("Event not recognized! Skipped %d data bytes! "
+                          "Please restart!",evBuilderBufferSz);
+                evBuilderByteIdx = 0;
+            }
         }
-    else
-        {
-            // Buffer full ? Event ready
-            if(evBuilderByteIdx == evBuilderBufferSz)
-                {
-                    event = evBuilderParseEvent();
-                    evBuilderByteIdx = 0;
-                    return true;
-                }
+    } else {
+        // Buffer full ? Event ready
+        if(evBuilderByteIdx == evBuilderBufferSz) {
+            event = evBuilderParseEvent();
+            evBuilderByteIdx = 0;
+            return true;
         }
+    }
     return false;
 }
 
@@ -566,70 +523,64 @@ eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
     u_int32_t ad = 0,time = 0;
     int idx = 0;
     int addrBytes = evBuilderAddressVersion;
-    switch (evBuilderAddressVersion)
-        {
-        case Addr2Byte:
-            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
-            break;
-        case Addr4Byte:
-            ad = uint32_t((uchar)evBuilderData[idx++] << 0x18);
-            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
-            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-            ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
-            break;
-        }
+    switch (evBuilderAddressVersion) {
+    case Addr2Byte:
+        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        break;
+    case Addr4Byte:
+        ad = uint32_t((uchar)evBuilderData[idx++] << 0x18);
+        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
+        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        break;
+    }
     // TODO Use evBuilderSyncTimestamp for all types of timestamps to avoid overflows in time
-    switch(evBuilderTimestampVersion)
-        {
-        case Time4Byte:
-            time = uint32_t((uchar)evBuilderData[idx++] << 0x18);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
-            // No overflow handling when using 4 bytes
-            break;
-        case Time3Byte:
-            time = uint32_t((uchar)evBuilderData[idx++] << 0x10);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
-            // Timestamp overflow ?
-            if(time < evBuilderLastTimestamp)
-                {
-                    evBuilderSyncTimestamp += 0xFFFFFF;
-                }
-            time += evBuilderSyncTimestamp;
-            break;
-        case Time2Byte:
-            time = uint32_t((uchar)evBuilderData[idx++] << 0x08);
-            time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
-            // Timestamp overflow ?
-            if(time < evBuilderLastTimestamp)
-                {
-                    evBuilderSyncTimestamp += 0xFFFF;
-                }
-            time += evBuilderSyncTimestamp;
-            break;
-        case TimeDelta:
-        {
-            // TODO Check
-            // Parse variable timestamp
-            // Store bytes in flipped order in time variable
-            int pos = (evBuilderByteIdx-1)*7;
-            for(int j = 0; j < evBuilderByteIdx-addrBytes; j++)
-                {
-                    time |= uint32_t(((uchar)evBuilderData[idx++] & 0x7F) << pos);
-                    pos-=7;
-                }
-            // Convert relative to absolute timestamp
-            evBuilderSyncTimestamp += time;
-            time = evBuilderSyncTimestamp;
-            break;
+    switch(evBuilderTimestampVersion) {
+    case Time4Byte:
+        time = uint32_t((uchar)evBuilderData[idx++] << 0x18);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        // No overflow handling when using 4 bytes
+        break;
+    case Time3Byte:
+        time = uint32_t((uchar)evBuilderData[idx++] << 0x10);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        // Timestamp overflow ?
+        if(time < evBuilderLastTimestamp) {
+            evBuilderSyncTimestamp += 0xFFFFFF;
         }
-        case TimeNoTime:
-            time = 0;
-            break;
+        time += evBuilderSyncTimestamp;
+        break;
+    case Time2Byte:
+        time = uint32_t((uchar)evBuilderData[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        // Timestamp overflow ?
+        if(time < evBuilderLastTimestamp) {
+            evBuilderSyncTimestamp += 0xFFFF;
         }
+        time += evBuilderSyncTimestamp;
+        break;
+    case TimeDelta: {
+        // TODO Check
+        // Parse variable timestamp
+        // Store bytes in flipped order in time variable
+        int pos = (evBuilderByteIdx-1)*7;
+        for(int j = 0; j < evBuilderByteIdx-addrBytes; j++) {
+            time |= uint32_t(((uchar)evBuilderData[idx++] & 0x7F) << pos);
+            pos-=7;
+        }
+        // Convert relative to absolute timestamp
+        evBuilderSyncTimestamp += time;
+        time = evBuilderSyncTimestamp;
+        break;
+    }
+    case TimeNoTime:
+        time = 0;
+        break;
+    }
 
     evBuilderLastTimestamp = time;
 

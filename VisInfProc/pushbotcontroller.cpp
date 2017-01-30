@@ -33,11 +33,10 @@ PushBotController::~PushBotController()
         emit stopTimer();
 
     thread.quit();
-    if(!thread.wait(1000))
-        {
-            thread.terminate();
-            thread.wait();
-        }
+    if(!thread.wait(1000)) {
+        thread.terminate();
+        thread.wait();
+    }
 }
 void PushBotController::setRobotInterface(eDVSInterface* interface)
 {
@@ -88,50 +87,39 @@ void PushBotController::processFlow()
     avgFlowVecYR = 0;
     float cntL = 0,cntR = 0;
 
-    for(int j = 0; j < sx*sy; j++)
-        {
-            float dir = flowDirPtr[j];
-            float s = flowSpeedPtr[j];
-            float e = flowEnergyPtr[j];
-            if(s > 0)
-                {
-                    // Left or right image half
-                    if(j % sx < sx/2)
-                        {
-                            avgFlowVecXL += cos(dir)*s*e;
-                            avgFlowVecYL += sin(dir)*s*e;
-                            cntL+=e;
-                        }
-                    else
-                        {
-                            avgFlowVecXR += cos(dir)*s*e;
-                            avgFlowVecYR += sin(dir)*s*e;
-                            cntR+=e;
-                        }
-                }
+    for(int j = 0; j < sx*sy; j++) {
+        float dir = flowDirPtr[j];
+        float s = flowSpeedPtr[j];
+        float e = flowEnergyPtr[j];
+        if(s > 0) {
+            // Left or right image half
+            if(j % sx < sx/2) {
+                avgFlowVecXL += cos(dir)*s*e;
+                avgFlowVecYL += sin(dir)*s*e;
+                cntL+=e;
+            } else {
+                avgFlowVecXR += cos(dir)*s*e;
+                avgFlowVecYR += sin(dir)*s*e;
+                cntR+=e;
+            }
         }
+    }
 
     // Normalize
-    if(cntL > PUSHBOT_MIN_DETECTION_ENERGY)
-        {
-            avgFlowVecXL /= cntL;
-            avgFlowVecYL /= cntL;
-        }
-    else
-        {
-            avgFlowVecXL = 0;
-            avgFlowVecYL = 0;
-        }
-    if(cntR > PUSHBOT_MIN_DETECTION_ENERGY)
-        {
-            avgFlowVecXR /= cntR;
-            avgFlowVecYR /= cntR;
-        }
-    else
-        {
-            avgFlowVecXR = 0;
-            avgFlowVecYR = 0;
-        }
+    if(cntL > PUSHBOT_MIN_DETECTION_ENERGY) {
+        avgFlowVecXL /= cntL;
+        avgFlowVecYL /= cntL;
+    } else {
+        avgFlowVecXL = 0;
+        avgFlowVecYL = 0;
+    }
+    if(cntR > PUSHBOT_MIN_DETECTION_ENERGY) {
+        avgFlowVecXR /= cntR;
+        avgFlowVecYR /= cntR;
+    } else {
+        avgFlowVecXR = 0;
+        avgFlowVecYR = 0;
+    }
 
 //    qDebug("%f %f", sqrt(avgFlowVecXL*avgFlowVecXL+avgFlowVecYL*avgFlowVecYL),
 //           sqrt(avgFlowVecXR*avgFlowVecXR+avgFlowVecYR*avgFlowVecYR));
@@ -139,10 +127,9 @@ void PushBotController::processFlow()
     float deltaT;
     if(!loopTime.isValid())
         deltaT = 0;
-    else
-        {
-            deltaT = loopTime.elapsed()/1000.0f;
-        }
+    else {
+        deltaT = loopTime.elapsed()/1000.0f;
+    }
     loopTime.restart();
     {
         QMutexLocker locker(&pidMutex);
@@ -164,10 +151,9 @@ void PushBotController::processFlow()
         int speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
                                PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
 
-        if(robotInterface->isStreaming())
-            {
-                emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
-                emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
-            }
+        if(robotInterface->isStreaming()) {
+            emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
+            emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
+        }
     }
 }

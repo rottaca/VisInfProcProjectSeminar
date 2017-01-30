@@ -31,26 +31,24 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     opticFlowEnergy.fill(0);
 
     float cpuArrSpeeds[energyEstimatorCnt];
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            cudaStreamCreate(&cudaStreams[i]);
-            motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
-            updateTimeStamps[i] = -1;
-            cpuArrSpeeds[i] = settings.at(i).speed_px_per_sec;
-            opticFlowEnergyUpToDate[i] = false;
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        cudaStreamCreate(&cudaStreams[i]);
+        motionEnergyEstimators[i] = new MotionEnergyEstimator(settings.at(i),orientations);
+        updateTimeStamps[i] = UINT32_MAX;
+        cpuArrSpeeds[i] = settings.at(i).speed_px_per_sec;
+        opticFlowEnergyUpToDate[i] = false;
 
-            for(int j= 0; j < orientations.length(); j++)
-                {
-                    int idx = i*orientations.length() + j;
-                    motionEnergyBuffers[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-                    cpuArrGpuMotionEnergies[idx] = motionEnergyBuffers[idx]->getGPUPtr();
-                }
-
-            opticFlowEnergies[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-            opticFlowEnergies[i].fill(0);
-            opticFlowDirs[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
-            opticFlowDirs[i].fill(0);
+        for(int j= 0; j < orientations.length(); j++) {
+            int idx = i*orientations.length() + j;
+            motionEnergyBuffers[idx] = new Buffer2D(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+            cpuArrGpuMotionEnergies[idx] = motionEnergyBuffers[idx]->getGPUPtr();
         }
+
+        opticFlowEnergies[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+        opticFlowEnergies[i].fill(0);
+        opticFlowDirs[i].resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
+        opticFlowDirs[i].fill(0);
+    }
 
     qDebug("Uploading orientations to GPU...");
     gpuArrOrientations = NULL;
@@ -76,16 +74,14 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
 OpticFlowEstimator::~OpticFlowEstimator()
 {
     qDebug("Destroying OpticFlow estimator...");
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            cudaStreamDestroy(cudaStreams[i]);
-            delete motionEnergyEstimators[i];
-            for(int j= 0; j < orientations.length(); j++)
-                {
-                    int idx = i*orientations.length() + j;
-                    delete motionEnergyBuffers[idx];
-                }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        cudaStreamDestroy(cudaStreams[i]);
+        delete motionEnergyEstimators[i];
+        for(int j= 0; j < orientations.length(); j++) {
+            int idx = i*orientations.length() + j;
+            delete motionEnergyBuffers[idx];
         }
+    }
 
     delete[] motionEnergyEstimators;
     motionEnergyEstimators = NULL;
@@ -115,10 +111,9 @@ OpticFlowEstimator::~OpticFlowEstimator()
 bool OpticFlowEstimator::onNewEvent(const eDVSInterface::DVSEvent& e)
 {
     bool dataRead = false;
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            dataRead |= motionEnergyEstimators[i]->onNewEvent(e);
-        }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        dataRead |= motionEnergyEstimators[i]->onNewEvent(e);
+    }
     return dataRead;
 }
 
@@ -127,12 +122,11 @@ void OpticFlowEstimator::process()
     // Check where we have something to do
     bool somethingToDo[energyEstimatorCnt];
     int cnt = 0;
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            somethingToDo[i] = motionEnergyEstimators[i]->isEventListReady();
-            if(somethingToDo[i])
-                cnt++;
-        }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        somethingToDo[i] = motionEnergyEstimators[i]->isEventListReady();
+        if(somethingToDo[i])
+            cnt++;
+    }
     // Nothing to do
     if(cnt == 0)
         return;
@@ -143,22 +137,20 @@ void OpticFlowEstimator::process()
 #endif
     // Upload event lists to gpu
     //qDebug("Upload events");
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            if(somethingToDo[i])
-                motionEnergyEstimators[i]->startUploadEventsAsync();
-        }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        if(somethingToDo[i])
+            motionEnergyEstimators[i]->startUploadEventsAsync();
+    }
 
 #ifndef NDEBUG
     nvtxMark("Process events");
 #endif
     //qDebug("Start processing");
     // Start parallel batch processing of events
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            if(somethingToDo[i])
-                motionEnergyEstimators[i]->startProcessEventsBatchAsync();
-        }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        if(somethingToDo[i])
+            motionEnergyEstimators[i]->startProcessEventsBatchAsync();
+    }
 
 #ifndef NDEBUG
     nvtxMark("Read Result");
@@ -166,42 +158,36 @@ void OpticFlowEstimator::process()
     // qDebug("Read result");
     motionEnergyMutex.lock();
     // Start parallel reading of  motion energy
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            if(somethingToDo[i])
-                {
-                    updateTimeStamps[i] = motionEnergyEstimators[i]->startReadMotionEnergyAsync(
-                                              &cpuArrGpuMotionEnergies[i*orientations.length()]);
-                }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        if(somethingToDo[i]) {
+            updateTimeStamps[i] = motionEnergyEstimators[i]->startReadMotionEnergyAsync(
+                                      &cpuArrGpuMotionEnergies[i*orientations.length()]);
         }
+    }
 
 #ifndef NDEBUG
     nvtxMark("Normalize Result");
 #endif
     // Start parallel normalizing of motion energy
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            if(somethingToDo[i])
-                {
-                    motionEnergyEstimators[i]->startNormalizeEnergiesAsync(
-                        &cpuArrGpuMotionEnergies[i*orientations.length()]);
-                }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        if(somethingToDo[i]) {
+            motionEnergyEstimators[i]->startNormalizeEnergiesAsync(
+                &cpuArrGpuMotionEnergies[i*orientations.length()]);
         }
+    }
 #ifndef NDEBUG
     nvtxMark("Sync streams");
 #endif
     //qDebug("Sync");
     // Syncronize all streams and wait for them to finish
-    for(int i = 0; i < energyEstimatorCnt; i++)
-        {
-            if(somethingToDo[i])
-                {
-                    motionEnergyEstimators[i]->syncStreams();
-                    // The optic flow stored in member variables is old
-                    opticFlowEnergyUpToDate[i] = false;
-                    opticFlowUpToDate = false;
-                }
+    for(int i = 0; i < energyEstimatorCnt; i++) {
+        if(somethingToDo[i]) {
+            motionEnergyEstimators[i]->syncStreams();
+            // The optic flow stored in member variables is old
+            opticFlowEnergyUpToDate[i] = false;
+            opticFlowUpToDate = false;
         }
+    }
     motionEnergyMutex.unlock();
 
 #ifndef NDEBUG
@@ -244,11 +230,10 @@ void OpticFlowEstimator::computeOpticFlow()
     float* opticFlowEnergyPtr[speeds];
     float* opticFlowDirPtr[speeds];
 
-    for(int i = 0; i < speeds; i++)
-        {
-            opticFlowEnergyPtr[i] = opticFlowEnergies[i].getCPUPtr();
-            opticFlowDirPtr[i] = opticFlowDirs[i].getCPUPtr();
-        }
+    for(int i = 0; i < speeds; i++) {
+        opticFlowEnergyPtr[i] = opticFlowEnergies[i].getCPUPtr();
+        opticFlowDirPtr[i] = opticFlowDirs[i].getCPUPtr();
+    }
     int sx = DVS_RESOLUTION_WIDTH;
     int sy = DVS_RESOLUTION_HEIGHT;
 
@@ -256,134 +241,114 @@ void OpticFlowEstimator::computeOpticFlow()
     float* combinedFlowDirPtr = opticFlowDir.getCPUPtr();
     float* combinedFlowEnergyPtr = opticFlowEnergy.getCPUPtr();
 
-    for(int i = 0; i < sx*sy; i++)
-        {
-            float outSpeed = 0;
-            float outDir = 0;
-            float outEnergy = 0;
-            int maxIdx = -1;
-            for(int j = 0; j < speeds; j++)
-                {
-                    float energy = opticFlowEnergyPtr[j][i];
-                    float dir = opticFlowDirPtr[j][i];
+    for(int i = 0; i < sx*sy; i++) {
+        float outSpeed = 0;
+        float outDir = 0;
+        float outEnergy = 0;
+        int maxIdx = -1;
+        for(int j = 0; j < speeds; j++) {
+            float energy = opticFlowEnergyPtr[j][i];
+            float dir = opticFlowDirPtr[j][i];
 
-                    if(energy >= energyThreshold && energy > outEnergy)
-                        {
-                            outSpeed = settings.at(j).speed_px_per_sec;
-                            outDir = dir;
-                            outEnergy = energy;
-                            maxIdx = j;
-                        }
-                }
-#ifndef DISABLE_INTERPOLATION
-            if(maxIdx >= 0)
-                {
-                    float x1,x2,x3,y1,y2,y3;
-                    int idxCenter;
-                    // Find x and y coordinates for interpolation
-                    if(maxIdx == 0)
-                        {
-                            idxCenter = maxIdx+1;
-                        }
-                    else if(maxIdx == speeds-1)
-                        {
-                            idxCenter = maxIdx-1;
-                        }
-                    else
-                        {
-                            idxCenter = maxIdx;
-                        }
-
-                    x1 = settings.at(idxCenter-1).speed_px_per_sec;
-                    x2 = settings.at(idxCenter).speed_px_per_sec;
-                    x3 = settings.at(idxCenter+1).speed_px_per_sec;
-
-                    y1 = opticFlowEnergyPtr[idxCenter-1][i];
-                    y2 = opticFlowEnergyPtr[idxCenter][i];
-                    y3 = opticFlowEnergyPtr[idxCenter+1][i];
-
-                    float d2 = 2*((y3-y2)/(x3-x2)-(y1-y2)/(x1-x2))/(x3-x1);
-                    float d1 = 0;
-                    if ((x3+x1)>=(x2+x2))
-                        d1 = (y3-y2)/(x3-x2) - 0.5*d2*(x3-x2);
-                    else
-                        d1 = (y2-y1)/(x2-x1) + 0.5*d2*(x2-x1);
-                    if(d2 < 0)
-                        {
-                            float xe = x2 - d1/d2;
-                            if(xe >= x1 && xe <= x3)
-                                {
-                                    float ye = y2 + 0.5*d1*(xe-x2);
-                                    // ye is interpolated flow energy for speed xe
-                                    // Next step: Decompose in x and y direction
-                                    // Interpolate orientation linear between the left and right point from xe
-                                    if(xe < x2)
-                                        {
-                                            // Interpolation parameter for (x1,y1)
-                                            float t = (xe - x1)/(x2-x1);
-
-                                            float dir = opticFlowDirPtr[idxCenter-1][i];
-                                            float dir2 = opticFlowDirPtr[idxCenter][i];
-                                            // Scale to new speed
-                                            outSpeed = xe;
-                                            outEnergy = ye;
-                                            outDir = dir*t+dir2*(1-t);
-                                            //outX = 50*t;
-                                            //outY = 50*(1-t);
-                                        }
-                                    else
-                                        {
-                                            // Interpolation parameter for (x3,y3)
-                                            float t = (x3 - xe)/(x3-x2);
-
-                                            float dir = opticFlowDirPtr[idxCenter+1][i];
-                                            float dir2 = opticFlowDirPtr[idxCenter][i];
-                                            // Scale to new speed
-                                            outSpeed = xe;
-                                            outEnergy = ye;
-                                            outDir = dir*t+dir2*(1-t);
-                                            //outX = 50*t;
-                                            //outY = 50*(1-t);
-                                        }
-#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-                                    // Interpolated speed and orientation: red
-                                    outDir = 0.f/180*M_PI;
-                                    outSpeed = 60;
-#endif
-                                }
-#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-                            else
-                                {
-                                    // Maxima outside range
-                                    if(xe < x1)
-                                        {
-                                            outDir = 90.f/180*M_PI; // Slower: purple
-                                        }
-                                    else
-                                        {
-                                            outDir = 180.f/180*M_PI;    // Faster: bright blue
-                                        }
-                                    outSpeed = 60;
-                                }
-#endif
-                        }
-                    else
-                        {
-                            // No clear answer possible
-                            outSpeed = 0;
-                            outDir = 0;
-#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-                            // Parabel has no maximum, use strongest response: green
-                            outDir = 270.f/180*M_PI;
-                            outSpeed = 60;
-#endif
-                        }
-                }
-#endif
-            combinedFlowSpeedPtr[i] = outSpeed;
-            combinedFlowDirPtr[i] = outDir;
-            combinedFlowEnergyPtr[i] = outEnergy;
+            if(energy >= energyThreshold && energy > outEnergy) {
+                outSpeed = settings.at(j).speed_px_per_sec;
+                outDir = dir;
+                outEnergy = energy;
+                maxIdx = j;
+            }
         }
+#ifndef DISABLE_INTERPOLATION
+        if(maxIdx >= 0) {
+            float x1,x2,x3,y1,y2,y3;
+            int idxCenter;
+            // Find x and y coordinates for interpolation
+            if(maxIdx == 0) {
+                idxCenter = maxIdx+1;
+            } else if(maxIdx == speeds-1) {
+                idxCenter = maxIdx-1;
+            } else {
+                idxCenter = maxIdx;
+            }
+
+            x1 = settings.at(idxCenter-1).speed_px_per_sec;
+            x2 = settings.at(idxCenter).speed_px_per_sec;
+            x3 = settings.at(idxCenter+1).speed_px_per_sec;
+
+            y1 = opticFlowEnergyPtr[idxCenter-1][i];
+            y2 = opticFlowEnergyPtr[idxCenter][i];
+            y3 = opticFlowEnergyPtr[idxCenter+1][i];
+
+            float d2 = 2*((y3-y2)/(x3-x2)-(y1-y2)/(x1-x2))/(x3-x1);
+            float d1 = 0;
+            if ((x3+x1)>=(x2+x2))
+                d1 = (y3-y2)/(x3-x2) - 0.5*d2*(x3-x2);
+            else
+                d1 = (y2-y1)/(x2-x1) + 0.5*d2*(x2-x1);
+            if(d2 < 0) {
+                float xe = x2 - d1/d2;
+                if(xe >= x1 && xe <= x3) {
+                    float ye = y2 + 0.5*d1*(xe-x2);
+                    // ye is interpolated flow energy for speed xe
+                    // Next step: Decompose in x and y direction
+                    // Interpolate orientation linear between the left and right point from xe
+                    if(xe < x2) {
+                        // Interpolation parameter for (x1,y1)
+                        float t = (xe - x1)/(x2-x1);
+
+                        float dir = opticFlowDirPtr[idxCenter-1][i];
+                        float dir2 = opticFlowDirPtr[idxCenter][i];
+                        // Scale to new speed
+                        outSpeed = xe;
+                        outEnergy = ye;
+                        outDir = dir*t+dir2*(1-t);
+                        //outX = 50*t;
+                        //outY = 50*(1-t);
+                    } else {
+                        // Interpolation parameter for (x3,y3)
+                        float t = (x3 - xe)/(x3-x2);
+
+                        float dir = opticFlowDirPtr[idxCenter+1][i];
+                        float dir2 = opticFlowDirPtr[idxCenter][i];
+                        // Scale to new speed
+                        outSpeed = xe;
+                        outEnergy = ye;
+                        outDir = dir*t+dir2*(1-t);
+                        //outX = 50*t;
+                        //outY = 50*(1-t);
+                    }
+#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
+                    // Interpolated speed and orientation: red
+                    outDir = 0.f/180*M_PI;
+                    outSpeed = 60;
+#endif
+                }
+#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
+                else {
+                    // Maxima outside range
+                    if(xe < x1) {
+                        outDir = 90.f/180*M_PI; // Slower: purple
+                    } else {
+                        outDir = 180.f/180*M_PI;    // Faster: bright blue
+                    }
+                    outSpeed = 60;
+                }
+#endif
+            } else {
+                // No clear answer possible
+                outSpeed = 0;
+                outDir = 0;
+#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
+                // Parabel has no maximum, use strongest response: green
+                outDir = 270.f/180*M_PI;
+                outSpeed = 60;
+#endif
+            }
+        }
+#endif
+        combinedFlowSpeedPtr[i] = outSpeed;
+        combinedFlowDirPtr[i] = outDir;
+        combinedFlowEnergyPtr[i] = outEnergy;
+    }
 
     opticFlowUpToDate = true;
 #ifndef NDEBUG

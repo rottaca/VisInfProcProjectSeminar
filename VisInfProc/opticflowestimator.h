@@ -78,15 +78,13 @@ public:
 
         motionEnergyMutex.lock();
 
-        if(!opticFlowUpToDate)
-            {
-                for(int i = 0; i < energyEstimatorCnt; i++)
-                    {
-                        if(!opticFlowEnergyUpToDate[i])
-                            computeOpticFlowEnergy(i);
-                    }
-                computeOpticFlow();
+        if(!opticFlowUpToDate) {
+            for(int i = 0; i < energyEstimatorCnt; i++) {
+                if(!opticFlowEnergyUpToDate[i])
+                    computeOpticFlowEnergy(i);
             }
+            computeOpticFlow();
+        }
 
         speed = opticFlowSpeed;
         dir = opticFlowDir;
@@ -111,19 +109,18 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics(quint32 &all, quint32 &skipped)
+    void getEventStatistics( quint32 &all, quint32 &skipped)
     {
         quint32 tmp1,tmp2;
         all = 0;
         skipped = 0;
-        for(int i = 0; i < energyEstimatorCnt; i++)
-            {
-                motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
-                if(tmp1 > all)
-                    all = tmp1;
-                if(tmp2 > skipped)
-                    skipped = tmp2;
-            }
+        for(int i = 0; i < energyEstimatorCnt; i++) {
+            motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
+            if(tmp1 > all)
+                all = tmp1;
+            if(tmp2 > skipped)
+                skipped = tmp2;
+        }
     }
 
     /**

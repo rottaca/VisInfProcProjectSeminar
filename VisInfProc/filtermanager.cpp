@@ -9,21 +9,19 @@ Buffer1D FilterManager::constructTemporalFilter(FilterSettings &s, enum Temporal
     float tStep = s.temporalEnd/(s.temporalSteps-1);
     float t = 0;
 
-    for(float i = 0; i < s.temporalSteps; i++)
-        {
+    for(float i = 0; i < s.temporalSteps; i++) {
 
-            t= i*tStep;
-            switch (type)
-                {
-                case BI:
-                    f1(i) = -s.s1*gaussTemporal(s.sigmaBi1,s.muBi1,t) +
-                            s.s2*gaussTemporal(s.sigmaBi2,s.muBi2,t);
-                    break;
-                case MONO:
-                    f1(i) = gaussTemporal(s.sigmaMono,s.muMono,t);
-                    break;
-                }
+        t= i*tStep;
+        switch (type) {
+        case BI:
+            f1(i) = -s.s1*gaussTemporal(s.sigmaBi1,s.muBi1,t) +
+                    s.s2*gaussTemporal(s.sigmaBi2,s.muBi2,t);
+            break;
+        case MONO:
+            f1(i) = gaussTemporal(s.sigmaMono,s.muMono,t);
+            break;
         }
+    }
 
     f1.uploadBuffer();
     return f1;
@@ -38,28 +36,25 @@ Buffer2D FilterManager::constructSpatialFilter(FilterSettings &s, float orientat
     fy0 = qSin(orientation)*s.f0;
 
     int sz_2 = qFloor(s.spatialSize/2);
-    for(int y = -sz_2; y <= sz_2; y++)
-        {
-            for(int x = -sz_2; x <= sz_2; x++)
-                {
-                    // TODO Optimize
-                    float v =2*M_PI/(s.sigmaGabor*s.sigmaGabor)*gaussSpatial(s.sigmaGabor,x,y);
+    for(int y = -sz_2; y <= sz_2; y++) {
+        for(int x = -sz_2; x <= sz_2; x++) {
+            // TODO Optimize
+            float v =2*M_PI/(s.sigmaGabor*s.sigmaGabor)*gaussSpatial(s.sigmaGabor,x,y);
 
-                    float tmp = 2*M_PI*(fx0*x + fy0*y);
+            float tmp = 2*M_PI*(fx0*x + fy0*y);
 
-                    switch (type)
-                        {
-                        case ODD:
-                            v *= qSin(tmp);
-                            break;
-                        case EVEN:
-                            v *= qCos(tmp);
-                            break;
-                        }
+            switch (type) {
+            case ODD:
+                v *= qSin(tmp);
+                break;
+            case EVEN:
+                v *= qCos(tmp);
+                break;
+            }
 
-                    f2(x+sz_2,y+sz_2) = v;
-                }
+            f2(x+sz_2,y+sz_2) = v;
         }
+    }
     f2.uploadBuffer();
 
     return f2;

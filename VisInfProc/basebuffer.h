@@ -60,35 +60,32 @@ public:
 
     float getMax() const
     {
-        if(!cpuValid)
-            {
-                if(gpuValid)
-                    downloadBuffer();
-                else
-                    return 0;
-            }
+        if(!cpuValid) {
+            if(gpuValid)
+                downloadBuffer();
+            else
+                return 0;
+        }
 
         return *std::max_element(cpuBuffer, cpuBuffer + getBufferItemCnt());
     }
     float getMin() const
     {
-        if(!cpuValid)
-            {
-                if(gpuValid)
-                    downloadBuffer();
-                else
-                    return 0;
-            }
+        if(!cpuValid) {
+            if(gpuValid)
+                downloadBuffer();
+            else
+                return 0;
+        }
         return *std::min_element(cpuBuffer, cpuBuffer + getBufferItemCnt());
     }
 
     void fill(float v)
     {
 
-        if(gpuBuffer == NULL)
-            {
-                createGPUBuffer(itemCnt);
-            }
+        if(gpuBuffer == NULL) {
+            createGPUBuffer(itemCnt);
+        }
         cudaSetDoubleBuffer(gpuBuffer,v,itemCnt);
         cpuValid = false;
         gpuValid = true;

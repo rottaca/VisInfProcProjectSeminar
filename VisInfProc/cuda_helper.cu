@@ -12,11 +12,10 @@ __host__ void* cudaCreateBuffer(size_t size)
         return NULL;
     void* gpuPtr;
     gpuErrchk(cudaMalloc(&gpuPtr,size));
-    if(gpuPtr == 0)
-        {
-            fprintf(stderr,"Cuda malloc failed! Can't create buffer of size: %ld\n",size);
-            exit(-1);
-        }
+    if(gpuPtr == 0) {
+        fprintf(stderr,"Cuda malloc failed! Can't create buffer of size: %ld\n",size);
+        exit(-1);
+    }
     return gpuPtr;
 }
 __host__ void cudaUploadBuffer(void* cpuBuffPtr, void* gpuBuffPtr, size_t size, cudaStream_t stream)

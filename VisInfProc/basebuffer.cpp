@@ -19,21 +19,18 @@ BaseBuffer::BaseBuffer()
 
 BaseBuffer::~BaseBuffer()
 {
-    if(gpuBuffer != NULL)
-        {
-            cudaFree(gpuBuffer);
-            gpuBuffer = NULL;
-        }
-    if(gpuImage != NULL)
-        {
-            cudaFree(gpuImage);
-            gpuImage = NULL;
-        }
-    if(cpuBuffer != NULL)
-        {
-            delete[] cpuBuffer;
-            cpuBuffer = NULL;
-        }
+    if(gpuBuffer != NULL) {
+        cudaFree(gpuBuffer);
+        gpuBuffer = NULL;
+    }
+    if(gpuImage != NULL) {
+        cudaFree(gpuImage);
+        gpuImage = NULL;
+    }
+    if(cpuBuffer != NULL) {
+        delete[] cpuBuffer;
+        cpuBuffer = NULL;
+    }
 }
 
 void BaseBuffer::copyFrom(const BaseBuffer& other)
@@ -43,39 +40,33 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
 
     size_t szNew = other.getBufferItemCnt();
     // Does the size differ ?
-    if(szNew != itemCnt)
-        {
-            // delete my buffers on cpu and gpu
-            // And reallocate both with the same size
-            createCPUBuffer(szNew);
-            createGPUBuffer(szNew);
-            itemCnt = szNew;
-        }
+    if(szNew != itemCnt) {
+        // delete my buffers on cpu and gpu
+        // And reallocate both with the same size
+        createCPUBuffer(szNew);
+        createGPUBuffer(szNew);
+        itemCnt = szNew;
+    }
     // Copy gpu or cpu, depending on which one is available
     // Prefer gpu buffer
-    if(other.isGPUValid())
-        {
-            if(gpuBuffer == NULL)
-                createGPUBuffer(szNew);
+    if(other.isGPUValid()) {
+        if(gpuBuffer == NULL)
+            createGPUBuffer(szNew);
 
-            cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(float));
-            gpuValid = true;
-            cpuValid = false;
-        }
-    else if(other.isCPUValid())
-        {
+        cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(float));
+        gpuValid = true;
+        cpuValid = false;
+    } else if(other.isCPUValid()) {
 
-            if(cpuBuffer == NULL)
-                createCPUBuffer(szNew);
+        if(cpuBuffer == NULL)
+            createCPUBuffer(szNew);
 
-            memcpy(cpuBuffer,other.getCPUPtr(),szNew*sizeof(float));
-            gpuValid = false;
-            cpuValid = true;
-        }
-    else
-        {
-            qDebug("Buffer empty, can't copy!");
-        }
+        memcpy(cpuBuffer,other.getCPUPtr(),szNew*sizeof(float));
+        gpuValid = false;
+        cpuValid = true;
+    } else {
+        qDebug("Buffer empty, can't copy!");
+    }
 }
 
 BaseBuffer& BaseBuffer::operator=(const BaseBuffer &other)
@@ -93,10 +84,9 @@ BaseBuffer& BaseBuffer::operator-=(const BaseBuffer &other)
 
     gpuValid = false;
     float * ptrOther = other.getCPUPtr();
-    for(int i = 0; i < getBufferItemCnt(); i++)
-        {
-            cpuBuffer[i] -= ptrOther[i];
-        }
+    for(int i = 0; i < getBufferItemCnt(); i++) {
+        cpuBuffer[i] -= ptrOther[i];
+    }
     return *this;
 }
 
@@ -108,10 +98,9 @@ BaseBuffer& BaseBuffer::operator+=(const BaseBuffer &other)
 
     gpuValid = false;
     float * ptrOther = other.getCPUPtr();
-    for(int i = 0; i < getBufferItemCnt(); i++)
-        {
-            cpuBuffer[i] += ptrOther[i];
-        }
+    for(size_t i = 0; i < getBufferItemCnt(); i++) {
+        cpuBuffer[i] += ptrOther[i];
+    }
     return *this;
 }
 

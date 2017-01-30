@@ -126,8 +126,7 @@ public:
     // -> Number of slots to skip after processing
     // -> The starttime of the current time slot
     // -> All event positions
-    typedef struct SlotEventData
-    {
+    typedef struct SlotEventData {
         QVector<SimpleEvent> events;        // Event list (only x and y)
         int slotsToSkip;                    // Timeslots to skip after processing the events
         float currWindowStartTime;         // The start time in us of the current window
@@ -189,7 +188,7 @@ private:
     bool eventListReady;
 
     // Data for statistics computations
-    quint32 eventsSkipped;
+    quint32  eventsSkipped;
     quint32 eventsAll;
     QMutex eventStatisticsMutex;
 };

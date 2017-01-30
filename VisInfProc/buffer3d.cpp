@@ -84,26 +84,23 @@ QImage Buffer3D::toImageXY(int pos, float min, float max) const
 
     float mx = max;
     float mn = min;
-    if(min == 0 && max == 0)
-        {
-            mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-            mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-        }
+    if(min == 0 && max == 0) {
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+    }
 
     float* buffPtr = cpuBuffer+pos*sx*sy;
 
     #pragma omp parallel for
-    for(int y = 0; y < sy; y++)
-        {
-            uchar* ptr = img.scanLine(y);
-            float* buffPtrY = buffPtr + y*sx;
-            for(int x = 0; x < sx*3; x+=3)
-                {
+    for(int y = 0; y < sy; y++) {
+        uchar* ptr = img.scanLine(y);
+        float* buffPtrY = buffPtr + y*sx;
+        for(int x = 0; x < sx*3; x+=3) {
 
-                    Helper::pseudoColor(buffPtrY[x/3],mn,mx,
-                                        &ptr[x+0],&ptr[x+1],&ptr[x+2]);
-                }
+            Helper::pseudoColor(buffPtrY[x/3],mn,mx,
+                                &ptr[x+0],&ptr[x+1],&ptr[x+2]);
         }
+    }
 
     return img;
 }
@@ -117,24 +114,21 @@ QImage Buffer3D::toImageXZ(int pos, float min, float max ) const
     QImage img(sx,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    if(min == 0 && max == 0)
-        {
-            mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-            mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-        }
+    if(min == 0 && max == 0) {
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+    }
 
     int sxy = sx*sy;
     #pragma omp parallel for
-    for(int z = 0; z < sz; z++)
-        {
-            uchar* ptr = img.scanLine(z);
-            float* buffPtr = cpuBuffer + z*sxy + pos*sx;
-            for(int x = 0; x < sx*3; x+=3)
-                {
-                    Helper::pseudoColor(buffPtr[x/3],mn,mx,
-                                        &ptr[x+0],&ptr[x+1],&ptr[x+2]);
-                }
+    for(int z = 0; z < sz; z++) {
+        uchar* ptr = img.scanLine(z);
+        float* buffPtr = cpuBuffer + z*sxy + pos*sx;
+        for(int x = 0; x < sx*3; x+=3) {
+            Helper::pseudoColor(buffPtr[x/3],mn,mx,
+                                &ptr[x+0],&ptr[x+1],&ptr[x+2]);
         }
+    }
 
     return img;
 }
@@ -149,24 +143,21 @@ QImage Buffer3D::toImageYZ(int pos, float min, float max) const
     QImage img(sy,sz,QImage::Format_RGB888);
     float mx = max;
     float mn = min;
-    if(min == 0 && max == 0)
-        {
-            mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-            mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
-        }
+    if(min == 0 && max == 0) {
+        mx = *std::max_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+        mn = *std::min_element(cpuBuffer,cpuBuffer+sz*sx*sy);
+    }
     int sxy = sx*sy;
 
     #pragma omp parallel for
-    for(int z = 0; z < sz; z++)
-        {
-            uchar* ptr = img.scanLine(z);
-            float* buffPtr = cpuBuffer + z*sxy + pos;
-            for(int y = 0; y< sy*3; y+=3)
-                {
+    for(int z = 0; z < sz; z++) {
+        uchar* ptr = img.scanLine(z);
+        float* buffPtr = cpuBuffer + z*sxy + pos;
+        for(int y = 0; y< sy*3; y+=3) {
 
-                    Helper::pseudoColor(buffPtr[y/3*sx],mn,mx,
-                                        &ptr[y+0],&ptr[y+1],&ptr[y+2]);
-                }
+            Helper::pseudoColor(buffPtr[y/3*sx],mn,mx,
+                                &ptr[y+0],&ptr[y+1],&ptr[y+2]);
         }
+    }
     return img;
 }
