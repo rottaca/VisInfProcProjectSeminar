@@ -19,12 +19,12 @@ Filled with information when the project is done. :)
 In Playback mode the software is able to process DVS events from a ".aedat" file. The software plays the data in realtime by simulating the exact delta between timestamps or it slows down the playback of the file down to a rate of 1 percent of the real time.
 
 The UI shows currently 6 figures when debug mode is enabled. From top to bottom, left to right.
-1. Energy of the specific motion energy estimator responsible for a fixed speed and orientation. (Comboboxes on the right panel)
-2. OpticFlow for a fixed speed, specified by the combobox on the right. HSV-Color model used for visualization. The hue encodes the dominant orientation for each pixel. The saturation encodes the energy normalized to approx. 1.
-3. The next figure shows the events (black pixels) involved into the computation for the selected speed. The amount of black pixels depends on the timewindow of the selected filter speed.
-4. Actual optic flow, combined from the motion energy of all filters. The hue indicates the flow direction and the saturation indicates the speed. Higher saturation equals higher speeds.
-5. Shows the averaged optic flow in the left and right image half (color encoded and as line). Below the center of the image, the error between both image halfs, used to compute the steering signal, is shown.
-6. The last figure shows the normalized energy of the combined optic flow. This figure can be used as propability of the computed optic flow.
+ - Energy of the specific motion energy estimator responsible for a fixed speed and orientation. (Comboboxes on the right panel)
+ - OpticFlow for a fixed speed, specified by the combobox on the right. HSV-Color model used for visualization. The hue encodes the dominant orientation for each pixel. The saturation encodes the energy normalized to approx. 1.
+ - The next figure shows the events (black pixels) involved into the computation for the selected speed. The amount of black pixels depends on the timewindow of the selected filter speed.
+ - Actual optic flow, combined from the motion energy of all filters. The hue indicates the flow direction and the saturation indicates the speed. Higher saturation equals higher speeds.
+ - Shows the averaged optic flow in the left and right image half (color encoded and as line). Below the center of the image, the error between both image halfs, used to compute the steering signal, is shown.
+ - The last figure shows the normalized energy of the combined optic flow. This figure can be used as propability of the computed optic flow.
 
 Figures 4 to 6 are only generated when debug mode on the bottom right is enabled.
 
