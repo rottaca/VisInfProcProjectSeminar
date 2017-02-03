@@ -53,7 +53,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
         if(gpuBuffer == NULL)
             createGPUBuffer(szNew);
 
-        cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(float));
+        cudaCopyBuffer(gpuBuffer,other.getGPUPtr(),szNew*sizeof(float),cudaStream);
         gpuValid = true;
         cpuValid = false;
     } else if(other.isCPUValid()) {
@@ -84,7 +84,7 @@ BaseBuffer& BaseBuffer::operator-=(const BaseBuffer &other)
 
     gpuValid = false;
     float * ptrOther = other.getCPUPtr();
-    for(int i = 0; i < getBufferItemCnt(); i++) {
+    for(size_t i = 0; i < getBufferItemCnt(); i++) {
         cpuBuffer[i] -= ptrOther[i];
     }
     return *this;

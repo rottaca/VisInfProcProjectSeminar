@@ -64,7 +64,7 @@ private:
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-    Buffer2D oppMoEnergy1,oppMoEnergy2, speed,energy,dir;
+    Buffer2D oppMoEnergy, speed,energy,dir;
     QImage rgbImg;
     char* gpuRgbImage;
 

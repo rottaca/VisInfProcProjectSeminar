@@ -9,6 +9,9 @@
 #include <QMutexLocker>
 #include <QVector>
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include "settings.h"
 #include "filtersettings.h"
 #include "buffer2d.h"
@@ -80,6 +83,7 @@ signals:
 
 private:
     QThread thread;
+    cudaStream_t cudaStream;
 
     QMutex mutex;
     QTimer processIntervalTimer;

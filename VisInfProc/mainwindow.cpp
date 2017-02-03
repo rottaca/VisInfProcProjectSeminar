@@ -64,6 +64,11 @@ void MainWindow::initSystem()
     gpuErrchk(cudaSetDevice(0));
     cudaStreamCreate(&cudaStream);
 
+    energy.setCudaStream(cudaStream);
+    speed.setCudaStream(cudaStream);
+    dir.setCudaStream(cudaStream);
+    oppMoEnergy.setCudaStream(cudaStream);
+
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
@@ -123,7 +128,7 @@ void MainWindow::onUpdate()
         int orientIdx = ui->cb_show_orient->currentIndex();
         int speedIdx = ui->cb_show_speed->currentIndex();
 
-        quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy1);
+        quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy);
         if(time != UINT32_MAX) {
             if(ui->cb_debug->isChecked()) {
 //                Buffer3D en;
@@ -147,12 +152,8 @@ void MainWindow::onUpdate()
             }
 
             worker.getOpticFlowEnergy(energy,dir,speedIdx);
-            energy.setCudaStream(cudaStream);
-            dir.setCudaStream(cudaStream);
-            oppMoEnergy1.setCudaStream(cudaStream);
-            oppMoEnergy2.setCudaStream(cudaStream);
 
-            QImage img1 = oppMoEnergy1.toImage(0,1.0f);
+            QImage img1 = oppMoEnergy.toImage(0,1.0f);
             ui->l_motion->setPixmap(QPixmap::fromImage(img1));
 
             cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,

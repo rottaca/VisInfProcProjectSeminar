@@ -23,6 +23,11 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eSum = 0;
     eSumMax = 0;
 
+    cudaStreamCreate(&cudaStream);
+    opticFlowDir.setCudaStream(cudaStream);
+    opticFlowSpeed.setCudaStream(cudaStream);
+    opticFlowEnergy.setCudaStream(cudaStream);
+
     connect(&processIntervalTimer,SIGNAL(timeout()),this,SLOT(processFlow()));
     connect(this,SIGNAL(stopTimer()),&processIntervalTimer,SLOT(stop()));
 }
@@ -37,6 +42,7 @@ PushBotController::~PushBotController()
         thread.terminate();
         thread.wait();
     }
+    cudaStreamDestroy(cudaStream);
 }
 void PushBotController::setRobotInterface(eDVSInterface* interface)
 {
@@ -87,6 +93,7 @@ void PushBotController::processFlow()
     avgFlowVecYR = 0;
     float cntL = 0,cntR = 0;
 
+    #pragma omp parallel for
     for(int j = 0; j < sx*sy; j++) {
         float dir = flowDirPtr[j];
         float s = flowSpeedPtr[j];
