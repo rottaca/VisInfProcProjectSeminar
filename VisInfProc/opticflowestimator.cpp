@@ -22,7 +22,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     cudaStreams = new cudaStream_t[energyEstimatorCnt];
     opticFlowEnergies = new Buffer2D[energyEstimatorCnt];
     opticFlowDirs = new Buffer2D[energyEstimatorCnt];
-    energyThreshold = 0.25f;
+    energyThreshold = FLOW_DEFAULT_MIN_ENERGY_THRESHOLD;
     opticFlowSpeed.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowDir.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
     opticFlowEnergy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT);
@@ -46,7 +46,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
 
     qDebug("Uploading orientations to GPU...");
     gpuArrOrientations = NULL;
-    int sz = sizeof(float)*orientations.length();
+    size_t sz = sizeof(float)*orientations.length();
     gpuErrchk(cudaMalloc(&gpuArrOrientations,sz));
     gpuErrchk(cudaMemcpyAsync(gpuArrOrientations,orientations.data(),sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 

@@ -15,9 +15,9 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eventProcessor = NULL;
     robotInterface = NULL;
 
-    P = 1;
-    I = 0;
-    D = 0;
+    P = PUSHBOT_DEFAULT_PID_P;
+    I = PUSHBOT_DEFAULT_PID_I;
+    D = PUSHBOT_DEFAULT_PID_D;
     out = 0;
     eOld = 0;
     eSum = 0;
@@ -113,14 +113,17 @@ void PushBotController::processFlow()
     }
 
     // Normalize
-    if(cntL > PUSHBOT_MIN_DETECTION_ENERGY) {
+    bool leftFlowValid = cntL > PUSHBOT_MIN_DETECTION_ENERGY;
+    bool rightFlowValid = cntR > PUSHBOT_MIN_DETECTION_ENERGY;
+
+    if(leftFlowValid) {
         avgFlowVecXL /= cntL;
         avgFlowVecYL /= cntL;
     } else {
         avgFlowVecXL = 0;
         avgFlowVecYL = 0;
     }
-    if(cntR > PUSHBOT_MIN_DETECTION_ENERGY) {
+    if(rightFlowValid) {
         avgFlowVecXR /= cntR;
         avgFlowVecYR /= cntR;
     } else {
@@ -128,39 +131,46 @@ void PushBotController::processFlow()
         avgFlowVecYR = 0;
     }
 
-//    qDebug("%f %f", sqrt(avgFlowVecXL*avgFlowVecXL+avgFlowVecYL*avgFlowVecYL),
-//           sqrt(avgFlowVecXR*avgFlowVecXR+avgFlowVecYR*avgFlowVecYR));
+    // Steering signal is useless if only left or
+    // right motion is used for computation
+    if(leftFlowValid && rightFlowValid) {
 
-    float deltaT;
-    if(!loopTime.isValid())
-        deltaT = 0;
-    else {
-        deltaT = loopTime.elapsed()/1000.0f;
-    }
-    loopTime.restart();
-    {
-        QMutexLocker locker(&pidMutex);
-        // Simple PID-Controller
-        float e = avgFlowVecXL-avgFlowVecXR;
+        // Get elapsed time
+        float deltaT;
+        if(!loopTime.isValid())
+            deltaT = 0;
+        else {
+            deltaT = loopTime.elapsed()/1000.0f;
+        }
+        loopTime.restart();
 
-        eSum = qMax(-eSumMax,qMin(eSum + e,eSumMax));
-        // Ignore differential part in first run
-        if(deltaT > 0)
-            out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
-        else
-            out = P*e + I*deltaT*eSum;
+        int speedLeft,speedRight;
+        {
+            QMutexLocker locker(&pidMutex);
+            // Simple PID-Controller
+            float e = avgFlowVecXL-avgFlowVecXR;
 
-        eOld = e;
+            eSum = qMax(-eSumMax,qMin(eSum + e,eSumMax));
+            // Ignore differential part in first run
+            if(deltaT > 0)
+                out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
+            else
+                out = P*e + I*deltaT*eSum;
 
-        // Send commands to pushbot
-        int speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
+            eOld = e;
+
+            // Send commands to pushbot
+            speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
                               PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
-        int speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
+            speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
                                PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
+        }
 
         if(robotInterface->isStreaming()) {
             emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
             emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
+        } else {  // If not running, write debug info
+            qDebug("[Control output] L: %d, r: %d",speedLeft,speedRight);
         }
     }
 }

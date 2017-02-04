@@ -3,6 +3,8 @@
 
 #include <assert.h>
 
+#include "settings.h"
+
 FilterSettings::FilterSettings()
 {
     f0 = 0;
@@ -57,19 +59,25 @@ FilterSettings::FilterSettings(float _f0, float _muBi1, float _tempEnd,
 FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
 {
     switch (ps) {
-    case DEFAULT:
-        return FilterSettings(0.08f,0.2f,0.7f,100,25,135000,0.1f,0.002f,1,3.6f, 0);
     case SPEED_1:
-        return FilterSettings(0.15f,0.23f,0.7f,20,11,100000,0.1f,0.002f,1,3.6f,66.733f);
+        return FilterSettings(0.15f,0.23f,
+                              FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,100000,
+                              0.1f,0.002f,1,3.6f,66.733f);
     case SPEED_2:
-        return FilterSettings(0.15f,0.23f,0.7f,20,11,200000,0.1f,0.002f,1,3.6f,33.366f);
+        return FilterSettings(0.15f,0.23f,
+                              FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,200000,
+                              0.1f,0.002f,1,3.6f,33.366f);
     case SPEED_3:
-        return FilterSettings(0.15f,0.23f,0.7f,20,11,300000,0.1f,0.002f,1,3.6f,16.683f);
+        return FilterSettings(0.15f,0.23f,
+                              FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,300000,
+                              0.1f,0.002f,1,3.6f,16.683f);
     case SPEED_4:
-        return FilterSettings(0.15f,0.23f,0.7f,20,11,400000,0.1f,0.002f,1,3.6f,8.3415f);
+        return FilterSettings(0.15f,0.23f,
+                              FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,400000,
+                              0.1f,0.002f,1,3.6f,8.3415f);
     case SPEED_5:
-        return FilterSettings(0.15f,0.23f,0.7f,20,11,50000,0.1f,0.002f,1,3.6f,133.466f);
-    default:
-        return FilterSettings();
+        return FilterSettings(0.15f,0.23f,
+                              FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,50000,
+                              0.1f,0.002f,1,3.6f,133.466f);
     }
 }

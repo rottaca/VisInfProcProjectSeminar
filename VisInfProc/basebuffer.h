@@ -104,7 +104,7 @@ protected:
     mutable unsigned char   *gpuImage;
 
     mutable bool gpuValid,cpuValid;
-    mutable size_t itemCnt;
+    size_t itemCnt;
 
     cudaStream_t cudaStream;
 };

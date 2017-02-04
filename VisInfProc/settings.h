@@ -9,16 +9,29 @@
 #define DVS_RESOLUTION_HEIGHT 128
 
 /*****************************************************************
-// General
+// GUI
 *****************************************************************/
 // GUI refresh rate
 #define FPS 25
-// Refresh rate of optic flow processing
-#define PUSH_BOT_PROCESS_FPS 15
+
+
+/*****************************************************************
+// OpticFlow estimator
+*****************************************************************/
+// Spatial resolution of garbor filter (odd value)
+#define FILTER_SPATIAL_SIZE_PX 11
+// Temporal resolution of time function between 0 and TEMPORAL_END
+#define FILTER_TEMPORAL_RES 20
+// End value x of temporal function t(x)
+#define FILTER_TEMPORAL_END 0.7f
+// Additional filter settings located in filtersettings.cpp
+#define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.25f
 
 /*****************************************************************
 // Pushbot
 *****************************************************************/
+// Refresh rate of optic flow processing
+#define PUSH_BOT_PROCESS_FPS 15
 // Motor Velocity minimum for pid control (0-100)
 #define PUSHBOT_VELOCITY_MIN 5
 // Motor Velocity maximum for pid control
@@ -29,7 +42,7 @@
 #define PUSHBOT_MOTOR_RIGHT 1
 // Default speed
 #define PUSHBOT_VELOCITY_DEFAULT 30
-// Commands
+// Pushbot commands
 #define CMD_SET_TIMESTAMP_MODE "!E1\n"      // Do not change streaming mode !
 #define CMD_ENABLE_EVENT_STREAMING "!E+\n"
 #define CMD_DISABLE_EVENT_STREAMING "!E-\n"
@@ -37,6 +50,12 @@
 #define CMD_DISABLE_MOTORS "!M-\n"
 #define CMD_SET_VELOCITY "!MV%1=%2\n"
 #define CMD_RESET_BOARD "R\n"
+// Default PID values for pushbot PID controller
+// It takes the error between the average horizontal
+// flow of the left and right half image as input signal
+#define PUSHBOT_DEFAULT_PID_P 1
+#define PUSHBOT_DEFAULT_PID_I 0
+#define PUSHBOT_DEFAULT_PID_D 0
 
 // Minimum detection energy
 // Summed energy over an image half hast to be greater as the value below
@@ -48,7 +67,7 @@
 *****************************************************************/
 // Uses the direction channel to encode the interpolation state
 // (Interpolate, Out of range, no interpolation,...)
-// Destroys optic flow and disables push bot control
+// Replaces optic flow and disables push bot control
 //#define DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
 
 #ifndef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION

@@ -57,6 +57,12 @@ void MainWindow::initUI()
 
     rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
     gpuErrchk(cudaMalloc(&gpuRgbImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
+
+
+    ui->sb_energy_threshold->setValue(FLOW_DEFAULT_MIN_ENERGY_THRESHOLD);
+    ui->sb_pushbot_p->setValue(PUSHBOT_DEFAULT_PID_P);
+    ui->sb_pushbot_i->setValue(PUSHBOT_DEFAULT_PID_I);
+    ui->sb_pushbot_d->setValue(PUSHBOT_DEFAULT_PID_D);
 }
 
 void MainWindow::initSystem()
@@ -118,7 +124,10 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->b_start_streaming,SIGNAL(clicked()),this,SLOT(onClickStartStreaming()));
     connect(ui->le_cmd_input,SIGNAL(editingFinished()),this,SLOT(onCmdEntered()));
     connect(ui->b_reset,SIGNAL(clicked()),this,SLOT(onClickReset()));
-    connect(ui->hs_threshold,SIGNAL(valueChanged(int)),this,SLOT(onChangeThreshold(int)));
+    connect(ui->sb_energy_threshold,SIGNAL(valueChanged(double)),this,SLOT(onChangeThreshold(double)));
+    connect(ui->sb_pushbot_p,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotP(double)));
+    connect(ui->sb_pushbot_i,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotI(double)));
+    connect(ui->sb_pushbot_d,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotD(double)));
 }
 
 void MainWindow::onUpdate()
@@ -258,6 +267,7 @@ void MainWindow::onPlaybackFinished()
     qDebug("PlaybackFinished");
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
+    ui->gb_playback_settings->setEnabled(true);
     QMessageBox::information(this,"Information","Playback finished!");
 }
 
@@ -268,10 +278,12 @@ void MainWindow::onClickStartPlayback()
         eDVSHandler.stopWork();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
+        ui->gb_playback_settings->setEnabled(true);
     } else {
         qDebug("Start Playback");
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
+        ui->gb_playback_settings->setEnabled(false);
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
@@ -285,6 +297,8 @@ void MainWindow::onConnectionClosed(bool error)
     ui->tab_playback->setEnabled(true);
     ui->gb_cmdline->setEnabled(false);
     ui->b_start_streaming->setEnabled(false);
+    ui->b_reset->setEnabled(false);
+    ui->gb_connect_settings->setEnabled(true);
     ui->b_start_streaming->setText("Start");
 
     if(error) {
@@ -300,6 +314,7 @@ void MainWindow::onConnectionResult(bool error)
         ui->gb_cmdline->setEnabled(true);
         ui->b_start_streaming->setEnabled(true);
         ui->b_reset->setEnabled(true);
+        ui->gb_connect_settings->setEnabled(false);
     } else {
         QMessageBox::critical(this,"Error","Failed to connect!");
     }
@@ -345,10 +360,12 @@ void MainWindow::onClickConnect()
     if(eDVSHandler.isWorking()) {
         eDVSHandler.stopWork();
         ui->b_connect->setText("Connect");
+        ui->b_start_streaming->setText("Start");
         ui->tab_playback->setEnabled(true);
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
         ui->b_reset->setEnabled(false);
+        ui->gb_connect_settings->setEnabled(true);
     } else {
         ui->te_comands->clear();
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
@@ -372,9 +389,22 @@ void MainWindow::onClickReset()
     }
 }
 
-void MainWindow::onChangeThreshold(int v)
+void MainWindow::onChangeThreshold(double v)
 {
-    float val = static_cast<float>(v)/100;
-    worker.setEnergyThreshold(val);
-    ui->l_threshold->setText(QString("%1").arg(val));
+    worker.setEnergyThreshold(v);
+}
+
+void MainWindow::onChangePushbotP(double v)
+{
+    pushBotController.setP(v);
+}
+
+void MainWindow::onChangePushbotI(double v)
+{
+    pushBotController.setI(v);
+}
+
+void MainWindow::onChangePushbotD(double v)
+{
+    pushBotController.setD(v);
 }

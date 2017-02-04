@@ -44,7 +44,11 @@ public slots:
     void onCmdEntered();
     void onConnectionClosed(bool error);
     void onClickReset();
-    void onChangeThreshold(int v);
+    void onChangeThreshold(double v);
+    void onChangePushbotP(double v);
+    void onChangePushbotI(double v);
+    void onChangePushbotD(double v);
+
 signals:
     void sendRawCmd(QString cmd);
     void startEventStreaming();
