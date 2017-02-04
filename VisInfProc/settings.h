@@ -81,10 +81,19 @@
 // Convolution buffers per filter orientation
 // DO NOT CHANGE
 #define FILTERS_PER_ORIENTATION 2
+// Maximum wait time for stopping a thread
+#define THREAD_WAIT_TIME_MS 1000
 
 /*****************************************************************
 // Macros
 *****************************************************************/
 #define CLAMP(v,mn,mx) qMin(mx,qMax(mn,v))
 
+#ifndef NDEBUG
+#define PRINT_DEBUG(msg) qDebug(msg)
+#define PRINT_DEBUG_FMT(format, ...) qDebug(format,__VA_ARGS__)
+#else
+#define PRINT_DEBUG(msg) {}
+#define PRINT_DEBUG_FMT(format, ...) {}
+#endif
 #endif // SETTINGS_H

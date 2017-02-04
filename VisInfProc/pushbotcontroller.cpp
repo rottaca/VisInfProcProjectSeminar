@@ -33,12 +33,13 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
 }
 PushBotController::~PushBotController()
 {
-    qDebug("Destroying pushBotController...");
+    PRINT_DEBUG("Destroying pushBotController...");
     if(processIntervalTimer.isActive())
         emit stopTimer();
 
     thread.quit();
-    if(!thread.wait(1000)) {
+    if(!thread.wait(THREAD_WAIT_TIME_MS)) {
+        qCritical("Failed to stop PushBotController!");
         thread.terminate();
         thread.wait();
     }
@@ -53,7 +54,7 @@ void PushBotController::setRobotInterface(eDVSInterface* interface)
 }
 void PushBotController::startProcessing()
 {
-    qDebug("Start pushbot controller");
+    PRINT_DEBUG("Start pushbot controller");
     processIntervalTimer.start(1000/PUSH_BOT_PROCESS_FPS);
     emit enableMotors(true);
     emit setMotorVelocity(0,PUSHBOT_VELOCITY_DEFAULT);
@@ -62,7 +63,7 @@ void PushBotController::startProcessing()
 
 void PushBotController::stopProcessing()
 {
-    qDebug("Stop pushbot controller");
+    PRINT_DEBUG("Stop pushbot controller");
     processIntervalTimer.stop();
     emit setMotorVelocity(1,0);
     emit setMotorVelocity(0,0);
@@ -170,7 +171,7 @@ void PushBotController::processFlow()
             emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
             emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
         } else {  // If not running, write debug info
-            qDebug("[Control output] L: %d, r: %d",speedLeft,speedRight);
+            PRINT_DEBUG_FMT("[Control output] L: %d, r: %d",speedLeft,speedRight);
         }
     }
 }

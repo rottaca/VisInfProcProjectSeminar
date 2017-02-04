@@ -264,7 +264,7 @@ void MainWindow::onUpdate()
 
 void MainWindow::onPlaybackFinished()
 {
-    qDebug("PlaybackFinished");
+    PRINT_DEBUG("PlaybackFinished");
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
     ui->gb_playback_settings->setEnabled(true);
@@ -274,13 +274,13 @@ void MainWindow::onPlaybackFinished()
 void MainWindow::onClickStartPlayback()
 {
     if(eDVSHandler.isWorking()) {
-        qDebug("Stop Playback");
+        PRINT_DEBUG("Stop Playback");
         eDVSHandler.stopWork();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
         ui->gb_playback_settings->setEnabled(true);
     } else {
-        qDebug("Start Playback");
+        PRINT_DEBUG("Start Playback");
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
         ui->gb_playback_settings->setEnabled(false);

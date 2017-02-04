@@ -9,10 +9,15 @@ Worker::Worker(QObject *parent) : QThread(parent)
 
 Worker::~Worker()
 {
-    qDebug("Destroying worker");
-    if(processing)
-        stopProcessing();
+    PRINT_DEBUG("Destroying worker");
 
+    processing = false;
+
+    if(!wait(THREAD_WAIT_TIME_MS)) {
+        qCritical("Failed to stop Worker!");
+        terminate();
+        wait();
+    }
     if(ofe != NULL) {
         delete ofe;
         ofe = NULL;
@@ -39,7 +44,7 @@ void Worker::startProcessing()
         stopProcessing();
     }
 
-    qDebug("Starting Worker...");
+    PRINT_DEBUG("Starting Worker...");
     {
         QMutexLocker locker(&mutex);
         if(ofe == NULL)
@@ -47,19 +52,17 @@ void Worker::startProcessing()
         else
             ofe->reset();
     }
-    qDebug("Worker started.");
+    PRINT_DEBUG("Worker started.");
     start();
 }
 
 void Worker::stopProcessing()
 {
-    qDebug("Stopping Worker...");
+    PRINT_DEBUG("Stopping Worker...");
     processing = false;
 
-    if(wait(2000))
-        qDebug("Worker stopped.");
-    else {
-        qDebug("Failed to stop worker thread!");
+    if(!wait(THREAD_WAIT_TIME_MS)) {
+        qCritical("Failed to stop Worker!");
         terminate();
         wait();
     }

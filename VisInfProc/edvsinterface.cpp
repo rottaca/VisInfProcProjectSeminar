@@ -30,7 +30,7 @@ eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 
 eDVSInterface::~eDVSInterface()
 {
-    qDebug("Destroying eDVSInterface...");
+    PRINT_DEBUG("Destroying eDVSInterface...");
 
     operationMutex.lock();
     operationMode = IDLE;
@@ -38,7 +38,8 @@ eDVSInterface::~eDVSInterface()
 
     thread.quit();
 
-    if(!thread.wait(2000)) {
+    if(!thread.wait(THREAD_WAIT_TIME_MS)) {
+        qCritical("Failed to stop eDVSInterface!");
         thread.terminate();
         thread.wait();
     }
@@ -174,24 +175,24 @@ void eDVSInterface::process()
     // Wait for processing stopped
     thread.quit();
 
-    qDebug("Done");
+    PRINT_DEBUG("Done");
 }
 void eDVSInterface::_processSocket()
 {
     // Init serial port
     socket.connectToHost(host,port);
-    qDebug("Connecting to %s: %d",host.toLocal8Bit().data(),port);
+    qInfo("Connecting to %s: %d",host.toLocal8Bit().data(),port);
     if(!socket.waitForConnected(2000)) {
         operationMutex.lock();
         operationMode = IDLE;
         operationMutex.unlock();
         emit onConnectionResult(true);
-        qDebug("Can't connect to socket \"%s:%d\": %s"
-               ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
+        qCritical("Can't connect to socket \"%s:%d\": %s"
+                  ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
         return;
     }
     emit onConnectionResult(false);
-    qDebug("Connection established");
+    PRINT_DEBUG("Connection established");
     OperationMode opModeLocal;
     {
         QMutexLocker locker2(&operationMutex);
@@ -204,7 +205,7 @@ void eDVSInterface::_processSocket()
         {
             QMutexLocker locker(&socketMutex);
             if(socket.state() != QTcpSocket::ConnectedState) {
-                qDebug("Connection closed: %s",socket.errorString().toLocal8Bit().data());
+                PRINT_DEBUG_FMT("Connection closed: %s",socket.errorString().toLocal8Bit().data());
                 QMutexLocker locker2(&operationMutex);
                 operationMode = IDLE;
                 emit onConnectionClosed(true);
@@ -215,7 +216,7 @@ void eDVSInterface::_processSocket()
             if(opModeLocal == ONLINE) {
                 if(socket.waitForReadyRead(10)) {
                     QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
-                    qDebug("Recieved: %s",line.toLocal8Bit().data());
+                    PRINT_DEBUG_FMT("Recieved: %s",line.toLocal8Bit().data());
                     emit onLineRecived(line);
                 }
                 // Streaming mode
@@ -259,11 +260,11 @@ void eDVSInterface::stopWork()
     operationMode = IDLE;
     operationMutex.unlock();
 
-    qDebug("Stopping playback/stream/communication...");
-    if(!thread.wait(2000)) {
+    PRINT_DEBUG("Stopping eDVSInterface...");
+    if(!thread.wait(THREAD_WAIT_TIME_MS)) {
+        qCritical("Failed to stop eDVSInterface!");
         thread.terminate();
         thread.wait();
-        qDebug("Stopped.");
     }
     // Close socket
     if(localOpMode == ONLINE) {
@@ -306,7 +307,7 @@ void eDVSInterface::_playbackFile()
     if(workerLocal == NULL)
         return;
 
-    qDebug("Start worker");
+    PRINT_DEBUG("Start worker");
     workerLocal->startProcessing();
     emit onStartPushBotController();
 
@@ -362,12 +363,12 @@ void eDVSInterface::_playbackFile()
     if(bufferIdx == bytes.length()) {
         quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
         quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
-        qDebug("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
-               .arg(eventCount)
-               .arg(elapsedTimeReal/1000.0)
-               .arg(elapsedTimeEvents/speed/1000.0)
-               .arg((static_cast<double>(elapsedTimeReal)/(elapsedTimeEvents/speed) - 1) *100)
-               .toLocal8Bit().data());
+        PRINT_DEBUG_FMT("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
+                        .arg(eventCount)
+                        .arg(elapsedTimeReal/1000.0)
+                        .arg(elapsedTimeEvents/speed/1000.0)
+                        .arg((static_cast<double>(elapsedTimeReal)/(elapsedTimeEvents/speed) - 1) *100)
+                        .toLocal8Bit().data());
 
         {
             QMutexLocker locker2(&operationMutex);
@@ -381,7 +382,7 @@ void eDVSInterface::_playbackFile()
         QMutexLocker locker(&operationMutex);
         workerLocal = processingWorker;
     }
-    qDebug("Stop worker");
+    PRINT_DEBUG("Stop worker");
     workerLocal->stopProcessing();
     emit onStopPushBotController();
 }
@@ -392,7 +393,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
 
     QFile f(file);
     if(!f.open(QIODevice::ReadOnly)) {
-        qDebug("Can't open file!");
+        qCritical("Can't open file!");
         return buff;
     }
 
@@ -400,7 +401,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     f.close();
 
     if(buff.size() == 0) {
-        qDebug("File is empty");
+        qCritical("File is empty");
         return buff;
     }
 
@@ -421,13 +422,13 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
             versionNr = b.toInt();
         }
     }
-    qDebug("%s", QString("File Version: %1").arg(versionNr).toLocal8Bit().data());
+    PRINT_DEBUG_FMT("%s", QString("File Version: %1").arg(versionNr).toLocal8Bit().data());
 
     int dataToSkip = 0;
     for(int i = 0; i < lineIdx; i++)
         dataToSkip += lines.at(i).length()+1;
 
-    qDebug("%s", QString("Header Size: %1 bytes").arg(dataToSkip).toLocal8Bit().data());
+    PRINT_DEBUG_FMT("%s", QString("Header Size: %1 bytes").arg(dataToSkip).toLocal8Bit().data());
 
     // Remove header
     buff.remove(0,dataToSkip);
@@ -442,7 +443,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     timeVers = Time4Byte;
 
     int eventCnt = buff.size()/numBytesPerEvent;
-    qDebug("%s", QString("%1 Events.").arg(eventCnt).toLocal8Bit().data());
+    PRINT_DEBUG_FMT("%s", QString("%1 Events.").arg(eventCnt).toLocal8Bit().data());
 
     return buff;
 }

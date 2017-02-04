@@ -44,19 +44,17 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
     }
     reset();
 
-    qDebug("Uploading orientations to GPU...");
+    PRINT_DEBUG("Uploading speeds and orientations to GPU...");
     gpuArrOrientations = NULL;
     size_t sz = sizeof(float)*orientations.length();
     gpuErrchk(cudaMalloc(&gpuArrOrientations,sz));
     gpuErrchk(cudaMemcpyAsync(gpuArrOrientations,orientations.data(),sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 
-    qDebug("Uploading pointers array to  motion energy buffers to GPU...");
     gpuArrGpuMotionEnergies = NULL;
     sz = sizeof(float*)*energyEstimatorCnt*orientations.length();
     gpuErrchk(cudaMalloc(&gpuArrGpuMotionEnergies,sz));
     gpuErrchk(cudaMemcpyAsync(gpuArrGpuMotionEnergies,cpuArrGpuMotionEnergies,sz,cudaMemcpyHostToDevice,cudaStreams[0]));
 
-    qDebug("Uploading speeds to GPU...");
     gpuArrSpeeds = NULL;
     sz = sizeof(float)*energyEstimatorCnt;
     gpuErrchk(cudaMalloc(&gpuArrSpeeds,sz));
@@ -67,7 +65,7 @@ OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector
 
 OpticFlowEstimator::~OpticFlowEstimator()
 {
-    qDebug("Destroying OpticFlow estimator...");
+    PRINT_DEBUG("Destroying OpticFlow estimator...");
     for(int i = 0; i < energyEstimatorCnt; i++) {
         cudaStreamDestroy(cudaStreams[i]);
         delete motionEnergyEstimators[i];

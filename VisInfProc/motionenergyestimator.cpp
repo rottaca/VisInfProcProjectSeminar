@@ -54,8 +54,8 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
 
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
-    qDebug("Destroying motion energy estimator...");
-    qDebug("Peak event count per computation: %d",gpuEventListSizeAllocated);
+    PRINT_DEBUG("Destroying motion energy estimator...");
+    PRINT_DEBUG_FMT("Peak event count per computation: %d",gpuEventListSizeAllocated);
     for(int i = 0; i < orientations.length(); i++) {
         delete fset[i];
         for(int j = 0; j < FILTERS_PER_ORIENTATION; j++) {
@@ -138,7 +138,7 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     // Do we have an event with older timestamp?
     else if (lastEventTime > e.timestamp) {
         // TODO Check
-        qDebug("Event is not in order according to timestamp! Restarting Buffers...");
+        qCritical("Event is not in order according to timestamp! Restarting Buffers...");
         reset();
     }
 

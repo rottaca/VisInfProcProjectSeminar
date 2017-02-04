@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <cstring>
 #include <QDebug>
+#include "settings.h"
 
 BaseBuffer::BaseBuffer()
 {
@@ -64,8 +65,6 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
         memcpy(cpuBuffer,other.getCPUPtr(),szNew*sizeof(float));
         gpuValid = false;
         cpuValid = true;
-    } else {
-        qDebug("Buffer empty, can't copy!");
     }
 }
 
