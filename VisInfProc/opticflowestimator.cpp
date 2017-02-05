@@ -6,7 +6,7 @@
 #include "cuda_helper.h"
 #include <nvToolsExt.h>
 
-
+#include <QElapsedTimer>
 
 OpticFlowEstimator::OpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations)
 {
@@ -146,10 +146,9 @@ void OpticFlowEstimator::process()
     nvtxMark("Upload Events");
 #endif
     // Upload event lists to gpu
-    //qDebug("Upload events");
     for(int i = 0; i < energyEstimatorCnt; i++) {
         if(somethingToDo[i])
-            motionEnergyEstimators[i]->startUploadEventsAsync();
+            motionEnergyEstimators[i]->uploadEvents();
     }
 
 #ifndef NDEBUG

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>780</width>
-    <height>782</height>
+    <width>852</width>
+    <height>756</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -63,7 +63,7 @@ QGroupBox::title {
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tab_online">
           <attribute name="title">
@@ -103,7 +103,7 @@ QGroupBox::title {
               <item>
                <widget class="QPlainTextEdit" name="te_comands">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -338,7 +338,7 @@ QGroupBox::title {
            <item>
             <widget class="QGroupBox" name="groupBox_9">
              <property name="title">
-              <string>Optic Flow Computation</string>
+              <string>Optic Flow Settings</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_6">
               <item row="0" column="0">
@@ -592,55 +592,7 @@ QGroupBox::title {
        <string>Views</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="0" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_motion">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_flow">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_events">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
         <widget class="AspectRatioPixmapLabel" name="l_img_debug">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -656,8 +608,24 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="AspectRatioPixmapLabel" name="l_events">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_ctrl_1">
+        <widget class="AspectRatioPixmapLabel" name="l_motion">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -673,7 +641,39 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="1" column="2">
+        <widget class="AspectRatioPixmapLabel" name="l_flow">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
         <widget class="AspectRatioPixmapLabel" name="l_ctrl_2">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>1</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="scaledContents">
+          <bool>false</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="AspectRatioPixmapLabel" name="l_ctrl_1">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -701,32 +701,6 @@ QGroupBox::title {
         <number>9</number>
        </property>
        <item row="0" column="0">
-        <widget class="QLabel" name="l_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Timestamp:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="l_timestamp">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
         <widget class="QLabel" name="l_timestamp_5">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -739,33 +713,7 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="l_timestamp_6">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>Skipped Events:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="l_timestamp_4">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string>ProcessingRatio:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
+       <item row="0" column="1">
         <widget class="QLabel" name="l_rec_ev_cnt">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -778,7 +726,20 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="1" column="0">
+        <widget class="QLabel" name="l_timestamp_6">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>Skipped Events:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
         <widget class="QLabel" name="l_skip_ev_cnt">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -791,7 +752,20 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
+       <item row="2" column="0">
+        <widget class="QLabel" name="l_timestamp_4">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="text">
+          <string>ProcessingRatio:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
         <widget class="QLabel" name="l_proc_ratio">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -804,14 +778,14 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="label_11">
          <property name="text">
           <string>Control Output:</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="3" column="1">
         <widget class="QLabel" name="l_ctrl_output">
          <property name="text">
           <string/>

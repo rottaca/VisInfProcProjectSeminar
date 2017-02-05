@@ -12,8 +12,9 @@
 // GUI
 *****************************************************************/
 // GUI refresh rate
-#define FPS 25
-
+#define GUI_RENDERING_FPS 25
+// Refreshrate of statistics
+#define GUI_STAT_UPDATE_FPS 5
 
 /*****************************************************************
 // OpticFlow estimator

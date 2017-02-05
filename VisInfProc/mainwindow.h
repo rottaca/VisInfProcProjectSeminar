@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QTime>
 #include <QImage>
+#include <QElapsedTimer>
 
 #include "buffer1d.h"
 #include "buffer2d.h"
@@ -68,7 +69,7 @@ private:
     QTime lastStatisticsUpdate;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
-    Buffer2D oppMoEnergy, speed,energy,dir;
+    Buffer2D motionEnergy, speed,energy,dir;
     QImage rgbImg;
     char* gpuRgbImage;
 

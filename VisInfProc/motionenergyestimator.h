@@ -62,7 +62,7 @@ public:
     /**
      * @brief startUploadEventsAsync Starts the async uploading of the new event list into gpu memory
      */
-    void startUploadEventsAsync();
+    void uploadEvents();
     /**
      * @brief startProcessEventsBatchAsync Starts the async processing of events (convolution)
      *        after syncronizing related streams
@@ -171,8 +171,6 @@ private:
     QList<eDVSInterface::DVSEvent> timeWindowEvents;
     // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
-    // All events in the current timeslot
-    SlotEventData timeSlotEvents[2];
     // Pointer to both time slot event lists
     SlotEventData* eventsR, *eventsW;
     // Mutex for accessing event list write ptr

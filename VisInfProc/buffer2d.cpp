@@ -20,6 +20,7 @@ Buffer2D::Buffer2D(int sx, int sy):BaseBuffer()
     createCPUBuffer(itemCnt);
     memset(cpuBuffer,0,itemCnt*sizeof(float));
     cpuValid = true;
+    qImage = QImage(sx,sy,QImage::Format_RGB888);
 }
 Buffer2D::Buffer2D(const Buffer2D& other):BaseBuffer()
 {
@@ -60,9 +61,10 @@ void Buffer2D::resize(int sx, int sy)
     createGPUBuffer(itemCnt);
     cpuValid = true;
     gpuValid = true;
+    qImage = QImage(sx,sy,QImage::Format_RGB888);
 }
 
-QImage Buffer2D::toImage(float min, float max) const
+QImage &Buffer2D::toImage(float min, float max) const
 {
     float mx = max;
     float mn = min;
@@ -82,17 +84,18 @@ QImage Buffer2D::toImage(float min, float max) const
     if(!gpuValid)
         uploadBuffer();
 
-    QImage img(sx,sy,QImage::Format_RGB888);
-
     if(gpuImage == NULL)
         gpuImage = static_cast<unsigned char*>(cudaCreateBuffer(itemCnt*3));
 
+    if(qImage.width() != sx || qImage.height() != sy)
+        qImage = QImage(sx,sy,QImage::Format_RGB888);
+
     cuda2DBufferToRGBImage(sx,sy,mn,mx,gpuBuffer,gpuImage,cudaStream);
-    cudaDownloadBuffer(gpuImage,img.bits(),itemCnt*3,cudaStream);
+    cudaDownloadBuffer(gpuImage,qImage.bits(),itemCnt*3,cudaStream);
 
 #ifndef NDEBUG
     nvtxRangeEnd(id);
 #endif
 
-    return img;
+    return qImage;
 }

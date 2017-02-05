@@ -35,10 +35,11 @@ public:
     }
 
     void resize(int sx, int sy);
-    QImage toImage(float min = 0, float max = 0) const;
+    QImage& toImage(float min = 0, float max = 0) const;
 
 private:
     int sx,sy;
+    mutable QImage qImage;
 };
 
 #endif // FILTER2D_H

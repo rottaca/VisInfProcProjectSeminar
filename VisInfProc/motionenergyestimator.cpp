@@ -119,7 +119,6 @@ void MotionEnergyEstimator::reset()
 
 bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
 {
-
     eventStatisticsMutex.lock();
     eventsAll++;
     eventStatisticsMutex.unlock();
@@ -148,7 +147,6 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor(deltaT/timePerSlot);
 
-    //qDebug("Skip Slots: %d",timeSlotsToSkip);
     if(timeSlotsToSkip != 0) {
         // Flip lists
         eventReadMutex.lock();
@@ -159,7 +157,7 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
             eventsSkipped+=eventsR->events.length();
             eventStatisticsMutex.unlock();
         }
-        //qDebug("Flip lists");
+
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;
@@ -170,13 +168,12 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
 
         if(eventsR->events.length() > 0)
             eventListReady = true;
-        //qDebug("Lists flipped");
+
         eventReadMutex.unlock();
         // Clear events for new data
         eventsW->events.clear();
     }
     eventsW->events.append(ev);
-    //qDebug("Event added");
 
     // Update events in timewindow
     eventsInWindowMutex.lock();
@@ -189,7 +186,7 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     return eventListReady;
 }
 
-void MotionEnergyEstimator::startUploadEventsAsync()
+void MotionEnergyEstimator::uploadEvents()
 {
     eventReadMutex.lock();
     if(eventsR->events.size() > 0) {
@@ -213,16 +210,17 @@ void MotionEnergyEstimator::startUploadEventsAsync()
             gpuEventListSizeAllocated = cnt;
         }
 
-        // Start asynchonous memcpy
+        // Upload events
 #ifndef NDEBUG
         nvtxMark("Copy events");
 #endif
         gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),
                                   sizeof(SimpleEvent)*cnt,cudaMemcpyHostToDevice,
                                   cudaStreams[DEFAULT_STREAM_ID]));
+        cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
         gpuEventListSize = cnt;
 
-        // Clear list and wait for next one
+        // Clear list
         eventsR->events.clear();
     }
     eventReadMutex.unlock();
@@ -235,7 +233,6 @@ void MotionEnergyEstimator::startUploadEventsAsync()
 void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
     assert(gpuEventList != NULL);
-    cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
 
     for(int i = 0; i < bufferFilterCount; i++) {
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,

@@ -32,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent) :
     initUI();
     initSignalsAndSlots();
 
-    updateTimer.start(1000/FPS);
+    updateTimer.start(1000/GUI_RENDERING_FPS);
 }
 MainWindow::~MainWindow()
 {
@@ -73,7 +73,11 @@ void MainWindow::initSystem()
     energy.setCudaStream(cudaStream);
     speed.setCudaStream(cudaStream);
     dir.setCudaStream(cudaStream);
-    oppMoEnergy.setCudaStream(cudaStream);
+    motionEnergy.setCudaStream(cudaStream);
+    energy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
+    speed.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
+    dir.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
+    motionEnergy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
 
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
     settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
@@ -132,64 +136,76 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
-    // TODO Speedup visualization code
+
     if(worker.isInitialized() && !ui->cb_disable_render->isChecked()) {
+
         int orientIdx = ui->cb_show_orient->currentIndex();
         int speedIdx = ui->cb_show_speed->currentIndex();
 
-        quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,oppMoEnergy);
-        if(time != UINT32_MAX) {
-            if(ui->cb_debug->isChecked()) {
-//                Buffer3D en;
-//                worker.getConvBuffer(speedIdx,orientIdx,0,en);
-//                QImage imgConv = en.toImageXZ(63);
-//                ui->l_img_debug->setPixmap(QPixmap::fromImage(imgConv));
-                worker.getOpticFlow(speed,dir,energy);
+        if(ui->cb_debug->isChecked()) {
+            quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,motionEnergy);
+            if(time != UINT32_MAX) {
+                worker.getOpticFlowEnergy(energy,dir,speedIdx);
 
-                cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
-                              DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,
-                              settings.back().speed_px_per_sec,
-                              cudaStream);
+                QImage img1 = motionEnergy.toImage(0,1.0f);
+                ui->l_motion->setPixmap(QPixmap::fromImage(img1));
+
+                cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
+                              DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
                 gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
                                           DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                           cudaMemcpyDeviceToHost,cudaStream));
                 cudaStreamSynchronize(cudaStream);
-                ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbImg));
+                ui->l_flow->setPixmap(QPixmap::fromImage(rgbImg));
 
-                QImage engImage = energy.toImage(0,1);
-                ui->l_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
             }
+        }
 
-            worker.getOpticFlowEnergy(energy,dir,speedIdx);
+        worker.getOpticFlow(speed,dir,energy);
 
-            QImage img1 = oppMoEnergy.toImage(0,1.0f);
-            ui->l_motion->setPixmap(QPixmap::fromImage(img1));
+        cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
+                      DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,
+                      settings.back().speed_px_per_sec,
+                      cudaStream);
+        gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
+                                  DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
+                                  cudaMemcpyDeviceToHost,cudaStream));
+        cudaStreamSynchronize(cudaStream);
+        ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbImg));
 
-            cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
-                          DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
-            gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
-                                      DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
-                                      cudaMemcpyDeviceToHost,cudaStream));
-            cudaStreamSynchronize(cudaStream);
-            ui->l_flow->setPixmap(QPixmap::fromImage(rgbImg));
+        if(ui->cb_debug->isChecked()) {
+            QImage engImage = energy.toImage(0,1);
+            ui->l_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
+        }
 
-        } else {
-            //qDebug("No new data available!");
+        rgbImg.fill(Qt::white);
+        QPainter painter(&rgbImg);
+
+        QList<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
+        if(ev.length() > 0) {
+            QPoint points[ev.length()];
+            painter.setPen(QPen(Qt::black));
+            for(int i = 0; i < ev.length(); i++) {
+                points[i].setX(ev.at(i).posX);
+                points[i].setY(ev.at(i).posY);
+            }
+            painter.drawPoints(points,ev.length());
         }
 
         if(ui->cb_debug->isChecked()) {
+            painter.setPen(QPen(Qt::red,2));
+            painter.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
+            painter.setPen(QPen(Qt::blue,2));
+
             float fxL,fxR,fyL,fyR;
-            QImage imgAvg(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
-            imgAvg.fill(Qt::white);
-            QPainter paint2(&imgAvg);
             QPoint p1L,p1R,p1C,p2L,p2R,p2C;
 
             //paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
-            float maxLDraw = DVS_RESOLUTION_WIDTH/4;
-            float maxLength = 60;
+            float maxLDraw = DVS_RESOLUTION_WIDTH/4.0f;
+            float maxLength = settings.back().speed_px_per_sec; // Fastest speed as maximum
             p1L.setX(DVS_RESOLUTION_WIDTH/4);
             p1L.setY(DVS_RESOLUTION_HEIGHT/2);
-            p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4);
+            p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4.0f);
             p1R.setY(DVS_RESOLUTION_HEIGHT/2);
             p1C.setX(DVS_RESOLUTION_WIDTH/2);
             p1C.setY(DVS_RESOLUTION_HEIGHT*2/3);
@@ -201,64 +217,37 @@ void MainWindow::onUpdate()
             float scaleR = lR/maxLength;
             float lC = qAbs(lR-lL);
             float scaleC = lC/maxLength;
-            QPen black(Qt::black);
-            paint2.setPen(black);
-            QRect rectL(0,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
-            QRect rectR(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
 
-            QColor c;
             if(scaleL > 0.01f) {
                 p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
-                int angle = (static_cast<int>(atan2(fyL,fxL)*180/M_PI + 360) % 360);
-
-                c.setHsv(angle,static_cast<int>(qMin(255.f,255*scaleL)),255);
-                paint2.fillRect(rectL,QBrush(c));
-                paint2.drawLine(p1L,p2L);
+                painter.drawLine(p1L,p2L);
             }
             if(scaleR > 0.01f) {
                 p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
-                int angle = (static_cast<int>(atan2(fyR,fxR)*180/M_PI + 360) % 360);
-
-                c.setHsv(angle,static_cast<int>(qMin(255.f,255*scaleR)),255);
-                paint2.fillRect(rectR,QBrush(c));
-                paint2.drawLine(p1R,p2R);
+                painter.drawLine(p1R,p2R);
             }
             if(scaleC > 0.01) {
                 p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
-                paint2.drawLine(p1C,p2C);
+                painter.drawLine(p1C,p2C);
             }
+        }
 
-            paint2.end();
-            ui->l_ctrl_1->setPixmap(QPixmap::fromImage(imgAvg));
-        }
-        QList<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
-        if(ev.length() > 0) {
-            QPoint points[ev.length()];
-            for(int i = 0; i < ev.length(); i++) {
-                points[i].setX(ev.at(i).posX);
-                points[i].setY(ev.at(i).posY);
-            }
-            QImage img(DVS_RESOLUTION_HEIGHT,DVS_RESOLUTION_WIDTH,QImage::Format_RGB888);
-            img.fill(Qt::white);
-            QPainter painter(&img);
-            painter.drawPoints(points,ev.length());
-            painter.end();
-            ui->l_events->setPixmap(QPixmap::fromImage(img));
-        }
-        if(lastStatisticsUpdate.elapsed() > 500) {
-            quint32 evRec = 0, evDisc = 0;
-            worker.getStats(evRec,evDisc);
-            float p = 0;
-            if(evRec > 0)
-                p = 1- (float)evDisc/evRec;
+        painter.end();
+        ui->l_events->setPixmap(QPixmap::fromImage(rgbImg));
 
-            ui->l_proc_ratio->setText(QString("%1 %").arg(p*100,0,'g',4));
-            ui->l_skip_ev_cnt->setNum((int)evDisc);
-            ui->l_rec_ev_cnt->setNum((int)evRec);
-            ui->l_timestamp->setNum((int)time);
-            ui->l_ctrl_output->setText(QString("%1").arg(pushBotController.getCtrlOutput()));
-            lastStatisticsUpdate.restart();
-        }
+    }
+    if(lastStatisticsUpdate.elapsed() > 1000.0f*1.0f/GUI_STAT_UPDATE_FPS) {
+        quint32 evRec = 0, evDisc = 0;
+        worker.getStats(evRec,evDisc);
+        float p = 0;
+        if(evRec > 0)
+            p = 1- (float)evDisc/evRec;
+
+        ui->l_proc_ratio->setText(QString("%1 %").arg(p*100,0,'g',4));
+        ui->l_skip_ev_cnt->setNum((int)evDisc);
+        ui->l_rec_ev_cnt->setNum((int)evRec);
+        ui->l_ctrl_output->setText(QString("%1").arg(pushBotController.getCtrlOutput()));
+        lastStatisticsUpdate.restart();
     }
 }
 
