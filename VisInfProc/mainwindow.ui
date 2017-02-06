@@ -319,14 +319,24 @@ QGroupBox::title {
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <item>
-               <widget class="QCheckBox" name="cb_debug">
+               <widget class="QRadioButton" name="rb_normal">
                 <property name="text">
-                 <string>Debug Mode</string>
+                 <string>Normal</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="cb_disable_render">
+               <widget class="QRadioButton" name="rb_debug">
+                <property name="text">
+                 <string>Debug</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QRadioButton" name="rb_disable_render">
                 <property name="text">
                  <string>Disable Rendering</string>
                 </property>
@@ -593,7 +603,7 @@ QGroupBox::title {
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
        <item row="1" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_img_debug">
+        <widget class="AspectRatioPixmapLabel" name="l_img_flow">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -609,7 +619,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="0" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_events">
+        <widget class="AspectRatioPixmapLabel" name="l_img_events">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -625,7 +635,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="0" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_motion">
+        <widget class="AspectRatioPixmapLabel" name="l_img_energy">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -641,7 +651,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="1" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_flow">
+        <widget class="AspectRatioPixmapLabel" name="l_img_flow_energy">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -657,7 +667,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="1" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_ctrl_2">
+        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_2">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -673,7 +683,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="0" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_ctrl_1">
+        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_1">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>

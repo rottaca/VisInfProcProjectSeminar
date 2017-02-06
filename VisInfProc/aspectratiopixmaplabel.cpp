@@ -35,3 +35,9 @@ void AspectRatioPixmapLabel::resizeEvent(QResizeEvent * e)
     if(!pix.isNull())
         QLabel::setPixmap(scaledPixmap());
 }
+
+void AspectRatioPixmapLabel::clear()
+{
+    pix = QPixmap();
+    QLabel::clear();
+}

@@ -64,7 +64,7 @@ void MainWindow::initUI()
     ui->sb_pushbot_i->setValue(PUSHBOT_DEFAULT_PID_I);
     ui->sb_pushbot_d->setValue(PUSHBOT_DEFAULT_PID_D);
 
-    onToggleDebug();
+    onChangeRenderMode();
 }
 
 void MainWindow::initSystem()
@@ -134,24 +134,26 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->sb_pushbot_p,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotP(double)));
     connect(ui->sb_pushbot_i,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotI(double)));
     connect(ui->sb_pushbot_d,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotD(double)));
-    connect(ui->cb_debug,SIGNAL(clicked()),this,SLOT(onToggleDebug()));
+    connect(ui->rb_debug,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
+    connect(ui->rb_normal,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
+    connect(ui->rb_disable_render,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
 }
 
 void MainWindow::onUpdate()
 {
 
-    if(worker.isInitialized() && !ui->cb_disable_render->isChecked()) {
-
+    if(worker.isInitialized() && !ui->rb_disable_render->isChecked()) {
+        bool debugMode = ui->rb_debug->isChecked();
         int orientIdx = ui->cb_show_orient->currentIndex();
         int speedIdx = ui->cb_show_speed->currentIndex();
 
-        if(ui->cb_debug->isChecked()) {
+        if(debugMode) {
             quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,motionEnergy);
             if(time != UINT32_MAX) {
                 worker.getOpticFlowEnergy(energy,dir,speedIdx);
 
                 QImage img1 = motionEnergy.toImage(0,1.0f);
-                ui->l_motion->setPixmap(QPixmap::fromImage(img1));
+                ui->l_img_energy->setPixmap(QPixmap::fromImage(img1));
 
                 cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
                               DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
@@ -159,7 +161,7 @@ void MainWindow::onUpdate()
                                           DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                           cudaMemcpyDeviceToHost,cudaStream));
                 cudaStreamSynchronize(cudaStream);
-                ui->l_flow->setPixmap(QPixmap::fromImage(rgbImg));
+                ui->l_img_flow_energy->setPixmap(QPixmap::fromImage(rgbImg));
 
             }
         }
@@ -174,11 +176,11 @@ void MainWindow::onUpdate()
                                   DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                   cudaMemcpyDeviceToHost,cudaStream));
         cudaStreamSynchronize(cudaStream);
-        ui->l_img_debug->setPixmap(QPixmap::fromImage(rgbImg));
+        ui->l_img_flow->setPixmap(QPixmap::fromImage(rgbImg));
 
-        if(ui->cb_debug->isChecked()) {
+        if(debugMode) {
             QImage engImage = energy.toImage(0,1);
-            ui->l_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
+            ui->l_img_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
         }
 
         rgbImg.fill(Qt::white);
@@ -195,7 +197,7 @@ void MainWindow::onUpdate()
             painter.drawPoints(points,ev.length());
         }
 
-        if(ui->cb_debug->isChecked()) {
+        if(debugMode) {
             painter.setPen(QPen(Qt::red,2));
             painter.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
             painter.setPen(QPen(Qt::blue,2));
@@ -236,7 +238,7 @@ void MainWindow::onUpdate()
         }
 
         painter.end();
-        ui->l_events->setPixmap(QPixmap::fromImage(rgbImg));
+        ui->l_img_events->setPixmap(QPixmap::fromImage(rgbImg));
 
     }
     if(lastStatisticsUpdate.elapsed() > 1000.0f*1.0f/GUI_STAT_UPDATE_FPS) {
@@ -273,6 +275,11 @@ void MainWindow::onClickStartPlayback()
         ui->gb_playback_settings->setEnabled(true);
     } else {
         PRINT_DEBUG("Start Playback");
+        ui->l_img_flow->clear();
+        ui->l_img_ctrl_1->clear();
+        ui->l_img_ctrl_2->clear();
+        ui->l_img_events->clear();
+        ui->l_img_flow_energy->clear();
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
         ui->gb_playback_settings->setEnabled(false);
@@ -307,6 +314,11 @@ void MainWindow::onConnectionResult(bool error)
         ui->b_start_streaming->setEnabled(true);
         ui->b_reset->setEnabled(true);
         ui->gb_connect_settings->setEnabled(false);
+        ui->l_img_flow->clear();
+        ui->l_img_ctrl_1->clear();
+        ui->l_img_ctrl_2->clear();
+        ui->l_img_events->clear();
+        ui->l_img_flow_energy->clear();
     } else {
         QMessageBox::critical(this,"Error","Failed to connect!");
     }
@@ -401,17 +413,28 @@ void MainWindow::onChangePushbotD(double v)
     pushBotController.setD(v);
 }
 
-void MainWindow::onToggleDebug()
+void MainWindow::onChangeRenderMode()
 {
-    if(ui->cb_debug->isChecked()) {
-        ui->l_motion->show();
-        ui->l_flow->show();
-        ui->l_ctrl_1->show();
-        ui->l_ctrl_2->show();
+    if(ui->rb_debug->isChecked()) {
+        ui->l_img_events->show();
+        ui->l_img_flow->show();
+        ui->l_img_energy->show();
+        ui->l_img_flow_energy->show();
+        ui->l_img_ctrl_1->show();
+        ui->l_img_ctrl_2->show();
+    } else if(ui->rb_disable_render->isChecked()) {
+        ui->l_img_events->hide();
+        ui->l_img_flow->hide();
+        ui->l_img_energy->hide();
+        ui->l_img_flow_energy->hide();
+        ui->l_img_ctrl_1->hide();
+        ui->l_img_ctrl_2->hide();
     } else {
-        ui->l_motion->hide();
-        ui->l_flow->hide();
-        ui->l_ctrl_1->hide();
-        ui->l_ctrl_2->hide();
+        ui->l_img_events->show();
+        ui->l_img_flow->show();
+        ui->l_img_energy->hide();
+        ui->l_img_flow_energy->hide();
+        ui->l_img_ctrl_1->hide();
+        ui->l_img_ctrl_2->hide();
     }
 }
