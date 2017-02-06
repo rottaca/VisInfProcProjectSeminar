@@ -49,6 +49,7 @@ public slots:
     void onChangePushbotP(double v);
     void onChangePushbotI(double v);
     void onChangePushbotD(double v);
+    void onToggleDebug();
 
 signals:
     void sendRawCmd(QString cmd);

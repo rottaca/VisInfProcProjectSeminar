@@ -63,6 +63,8 @@ void MainWindow::initUI()
     ui->sb_pushbot_p->setValue(PUSHBOT_DEFAULT_PID_P);
     ui->sb_pushbot_i->setValue(PUSHBOT_DEFAULT_PID_I);
     ui->sb_pushbot_d->setValue(PUSHBOT_DEFAULT_PID_D);
+
+    onToggleDebug();
 }
 
 void MainWindow::initSystem()
@@ -132,6 +134,7 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->sb_pushbot_p,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotP(double)));
     connect(ui->sb_pushbot_i,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotI(double)));
     connect(ui->sb_pushbot_d,SIGNAL(valueChanged(double)),this,SLOT(onChangePushbotD(double)));
+    connect(ui->cb_debug,SIGNAL(clicked()),this,SLOT(onToggleDebug()));
 }
 
 void MainWindow::onUpdate()
@@ -396,4 +399,19 @@ void MainWindow::onChangePushbotI(double v)
 void MainWindow::onChangePushbotD(double v)
 {
     pushBotController.setD(v);
+}
+
+void MainWindow::onToggleDebug()
+{
+    if(ui->cb_debug->isChecked()) {
+        ui->l_motion->show();
+        ui->l_flow->show();
+        ui->l_ctrl_1->show();
+        ui->l_ctrl_2->show();
+    } else {
+        ui->l_motion->hide();
+        ui->l_flow->hide();
+        ui->l_ctrl_1->hide();
+        ui->l_ctrl_2->hide();
+    }
 }

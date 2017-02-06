@@ -200,6 +200,10 @@ void eDVSInterface::_processSocket()
     }
 
     DVSEvent eNew;
+    quint32 startTimestamp = UINT32_MAX;
+    QElapsedTimer timeMeasure;
+    char c;
+
     while(opModeLocal == ONLINE ||
             opModeLocal == ONLINE_STREAMING) {
         {
@@ -214,7 +218,13 @@ void eDVSInterface::_processSocket()
 
             // Normal command mode
             if(opModeLocal == ONLINE) {
+                // Reset streaming time
+                if(startTimestamp != UINT32_MAX) {
+                    startTimestamp = UINT32_MAX;
+                }
+                // Wait for command bytes
                 if(socket.waitForReadyRead(10)) {
+                    // Read data and remove newline
                     QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
                     PRINT_DEBUG_FMT("Recieved: %s",line.toLocal8Bit().data());
                     emit onLineRecived(line);
@@ -222,15 +232,30 @@ void eDVSInterface::_processSocket()
                 // Streaming mode
             } else {
                 if(socket.bytesAvailable()) {
-                    char c;
                     socket.getChar(&c);
                     if(processingWorker != NULL &&
                             evBuilderProcessNextByte(c,eNew)) {
-                        // TODO Sleep delta time
-                        processingWorker->nextEvent(eNew);
+                        // send first event directly and start timer
+                        if(startTimestamp == UINT32_MAX) {
+                            processingWorker->nextEvent(eNew);
+                            startTimestamp = eNew.timestamp;
+                            timeMeasure.restart();
+                        }
+                        // Compute sleep time
+                        else {
+                            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+                            quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
+                            // Sleep if necessary
+                            if(elapsedTimeEvents > elapsedTimeReal) {
+                                quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
+                                QThread::usleep(sleepTime);
+                            }
+
+                            processingWorker->nextEvent(eNew);
+                        }
                     }
                 } else {
-                    // TODO Busy waiting
+                    // TODO Busy waiting bad here ?
                     QThread::usleep(1);
                 }
             }

@@ -17,7 +17,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     this->orientations = orientations;
 
     timePerSlot =(float)fsettings.timewindow_us/fsettings.temporalSteps;
-    bufferFilterCount = orientations.length()*FILTERS_PER_ORIENTATION;
+    filterCount = orientations.length()*FILTERS_PER_ORIENTATION;
 
     gpuEventList = NULL;
     gpuEventListSize = 0;
@@ -26,10 +26,10 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     eventsR = new SlotEventData();
     eventsW = new SlotEventData();
     fset = new FilterSet*[orientations.length()];
-    cpuArrCpuConvBuffers = new Buffer3D*[bufferFilterCount];
-    cpuArrGpuFilters = new float* [bufferFilterCount];
-    cpuArrGpuConvBuffers = new float* [bufferFilterCount];
-    cudaStreams = new cudaStream_t[bufferFilterCount];
+    cpuArrCpuConvBuffers = new Buffer3D*[filterCount];
+    cpuArrGpuFilters = new float* [filterCount];
+    cpuArrGpuConvBuffers = new float* [filterCount];
+    cudaStreams = new cudaStream_t[filterCount];
 
     for(int i = 0; i < orientations.length(); i++) {
         fset[i] = new FilterSet(fs,orientations.at(i));
@@ -124,9 +124,6 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     eventStatisticsMutex.unlock();
     QMutexLocker locker(&eventWriteMutex);
 
-    SimpleEvent ev;
-    ev.x = e.posX;
-    ev.y = e.posY;
 
     // Get time from first event as reference
     if(startTime == UINT32_MAX) {
@@ -136,9 +133,10 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
     }
     // Do we have an event with older timestamp?
     else if (lastEventTime > e.timestamp) {
-        // TODO Check
         qCritical("Event is not in order according to timestamp! Restarting Buffers...");
         reset();
+        // TODO Don't throw away the current event
+        return false;
     }
 
     lastEventTime = startTime;
@@ -155,17 +153,19 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
             //qDebug("Events skipped: %d",eventsR->events.length());
             eventStatisticsMutex.lock();
             eventsSkipped+=eventsR->events.length();
+            PRINT_DEBUG_FMT("[MotionEnergyEstimator] Skipped %d events.",eventsR->events.length());
             eventStatisticsMutex.unlock();
         }
-
+        // Flip lists
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;
-
+        // Aggregate slots to skip
         eventsR->slotsToSkip=eventsROld->slotsToSkip+timeSlotsToSkip;
         eventsW->slotsToSkip = 0;
+        // Adjust new window start time
         eventsW->currWindowStartTime=eventsR->currWindowStartTime + timePerSlot*timeSlotsToSkip;
-
+        // Is data for processing ready ?
         if(eventsR->events.length() > 0)
             eventListReady = true;
 
@@ -173,14 +173,20 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
         // Clear events for new data
         eventsW->events.clear();
     }
-    eventsW->events.append(ev);
+    // Add simplified event to new write list
+    eventsW->events.append((SimpleEvent) {
+        e.posX,
+        e.posY
+    });
 
     // Update events in timewindow
     eventsInWindowMutex.lock();
-    timeWindowEvents.push_back(e);
+    // Remove old events
     while(timeWindowEvents.size() > 0
             && timeWindowEvents.front().timestamp < eventsW->currWindowStartTime - fsettings.timewindow_us)
         timeWindowEvents.pop_front();
+    // Add new event
+    timeWindowEvents.push_back(e);
     eventsInWindowMutex.unlock();
 
     return eventListReady;
@@ -234,7 +240,7 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
     assert(gpuEventList != NULL);
 
-    for(int i = 0; i < bufferFilterCount; i++) {
+    for(int i = 0; i < filterCount; i++) {
         cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,
                                     cpuArrGpuFilters[i],fsx,fsy,fsz,
                                     cpuArrGpuConvBuffers[i],ringBufferIdx,

@@ -138,7 +138,7 @@ private:
     cudaStream_t* cudaStreams;
 
     // Amount of convolution filters and buffers (4*orientationCnt)
-    int bufferFilterCount;
+    int filterCount;
 
     // All orientations
     QVector<float> orientations;
