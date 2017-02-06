@@ -66,12 +66,12 @@ public:
         ofe->getConvBuffer(filterNr,orientationIdx,pairIdx,convBuffer);
     }
 
-    void getStats(quint32 &recievedEvents, quint32 &dischargedEvents)
+    void getStats(quint32 &recievedEvents, quint32 &dischargedEvents, int filterNr)
     {
         //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
-        ofe->getEventStatistics(recievedEvents,dischargedEvents);
+        ofe->getEventStatistics(recievedEvents,dischargedEvents,filterNr);
     }
     void setEnergyThreshold(float v)
     {

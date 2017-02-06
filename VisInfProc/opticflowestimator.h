@@ -112,24 +112,9 @@ public:
      * @param all
      * @param skipped
      */
-    void getEventStatistics( quint32 &all, quint32 &skipped)
+    void getEventStatistics( quint32 &all, quint32 &skipped, int filterNr)
     {
-        quint32 tmpAll,tmpSkipped;
-        all = 0;
-        skipped = 0;
-        float ratio = 0, tmpRatio = 0;
-        int idx = 0;
-        for(int i = 0; i < energyEstimatorCnt; i++) {
-            motionEnergyEstimators[i]->getEventStatistics(tmpAll,tmpSkipped);
-            tmpRatio = (float)tmpSkipped/tmpAll;
-            if(ratio < tmpRatio) {
-                all = tmpAll;
-                skipped = tmpSkipped;
-                ratio = tmpRatio;
-                idx = i;
-            }
-        }
-        PRINT_DEBUG_FMT("Speed index most loss: %d",idx);
+        motionEnergyEstimators[filterNr]->getEventStatistics(all,skipped);
     }
 
     /**

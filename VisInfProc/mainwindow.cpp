@@ -141,11 +141,11 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
+    bool debugMode = ui->rb_debug->isChecked();
+    int orientIdx = ui->cb_show_orient->currentIndex();
+    int speedIdx = ui->cb_show_speed->currentIndex();
 
     if(worker.isInitialized() && !ui->rb_disable_render->isChecked()) {
-        bool debugMode = ui->rb_debug->isChecked();
-        int orientIdx = ui->cb_show_orient->currentIndex();
-        int speedIdx = ui->cb_show_speed->currentIndex();
 
         if(debugMode) {
             quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,motionEnergy);
@@ -243,7 +243,7 @@ void MainWindow::onUpdate()
     }
     if(lastStatisticsUpdate.elapsed() > 1000.0f*1.0f/GUI_STAT_UPDATE_FPS) {
         quint32 evRec = 0, evDisc = 0;
-        worker.getStats(evRec,evDisc);
+        worker.getStats(evRec,evDisc,speedIdx);
         float p = 0;
         if(evRec > 0)
             p = 1- (float)evDisc/evRec;
