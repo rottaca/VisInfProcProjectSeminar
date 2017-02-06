@@ -19,7 +19,7 @@
 #include <datatypes.h>
 
 // External defined cuda functions
-extern void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
+extern void cudaProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
                                         float* gpuFilter, int fsx, int fsy, int fsz,
                                         float* gpuBuffer, int ringBufferIdx,
                                         int bsx, int bsy, int bsz,
@@ -51,7 +51,7 @@ public:
 
     void reset();
 
-    bool onNewEvent(const eDVSInterface::DVSEvent &e);
+    bool onNewEvent(const DVSEvent &e);
     bool isEventListReady()
     {
         eventWriteMutex.lock();
@@ -94,7 +94,7 @@ public:
      * @brief getEventsInWindow Returns a vector with all events in the current time window
      * @return
      */
-    QList<eDVSInterface::DVSEvent> getEventsInWindow()
+    QList<DVSEvent> getEventsInWindow()
     {
         QMutexLocker locker(&eventsInWindowMutex);
         return timeWindowEvents;
@@ -128,7 +128,7 @@ public:
     // -> The starttime of the current time slot
     // -> All event positions
     typedef struct SlotEventData {
-        QVector<SimpleEvent> events;        // Event list (only x and y)
+        QVector<DVSEvent> events;        // Event list (only x and y)
         int slotsToSkip;                    // Timeslots to skip after processing the events
         float currWindowStartTime;         // The start time in us of the current window
     } SlotEventData;
@@ -168,7 +168,7 @@ private:
     float timePerSlot;
 
     // All events in the timewindow
-    QList<eDVSInterface::DVSEvent> timeWindowEvents;
+    QList<DVSEvent> timeWindowEvents;
     // Mutex for events in timewindow
     QMutex eventsInWindowMutex;
     // Pointer to both time slot event lists
@@ -178,7 +178,7 @@ private:
     // Mutex for accessing event list read ptr
     QMutex eventReadMutex;
     // Gpu ptr for eventsR
-    SimpleEvent* gpuEventList;
+    DVSEvent* gpuEventList;
     // Size of the uploaded event list (Event count)
     int gpuEventListSize;
     // Size of the allocated memory (Event count), increases over time to avoid reallocation for smaller blocks

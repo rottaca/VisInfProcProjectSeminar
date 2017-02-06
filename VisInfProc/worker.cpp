@@ -29,7 +29,7 @@ void Worker::setComputationParameters(QVector<FilterSettings> settings, QVector<
     if(processing)
         stopProcessing();
 
-    QMutexLocker locker(&mutex);
+    //QMutexLocker locker(&mutex);
     this->settings = settings;
     this->orientations = orientations;
 
@@ -46,7 +46,7 @@ void Worker::startProcessing()
 
     PRINT_DEBUG("Starting Worker...");
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             ofe = new OpticFlowEstimator(settings,orientations);
         else
@@ -72,14 +72,14 @@ void Worker::run()
     processing = true;
     while(processing) {
         mutex.lock();
-        // Data ready ?
-        if(wcWorkReady.wait(&mutex,100))
+        // Use wait condition to avoid busy waiting
+        if(wcWorkReady.wait(&mutex,THREAD_WAIT_TIME_MS/2))
             ofe->process();
         mutex.unlock();
     }
 }
 
-void Worker::nextEvent(const eDVSInterface::DVSEvent &event)
+void Worker::nextEvent(const DVSEvent &event)
 {
     if(!processing)
         return;

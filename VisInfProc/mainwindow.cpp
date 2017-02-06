@@ -184,13 +184,13 @@ void MainWindow::onUpdate()
         rgbImg.fill(Qt::white);
         QPainter painter(&rgbImg);
 
-        QList<eDVSInterface::DVSEvent> ev = worker.getEventsInWindow(speedIdx);
+        QList<DVSEvent> ev = worker.getEventsInWindow(speedIdx);
         if(ev.length() > 0) {
             QPoint points[ev.length()];
             painter.setPen(QPen(Qt::black));
             for(int i = 0; i < ev.length(); i++) {
-                points[i].setX(ev.at(i).posX);
-                points[i].setY(ev.at(i).posY);
+                points[i].setX(ev.at(i).x);
+                points[i].setY(ev.at(i).y);
             }
             painter.drawPoints(points,ev.length());
         }

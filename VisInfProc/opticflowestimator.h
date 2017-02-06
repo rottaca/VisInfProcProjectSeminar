@@ -31,7 +31,7 @@ public:
      * @brief onNewEvent
      * @param e
      */
-    bool onNewEvent(const eDVSInterface::DVSEvent &e);
+    bool onNewEvent(const DVSEvent &e);
     /**
      * @brief process Computes the motion energy in parallel and reads the result
      */
@@ -100,7 +100,7 @@ public:
      * @param filterNr Index of motion energy estimator
      * @return
      */
-    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr)
+    QList<DVSEvent> getEventsInWindow(int filterNr)
     {
         assert(filterNr >= 0);
         assert(filterNr < energyEstimatorCnt);
@@ -114,16 +114,22 @@ public:
      */
     void getEventStatistics( quint32 &all, quint32 &skipped)
     {
-        quint32 tmp1,tmp2;
+        quint32 tmpAll,tmpSkipped;
         all = 0;
         skipped = 0;
+        float ratio = 0, tmpRatio = 0;
+        int idx = 0;
         for(int i = 0; i < energyEstimatorCnt; i++) {
-            motionEnergyEstimators[i]->getEventStatistics(tmp1,tmp2);
-            if(tmp1 > all)
-                all = tmp1;
-            if(tmp2 > skipped)
-                skipped = tmp2;
+            motionEnergyEstimators[i]->getEventStatistics(tmpAll,tmpSkipped);
+            tmpRatio = (float)tmpSkipped/tmpAll;
+            if(ratio < tmpRatio) {
+                all = tmpAll;
+                skipped = tmpSkipped;
+                ratio = tmpRatio;
+                idx = i;
+            }
         }
+        PRINT_DEBUG_FMT("Speed index most loss: %d",idx);
     }
 
     /**

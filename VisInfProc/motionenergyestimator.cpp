@@ -117,7 +117,7 @@ void MotionEnergyEstimator::reset()
     lastEventTime = UINT32_MAX;
 }
 
-bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
+bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
 {
     eventStatisticsMutex.lock();
     eventsAll++;
@@ -174,20 +174,7 @@ bool MotionEnergyEstimator::onNewEvent(const eDVSInterface::DVSEvent &e)
         eventsW->events.clear();
     }
     // Add simplified event to new write list
-    eventsW->events.append((SimpleEvent) {
-        e.posX,
-        e.posY
-    });
-
-    // Update events in timewindow
-    eventsInWindowMutex.lock();
-    // Remove old events
-    while(timeWindowEvents.size() > 0
-            && timeWindowEvents.front().timestamp < eventsW->currWindowStartTime - fsettings.timewindow_us)
-        timeWindowEvents.pop_front();
-    // Add new event
-    timeWindowEvents.push_back(e);
-    eventsInWindowMutex.unlock();
+    eventsW->events.append(e);
 
     return eventListReady;
 }
@@ -212,7 +199,7 @@ void MotionEnergyEstimator::uploadEvents()
             nvtxMark("Alloc new Event list");
 #endif
             // Allocate buffer for event list
-            gpuErrchk(cudaMalloc(&gpuEventList,sizeof(SimpleEvent)*cnt));
+            gpuErrchk(cudaMalloc(&gpuEventList,sizeof(DVSEvent)*cnt));
             gpuEventListSizeAllocated = cnt;
         }
 
@@ -221,10 +208,21 @@ void MotionEnergyEstimator::uploadEvents()
         nvtxMark("Copy events");
 #endif
         gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),
-                                  sizeof(SimpleEvent)*cnt,cudaMemcpyHostToDevice,
+                                  sizeof(DVSEvent)*cnt,cudaMemcpyHostToDevice,
                                   cudaStreams[DEFAULT_STREAM_ID]));
         cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
         gpuEventListSize = cnt;
+
+        // Update events in timewindow
+        eventsInWindowMutex.lock();
+        // Remove old events
+        while(timeWindowEvents.size() > 0
+                && timeWindowEvents.front().timestamp < eventsR->currWindowStartTime - fsettings.timewindow_us)
+            timeWindowEvents.pop_front();
+        // Add new events
+        for(DVSEvent &e: eventsR->events)
+            timeWindowEvents.push_back(e);
+        eventsInWindowMutex.unlock();
 
         // Clear list
         eventsR->events.clear();

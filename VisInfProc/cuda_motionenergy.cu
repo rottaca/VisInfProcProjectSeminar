@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #define MAX_SHARED_GPU_EVENTS 256
-__global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
+__global__ void kernelProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
         float* gpuFilter, int fsx, int fsy, int fsz,
         float* gpuBuffer, int ringBufferIdx,
         int bsx, int bsy, int bsz,
@@ -32,7 +32,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
         int bPos_tmp = bz*bsy*bsx;
 
         // Per block shared memory
-        __shared__ SimpleEvent gpuEventListShared[MAX_SHARED_GPU_EVENTS];
+        __shared__ DVSEvent gpuEventListShared[MAX_SHARED_GPU_EVENTS];
         int eventGroupCnt = ceil(gpuEventListSize/(float)MAX_SHARED_GPU_EVENTS);
         // Load events blockwise
         for(int eventGroupIdx = 0; eventGroupIdx<eventGroupCnt; eventGroupIdx++) {
@@ -66,7 +66,7 @@ __global__ void kernelProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuE
     }
 }
 
-__host__ void cudaProcessEventsBatchAsync(SimpleEvent* gpuEventList,int gpuEventListSize,
+__host__ void cudaProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
         float* gpuFilter, int fsx, int fsy, int fsz,
         float* gpuBuffer, int ringBufferIdx,
         int bsx, int bsy, int bsz,

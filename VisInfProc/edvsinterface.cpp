@@ -467,7 +467,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     }
     timeVers = Time4Byte;
 
-    int eventCnt = buff.size()/numBytesPerEvent;
+    size_t eventCnt = buff.size()/numBytesPerEvent;
     PRINT_DEBUG_FMT("%s", QString("%1 Events.").arg(eventCnt).toLocal8Bit().data());
 
     return buff;
@@ -475,8 +475,7 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
 
 void eDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers)
 {
-
-    QMutexLocker locker(&evBuilderMutex);
+    //QMutexLocker locker(&evBuilderMutex);
     evBuilderTimestampVersion = timeVers;
     evBuilderAddressVersion = addrVers;
     evBuilderByteIdx = 0;
@@ -516,7 +515,7 @@ void eDVSInterface::initEvBuilder(AddressVersion addrVers, TimestampVersion time
 
 bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
 {
-    QMutexLocker locker(&evBuilderMutex);
+    //QMutexLocker locker(&evBuilderMutex);
     // Store byte in buffer
     evBuilderData[evBuilderByteIdx++] = c;
     if(evBuilderTimestampVersion == TimeDelta) {
@@ -544,7 +543,7 @@ bool eDVSInterface::evBuilderProcessNextByte(char c, DVSEvent &event)
     return false;
 }
 
-eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
+DVSEvent eDVSInterface::evBuilderParseEvent()
 {
     u_int32_t ad = 0,time = 0;
     int idx = 0;
@@ -612,10 +611,10 @@ eDVSInterface::DVSEvent eDVSInterface::evBuilderParseEvent()
 
     DVSEvent e;
     // Extract event from address by assuming a DVS128 camera
-    e.On = ad & 0x01;       // Polarity: LSB
+    //e.On = ad & 0x01;       // Polarity: LSB
     // flip axis to match qt's image coordinate system
-    e.posX = 127 - ((ad >> 0x01) & 0x7F);  // X: 0 - 127
-    e.posY = 127 - ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
+    e.x = 127 - ((ad >> 0x01) & 0x7F);  // X: 0 - 127
+    e.y = 127 - ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
     e.timestamp = time;
 
     return e;

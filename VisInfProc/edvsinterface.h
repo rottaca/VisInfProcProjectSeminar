@@ -6,6 +6,8 @@
 #include <QMutexLocker>
 #include <QTcpSocket>
 
+#include "datatypes.h"
+
 class Worker;
 class PushBotController;
 
@@ -13,12 +15,6 @@ class eDVSInterface: public QObject
 {
     Q_OBJECT
 public:
-
-    typedef struct DVSEvent {
-        quint8 posX, posY;
-        quint8 On;
-        quint32 timestamp;
-    } DVSEvent;
 
     typedef enum AddressVersion {Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
     typedef enum TimestampVersion {Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
@@ -212,7 +208,7 @@ private:
     quint32 evBuilderSyncTimestamp;
     // Timestamp of last event to detect overflows
     quint32 evBuilderLastTimestamp;
-    QMutex evBuilderMutex;
+    //QMutex evBuilderMutex;
 
 };
 

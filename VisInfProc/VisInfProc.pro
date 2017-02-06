@@ -14,7 +14,6 @@ TEMPLATE = app
 CONFIG(release, debug|release): DEFINES += NDEBUG
 QMAKE_CXXFLAGS += -fopenmp -lnvToolsExt
 LIBS += -fopenmp -lnvToolsExt
-
 CONFIG += c++11
 
 SOURCES += main.cpp\
@@ -64,7 +63,7 @@ CUDA_SOURCES =  cuda_helper.cu \
                 cuda_opticflow.cu
 
 CUDA_DIR = /usr/local/cuda
-CUDA_ARCH = sm_50 # as supported by the Tegra K1
+CUDA_ARCH = sm_50
 
 INCLUDEPATH += $$CUDA_DIR/include
 LIBS += -L $$CUDA_DIR/lib64 -lcuda -lcudart

@@ -33,11 +33,11 @@ public:
      * @brief nextEvent Queues the next event for asynchronous processing
      * @param event
      */
-    void nextEvent(const eDVSInterface::DVSEvent &event);
+    void nextEvent(const DVSEvent &event);
 
     quint32 getMotionEnergy(int filterNr, int orientationIdx, Buffer2D &opponentMotionEnergy)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return UINT32_MAX;
         quint32 time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
@@ -45,14 +45,14 @@ public:
     }
     void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedNr)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
         ofe->getOpticFlowEnergy(energy,dir,speedNr);
     }
     void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
         ofe->getOpticFlow(speed,dir,energy);
@@ -60,7 +60,7 @@ public:
 
     void getConvBuffer(int filterNr, int orientationIdx, int pairIdx, Buffer3D &convBuffer)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
         ofe->getConvBuffer(filterNr,orientationIdx,pairIdx,convBuffer);
@@ -68,14 +68,14 @@ public:
 
     void getStats(quint32 &recievedEvents, quint32 &dischargedEvents)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
         ofe->getEventStatistics(recievedEvents,dischargedEvents);
     }
     void setEnergyThreshold(float v)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
             return;
         ofe->setEnergyThreshold(v);
@@ -90,11 +90,11 @@ public:
         return ofe != NULL;
     }
 
-    QList<eDVSInterface::DVSEvent> getEventsInWindow(int filterNr)
+    QList<DVSEvent> getEventsInWindow(int filterNr)
     {
-        QMutexLocker locker(&mutex);
+        //QMutexLocker locker(&mutex);
         if(ofe == NULL)
-            return QList<eDVSInterface::DVSEvent>();
+            return QList<DVSEvent>();
         return ofe->getEventsInWindow(filterNr);
     }
 
