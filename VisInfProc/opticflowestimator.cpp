@@ -140,7 +140,9 @@ void OpticFlowEstimator::process()
     // Nothing to do
     if(cnt == 0)
         return;
-
+    //QElapsedTimer timer;
+    //size_t eventCnt = motionEnergyEstimators[0]->getEventsInCurrSlot();
+    //timer.start();
 #ifndef NDEBUG
     nvtxRangeId_t id = nvtxRangeStart("Processing Block");
     nvtxMark("Upload Events");
@@ -198,6 +200,7 @@ void OpticFlowEstimator::process()
         }
     }
     motionEnergyMutex.unlock();
+    //qDebug("%lu %llu",eventCnt,timer.nsecsElapsed()/1000);
 
 #ifndef NDEBUG
     nvtxRangeEnd(id);

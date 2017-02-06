@@ -235,6 +235,7 @@ void eDVSInterface::_processSocket()
                     socket.getChar(&c);
                     if(processingWorker != NULL &&
                             evBuilderProcessNextByte(c,eNew)) {
+                        // TODO Check if necessary
                         // send first event directly and start timer
                         if(startTimestamp == UINT32_MAX) {
                             processingWorker->nextEvent(eNew);
@@ -248,6 +249,7 @@ void eDVSInterface::_processSocket()
                             // Sleep if necessary
                             if(elapsedTimeEvents > elapsedTimeReal) {
                                 quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
+                                PRINT_DEBUG_FMT("Sleep: %u us",sleepTime);
                                 QThread::usleep(sleepTime);
                             }
 

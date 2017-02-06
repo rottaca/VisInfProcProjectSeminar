@@ -4,8 +4,9 @@
 
 // Only stores the necessary information for further processing on gpu
 typedef struct DVSEvent {
-    uint8_t x;
-    uint8_t y;
+    // Use 32 Bit integer to use propper alignment on GPU
+    uint32_t x;
+    uint32_t y;
     uint32_t timestamp;
 } DVSEvent;
 

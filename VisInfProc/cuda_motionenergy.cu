@@ -6,8 +6,7 @@
 #include "datatypes.h"
 #include <assert.h>
 
-#define MAX_SHARED_GPU_EVENTS 256
-__global__ void kernelProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
+__global__ void kernelProcessEventsBatchAsync(uint8_t* gpuEventsX,uint8_t* gpuEventsY,int gpuEventListSize,
         float* gpuFilter, int fsx, int fsy, int fsz,
         float* gpuBuffer, int ringBufferIdx,
         int bsx, int bsy, int bsz,
@@ -32,20 +31,25 @@ __global__ void kernelProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEven
         int bPos_tmp = bz*bsy*bsx;
 
         // Per block shared memory
-        __shared__ DVSEvent gpuEventListShared[MAX_SHARED_GPU_EVENTS];
-        int eventGroupCnt = ceil(gpuEventListSize/(float)MAX_SHARED_GPU_EVENTS);
+        __shared__ uint8_t gpuEventListSharedX[MAX_SHARED_GPU_EVENTS];
+        __shared__ uint8_t gpuEventListSharedY[MAX_SHARED_GPU_EVENTS];
+        // How many runs do we need
+        int processingRuns = ceil((float)gpuEventListSize/MAX_SHARED_GPU_EVENTS);
+        // How many events must read one thread
+        int eventReadsPerThread = ceil((float)MAX_SHARED_GPU_EVENTS/blockDim.x);
         // Load events blockwise
-        for(int eventGroupIdx = 0; eventGroupIdx<eventGroupCnt; eventGroupIdx++) {
-            int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+threadIdx.x/2;
-            // The first MAX_SHARED_GPU_EVENTS threads copy the event data into shared memory
-            if(threadIdx.x/2 < MAX_SHARED_GPU_EVENTS && globalEventIdx < gpuEventListSize) {
-                // even threads load x, odd threads load y
-                if(threadIdx.x % 2 == 0) {
-                    gpuEventListShared[threadIdx.x/2].x = gpuEventList[globalEventIdx].x;
-                } else {
-                    gpuEventListShared[threadIdx.x/2].y = gpuEventList[globalEventIdx].y;
+        for(int eventGroupIdx = 0; eventGroupIdx<processingRuns; eventGroupIdx++) {
+            // Fill the shared memory
+            for(int i = 0; i < eventReadsPerThread; i++) {
+                int localEventIdx = i*blockDim.x+threadIdx.x;
+                int globalEventIdx = eventGroupIdx*MAX_SHARED_GPU_EVENTS+localEventIdx;
+                // Valid index in event list and valid thread index for copy
+                if(globalEventIdx < gpuEventListSize && localEventIdx < MAX_SHARED_GPU_EVENTS) {
+                    gpuEventListSharedX[localEventIdx] = gpuEventsX[globalEventIdx];
+                    gpuEventListSharedY[localEventIdx] = gpuEventsY[globalEventIdx];
                 }
             }
+
             // Synchronize
             __syncthreads();
 
@@ -53,8 +57,8 @@ __global__ void kernelProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEven
             for(int localEventIdx = 0; localEventIdx < MAX_SHARED_GPU_EVENTS &&
                     eventGroupIdx*MAX_SHARED_GPU_EVENTS+localEventIdx < gpuEventListSize; localEventIdx++) {
                 // Compute corresponding buffer coordinate (flip filter x,y)
-                int bx = bx_tmp + gpuEventListShared[localEventIdx].x;
-                int by = by_tmp + gpuEventListShared[localEventIdx].y;
+                int bx = bx_tmp + gpuEventListSharedX[localEventIdx];
+                int by = by_tmp + gpuEventListSharedY[localEventIdx];
 
                 // Check for valid buffer position (filp buffer z)
                 if(bx >= 0 && bx < bsx && by >= 0 && by < bsy) {
@@ -66,7 +70,7 @@ __global__ void kernelProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEven
     }
 }
 
-__host__ void cudaProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
+__host__ void cudaProcessEventsBatchAsync(uint8_t* gpuEventsX,uint8_t* gpuEventsY,int gpuEventListSize,
         float* gpuFilter, int fsx, int fsy, int fsz,
         float* gpuBuffer, int ringBufferIdx,
         int bsx, int bsy, int bsz,
@@ -75,7 +79,7 @@ __host__ void cudaProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventLis
     int fs_xy = fsx*fsy;
     int fn = fs_xy*fsz;
     size_t blocks = ceil((float)fn/THREADS_PER_BLOCK);
-    kernelProcessEventsBatchAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuEventList,gpuEventListSize,
+    kernelProcessEventsBatchAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuEventsX,gpuEventsY,gpuEventListSize,
             gpuFilter,fsx,fsy,fsz,
             gpuBuffer,ringBufferIdx,
             bsx,bsy,bsz,

@@ -19,7 +19,7 @@
 #include <datatypes.h>
 
 // External defined cuda functions
-extern void cudaProcessEventsBatchAsync(DVSEvent* gpuEventList,int gpuEventListSize,
+extern void cudaProcessEventsBatchAsync(uint8_t *gpuEventsX,uint8_t *gpuEventsY,int gpuEventListSize,
                                         float* gpuFilter, int fsx, int fsy, int fsz,
                                         float* gpuBuffer, int ringBufferIdx,
                                         int bsx, int bsy, int bsz,
@@ -133,6 +133,12 @@ public:
         float currWindowStartTime;         // The start time in us of the current window
     } SlotEventData;
 
+    size_t getEventsInCurrSlot()
+    {
+        QMutexLocker locker(&eventReadMutex);
+        return eventsR->events.size();
+    }
+
 private:
     // Stream for concurrent execution
     cudaStream_t* cudaStreams;
@@ -178,7 +184,10 @@ private:
     // Mutex for accessing event list read ptr
     QMutex eventReadMutex;
     // Gpu ptr for eventsR
-    DVSEvent* gpuEventList;
+    uint8_t* gpuEventsX;
+    uint8_t* gpuEventsY;
+    QVector<uint8_t> cpuEventsX;
+    QVector<uint8_t> cpuEventsY;
     // Size of the uploaded event list (Event count)
     int gpuEventListSize;
     // Size of the allocated memory (Event count), increases over time to avoid reallocation for smaller blocks

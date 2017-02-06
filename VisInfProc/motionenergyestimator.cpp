@@ -19,7 +19,8 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
     timePerSlot =(float)fsettings.timewindow_us/fsettings.temporalSteps;
     filterCount = orientations.length()*FILTERS_PER_ORIENTATION;
 
-    gpuEventList = NULL;
+    gpuEventsX = NULL;
+    gpuEventsY = NULL;
     gpuEventListSize = 0;
     gpuEventListSizeAllocated = 0;
 
@@ -78,8 +79,10 @@ MotionEnergyEstimator::~MotionEnergyEstimator()
     delete[] cpuArrGpuConvBuffers;
     cpuArrGpuConvBuffers = NULL;
 
-    if(gpuEventList != NULL)
-        gpuErrchk(cudaFree(gpuEventList));
+    if(gpuEventsX != NULL)
+        gpuErrchk(cudaFree(gpuEventsX));
+    if(gpuEventsY != NULL)
+        gpuErrchk(cudaFree(gpuEventsY));
 }
 void MotionEnergyEstimator::reset()
 {
@@ -188,18 +191,21 @@ void MotionEnergyEstimator::uploadEvents()
         // Do we need more memory for the next event list ?
         if(gpuEventListSizeAllocated < cnt) {
             // Delete old list if it exists
-            if(gpuEventList != NULL) {
-#ifndef NDEBUG
-                nvtxMark("Release prev Event list");
-#endif
-                gpuErrchk(cudaFree(gpuEventList));
+            if(gpuEventsX != NULL) {
+                gpuErrchk(cudaFree(gpuEventsX));
+            }
+            if(gpuEventsY != NULL) {
+                gpuErrchk(cudaFree(gpuEventsY));
             }
 
 #ifndef NDEBUG
             nvtxMark("Alloc new Event list");
 #endif
             // Allocate buffer for event list
-            gpuErrchk(cudaMalloc(&gpuEventList,sizeof(DVSEvent)*cnt));
+            gpuErrchk(cudaMalloc(&gpuEventsX,sizeof(uint8_t)*cnt));
+            gpuErrchk(cudaMalloc(&gpuEventsY,sizeof(uint8_t)*cnt));
+            cpuEventsX.resize(cnt);
+            cpuEventsY.resize(cnt);
             gpuEventListSizeAllocated = cnt;
         }
 
@@ -207,8 +213,17 @@ void MotionEnergyEstimator::uploadEvents()
 #ifndef NDEBUG
         nvtxMark("Copy events");
 #endif
-        gpuErrchk(cudaMemcpyAsync(gpuEventList,eventsR->events.data(),
-                                  sizeof(DVSEvent)*cnt,cudaMemcpyHostToDevice,
+        // Not very nice... Convert interleaved struct data into seperate arrays
+        for(int i = 0; i < cnt; i++) {
+            cpuEventsX[i] = eventsR->events.at(i).x;
+            cpuEventsY[i] = eventsR->events.at(i).y;
+        }
+
+        gpuErrchk(cudaMemcpyAsync(gpuEventsX,cpuEventsX.data(),
+                                  sizeof(uint8_t)*cnt,cudaMemcpyHostToDevice,
+                                  cudaStreams[DEFAULT_STREAM_ID]));
+        gpuErrchk(cudaMemcpyAsync(gpuEventsY,cpuEventsY.data(),
+                                  sizeof(uint8_t)*cnt,cudaMemcpyHostToDevice,
                                   cudaStreams[DEFAULT_STREAM_ID]));
         cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
         gpuEventListSize = cnt;
@@ -236,10 +251,10 @@ void MotionEnergyEstimator::uploadEvents()
 
 void MotionEnergyEstimator::startProcessEventsBatchAsync()
 {
-    assert(gpuEventList != NULL);
+    assert(gpuEventsX != NULL);
 
     for(int i = 0; i < filterCount; i++) {
-        cudaProcessEventsBatchAsync(gpuEventList,gpuEventListSize,
+        cudaProcessEventsBatchAsync(gpuEventsX,gpuEventsY,gpuEventListSize,
                                     cpuArrGpuFilters[i],fsx,fsy,fsz,
                                     cpuArrGpuConvBuffers[i],ringBufferIdx,
                                     bsx,bsy,bsz,

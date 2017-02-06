@@ -4,7 +4,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#define THREADS_PER_BLOCK 1024
+#define THREADS_PER_BLOCK 64
+#define MAX_SHARED_GPU_EVENTS 128
 
 
 #define GPU_LUT_COLORMAP_SZ 256
