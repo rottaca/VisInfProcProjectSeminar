@@ -55,7 +55,7 @@ public:
     bool isEventListReady()
     {
         eventWriteMutex.lock();
-        bool cpy = eventListReady;
+        bool cpy = eventListReadyForReading;
         eventWriteMutex.unlock();
         return cpy;
     }
@@ -193,7 +193,9 @@ private:
     // Size of the allocated memory (Event count), increases over time to avoid reallocation for smaller blocks
     int gpuEventListSizeAllocated;
     // True, if a new event list is ready for processing
-    bool eventListReady;
+    bool eventListReadyForReading;
+    // Backup copy to skip event slots
+    SlotEventData eventsRBackup;
 
     // Data for statistics computations
     quint32  eventsSkipped;

@@ -96,7 +96,7 @@ void MotionEnergyEstimator::reset()
     eventsW->currWindowStartTime = 0;
     eventsW->events.clear();
     eventsW->slotsToSkip = 0;
-    eventListReady = false;
+    eventListReadyForReading = false;
     eventWriteMutex.unlock();
 
     startTime = UINT32_MAX;
@@ -127,7 +127,6 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
     eventStatisticsMutex.unlock();
     QMutexLocker locker(&eventWriteMutex);
 
-
     // Get time from first event as reference
     if(startTime == UINT32_MAX) {
         startTime = e.timestamp;
@@ -142,8 +141,10 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
         return false;
     }
 
-    lastEventTime = startTime;
+    // Store last timestamp to detect time jumps
+    lastEventTime = e.timestamp;
 
+    // Time between event time and start of time slot
     float deltaT = e.timestamp - eventsW->currWindowStartTime;
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor(deltaT/timePerSlot);
@@ -152,14 +153,13 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
         // Flip lists
         eventReadMutex.lock();
         // Was the last block not processed by the worker thread ? Then it is lost
-        if(eventListReady && eventsR->events.length() > 0) {
-            //qDebug("Events skipped: %d",eventsR->events.length());
+        if(eventListReadyForReading && eventsR->events.length() > 0) {
             eventStatisticsMutex.lock();
             eventsSkipped+=eventsR->events.length();
             PRINT_DEBUG_FMT("[MotionEnergyEstimator] Skipped %d events.",eventsR->events.length());
             eventStatisticsMutex.unlock();
         }
-        // Flip lists
+        // Flip read and write lists
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
         eventsW = eventsROld;
@@ -170,7 +170,7 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
         eventsW->currWindowStartTime=eventsR->currWindowStartTime + timePerSlot*timeSlotsToSkip;
         // Is data for processing ready ?
         if(eventsR->events.length() > 0)
-            eventListReady = true;
+            eventListReadyForReading = true;
 
         eventReadMutex.unlock();
         // Clear events for new data
@@ -179,7 +179,7 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
     // Add simplified event to new write list
     eventsW->events.append(e);
 
-    return eventListReady;
+    return eventListReadyForReading;
 }
 
 void MotionEnergyEstimator::uploadEvents()
@@ -201,7 +201,7 @@ void MotionEnergyEstimator::uploadEvents()
 #ifndef NDEBUG
             nvtxMark("Alloc new Event list");
 #endif
-            // Allocate buffer for event list
+            // Allocate buffer for event list on cpu and gpu
             gpuErrchk(cudaMalloc(&gpuEventsX,sizeof(uint8_t)*cnt));
             gpuErrchk(cudaMalloc(&gpuEventsY,sizeof(uint8_t)*cnt));
             cpuEventsX.resize(cnt);
@@ -213,20 +213,19 @@ void MotionEnergyEstimator::uploadEvents()
 #ifndef NDEBUG
         nvtxMark("Copy events");
 #endif
-        // Not very nice... Convert interleaved struct data into seperate arrays
+        // Not very nice...
+        // Convert interleaved struct data into seperate arrays for x and y
         for(int i = 0; i < cnt; i++) {
             cpuEventsX[i] = eventsR->events.at(i).x;
             cpuEventsY[i] = eventsR->events.at(i).y;
         }
-
+        // Upload event data
         gpuErrchk(cudaMemcpyAsync(gpuEventsX,cpuEventsX.data(),
                                   sizeof(uint8_t)*cnt,cudaMemcpyHostToDevice,
                                   cudaStreams[DEFAULT_STREAM_ID]));
         gpuErrchk(cudaMemcpyAsync(gpuEventsY,cpuEventsY.data(),
                                   sizeof(uint8_t)*cnt,cudaMemcpyHostToDevice,
                                   cudaStreams[DEFAULT_STREAM_ID]));
-        cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
-        gpuEventListSize = cnt;
 
         // Update events in timewindow
         eventsInWindowMutex.lock();
@@ -239,13 +238,20 @@ void MotionEnergyEstimator::uploadEvents()
             timeWindowEvents.push_back(e);
         eventsInWindowMutex.unlock();
 
-        // Clear list
+        // Wait for uploading to finish
+        cudaStreamSynchronize(cudaStreams[DEFAULT_STREAM_ID]);
+        gpuEventListSize = cnt;
+        // Clear read list
         eventsR->events.clear();
     }
-    eventReadMutex.unlock();
+    // Store backup of event struct
+    eventsRBackup = *eventsR;
+    eventsR->slotsToSkip = 0;
 
+    eventReadMutex.unlock();
+    // Event data uploaded, the list is now free
     eventWriteMutex.lock();
-    eventListReady = false;
+    eventListReadyForReading = false;
     eventWriteMutex.unlock();
 }
 
@@ -264,11 +270,12 @@ void MotionEnergyEstimator::startProcessEventsBatchAsync()
 
 quint32 MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffers)
 {
-    eventReadMutex.lock();
+    int slotsToSkip = eventsRBackup.slotsToSkip;
+    quint32 windowStartTime = floor(eventsRBackup.currWindowStartTime);
     int sxy = bsx*bsy;
-    //qDebug("Slots: %d", eventsR->slotsToSkip);
+
+    // Start reading of all motion energies
     for(int i = 0; i < orientations.length(); i++) {
-        // Only syncronize important streams
         cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION]);
         cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION + 1]);
         cudaReadMotionEnergyAsync(cpuArrGpuConvBuffers[i*FILTERS_PER_ORIENTATION],
@@ -277,50 +284,37 @@ quint32 MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffe
                                   bsx,bsy,
                                   gpuEnergyBuffers[i],
                                   cudaStreams[i*FILTERS_PER_ORIENTATION]);
-
     }
-
+    // Wait until reading is done
     for(int i = 0; i < orientations.length(); i++) {
         cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION]);
     }
 
     // Set skipped slots to zero
-    int slotsToSkip = eventsR->slotsToSkip;
     // Split in two operations when we are at the end of the ringbuffer
     if(slotsToSkip + ringBufferIdx > bsz) {
         int slotCntOverflow = (slotsToSkip + ringBufferIdx) % bsz;
-        //qDebug("Slots to Skip at beginning: %d",slotCntOverflow);
         slotsToSkip -= slotCntOverflow;
 
-        for(int i = 0; i < orientations.length(); i++) {
-            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i*FILTERS_PER_ORIENTATION],0,
-                                sxy*slotCntOverflow,
-                                cudaStreams[i*FILTERS_PER_ORIENTATION]);
-            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i*FILTERS_PER_ORIENTATION + 1],0,
-                                sxy*slotCntOverflow,
-                                cudaStreams[i*FILTERS_PER_ORIENTATION + 1]);
+        for(int i = 0; i < filterCount; i++) {
+            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i],
+                                0, sxy*slotCntOverflow,
+                                cudaStreams[i]);
         }
     }
-
+    // Set slice at beginning to zero if neccessary
     if(slotsToSkip > 0) {
         slotsToSkip = slotsToSkip % bsz;
-        //qDebug("Slots to Skip at end: %d",slotsToSkip);
-        for(int i = 0; i < orientations.length(); i++) {
-            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i*FILTERS_PER_ORIENTATION] + ringBufferIdx*sxy,0,
-                                sxy*slotsToSkip,
-                                cudaStreams[i*FILTERS_PER_ORIENTATION]);
-            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i*FILTERS_PER_ORIENTATION + 1] + ringBufferIdx*sxy,0,
-                                sxy*slotsToSkip,
-                                cudaStreams[i*FILTERS_PER_ORIENTATION + 1]);
+        for(int i = 0; i < filterCount; i++) {
+            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i] + ringBufferIdx*sxy,
+                                0, sxy*slotsToSkip,
+                                cudaStreams[i]);
         }
     }
 
-    // Go to next timeslice
-    quint32 tmp = floor(eventsR->currWindowStartTime);
-    ringBufferIdx = (ringBufferIdx+eventsR->slotsToSkip) % cpuArrCpuConvBuffers[0]->getSizeZ();
-    eventsR->slotsToSkip = 0;
-    eventReadMutex.unlock();
-    return tmp;
+    // Timeslice is cleared, go to next valid timeslot
+    ringBufferIdx = (ringBufferIdx+slotsToSkip) % cpuArrCpuConvBuffers[0]->getSizeZ();
+    return windowStartTime;
 }
 void MotionEnergyEstimator::startNormalizeEnergiesAsync(float** gpuEnergyBuffers)
 {

@@ -252,6 +252,8 @@ void MainWindow::onUpdate()
         ui->l_skip_ev_cnt->setNum((int)evDisc);
         ui->l_rec_ev_cnt->setNum((int)evRec);
         ui->l_ctrl_output->setText(QString("%1").arg(pushBotController.getCtrlOutput()));
+        ui->l_time_per_slot->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us/settings.at(speedIdx).temporalSteps));
+        ui->l_timewindow->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us));
         lastStatisticsUpdate.restart();
     }
 }

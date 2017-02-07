@@ -4,7 +4,9 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+// Threads in a single block
 #define THREADS_PER_BLOCK 64
+// Maximum number of events in shared memory
 #define MAX_SHARED_GPU_EVENTS 128
 
 

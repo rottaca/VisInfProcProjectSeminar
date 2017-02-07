@@ -15,15 +15,30 @@ __global__ void kernelComputeFlowEnergyAndDir(int n,
     if(idx < n) {
         float localFlowX = 0;
         float localFlowY = 0;
+        // Combine values from all orientations
         for(int j = 0; j  < orientationCnt; j++) {
             localFlowX += gpuArrGpuEnergy[j][idx]*cos(orientations[j]);
             localFlowY += gpuArrGpuEnergy[j][idx]*sin(orientations[j]);
         }
+        // Compute angle
         gpuDir[idx] = atan2(localFlowY,localFlowX);
+        // Compute energy
         gpuEnergy[idx] = sqrt(localFlowX*localFlowX+localFlowY*localFlowY);
     }
 }
-
+/**
+ * @brief cudaComputeFlowEnergyAndDir Takes convolution buffers from all orientations
+ *                                    and computes the flow energy and direction
+ * @param sx
+ * @param sy
+ * @param gpuEnergy
+ * @param gpuDir
+ * @param gpuArrGpuEnergy
+ * @param gpuArrOrientations
+ * @param orientationCnt
+ * @param speed
+ * @param stream
+ */
 __host__ void cudaComputeFlowEnergyAndDir(int sx, int sy,
         float* gpuEnergy, float* gpuDir,
         float** gpuArrGpuEnergy,

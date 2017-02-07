@@ -24,11 +24,13 @@ public:
     OpticFlowEstimator(QVector<FilterSettings> settings, QVector<float> orientations);
     ~OpticFlowEstimator();
 
-
+    /**
+     * @brief reset Resets the OpticFlowEstimator to its initial state.
+     */
     void reset();
 
     /**
-     * @brief onNewEvent
+     * @brief onNewEvent Processes the provided event
      * @param e
      */
     bool onNewEvent(const DVSEvent &e);

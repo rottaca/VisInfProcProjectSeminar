@@ -15,7 +15,15 @@ __global__ void kernelCombineFilters(int sx, int sy, int sz,
     if(combinedIdx < s_xy*sz)
         gpuCombined[combinedIdx] = gpuTemp[z]*gpuSpatial[xy];
 }
-
+/**
+ * @brief cudaCombineFilters Computes 1D temporal and 2D spatial filters into a 3D spatial-temporal filter.
+ * @param sx
+ * @param sy
+ * @param sz
+ * @param gpuTemp
+ * @param gpuSpatial
+ * @param gpuCombined
+ */
 __host__ void cudaCombineFilters(int sx, int sy, int sz,
                                  float* gpuTemp, float* gpuSpatial,
                                  float* gpuCombined)

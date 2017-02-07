@@ -5,7 +5,11 @@
 #include "cuda_helper.h"
 
 #include <iostream>
-
+/**
+ * @brief cudaCreateBuffer Allocates a cuda buffer and stops the programm on error.
+ * @param size
+ * @return
+ */
 __host__ void* cudaCreateBuffer(size_t size)
 {
     if(size == 0)
@@ -18,18 +22,40 @@ __host__ void* cudaCreateBuffer(size_t size)
     }
     return gpuPtr;
 }
+/**
+ * @brief cudaUploadBuffer Uploads a cpu buffer in a gpu buffer and does error handling.
+ * @param cpuBuffPtr
+ * @param gpuBuffPtr
+ * @param size
+ * @param stream
+ */
 __host__ void cudaUploadBuffer(void* cpuBuffPtr, void* gpuBuffPtr, size_t size, cudaStream_t stream)
 {
     gpuErrchk(cudaMemcpyAsync(gpuBuffPtr,cpuBuffPtr,size,cudaMemcpyHostToDevice,stream));
 }
+/**
+ * @brief cudaDownloadBuffer Downloads a gpu buffer into a cpu buffer and does error handling.
+ * @param gpuBuffPtr
+ * @param cpuBuffPtr
+ * @param size
+ * @param stream
+ */
 __host__ void cudaDownloadBuffer(void* gpuBuffPtr, void * cpuBuffPtr,size_t size,cudaStream_t stream)
 {
     gpuErrchk(cudaMemcpyAsync(cpuBuffPtr,gpuBuffPtr,size,cudaMemcpyDeviceToHost,stream));
 }
+/**
+ * @brief cudaFreeBuffer Copies a gpu buffer to an other gpu buffer and does error handling.
+ * @param gpuBuffPtr
+ */
 __host__ void cudaCopyBuffer(void* gpuBuffPtrDest, void * gpuBuffPtrSrc, size_t size, cudaStream_t stream)
 {
     gpuErrchk(cudaMemcpyAsync(gpuBuffPtrDest,gpuBuffPtrSrc,size,cudaMemcpyDeviceToDevice,stream));
 }
+/**
+ * @brief cudaFreeBuffer Releases a gpu buffer and does error handling.
+ * @param gpuBuffPtr
+ */
 __host__ void cudaFreeBuffer(void* gpuBuffPtr)
 {
     gpuErrchk(cudaFree(gpuBuffPtr));
@@ -41,7 +67,13 @@ __global__ void kernelSetDoubleBuffer(float* gpuBuffPtr, float v, size_t size)
     if (index < size)
         gpuBuffPtr[index] = v;
 }
-
+/**
+ * @brief cudaSetDoubleBuffer Sets a gpu double buffer to a value v.
+ * @param gpuBuffPtr
+ * @param v
+ * @param size
+ * @param stream
+ */
 __host__ void cudaSetDoubleBuffer(float* gpuBuffPtr,float v, size_t size,cudaStream_t stream)
 {
     // Run through filter buffer

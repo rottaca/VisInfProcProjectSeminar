@@ -25,7 +25,16 @@ __global__ void kernel2DBufferToRGBImage(int sx, int sy, int s, float min, float
         gpuImage[buffIdx] = GPUrgbColormapLUT[colorIdx];
     }
 }
-
+/**
+ * @brief cuda2DBufferToRGBImage Converts a 2D buffer into a pseudo color rgb image.
+ * @param sx
+ * @param sy
+ * @param min
+ * @param max
+ * @param gpuBuffer
+ * @param gpuImage
+ * @param cudaStream
+ */
 __host__ void cuda2DBufferToRGBImage(int sx, int sy,float min, float max,
                                      float* gpuBuffer, unsigned char* gpuImage,cudaStream_t cudaStream)
 {
