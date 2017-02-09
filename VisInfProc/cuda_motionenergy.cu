@@ -15,8 +15,20 @@ __global__ void kernelProcessEventsBatchAsync(uint8_t* gpuEventsX,uint8_t* gpuEv
 
     // Calculate filter idx
     int filterPos = threadIdx.x + blockIdx.x * blockDim.x;
+
+    // Per block shared memory
+    __shared__ uint8_t gpuEventListSharedX[MAX_SHARED_GPU_EVENTS];
+    __shared__ uint8_t gpuEventListSharedY[MAX_SHARED_GPU_EVENTS];
+    // How many runs do we need to process all events
+    int processingRuns = ceilf((float)gpuEventListSize/MAX_SHARED_GPU_EVENTS);
+    // Events for each thread to read
+    int eventReadsPerThread = ceilf((float)MAX_SHARED_GPU_EVENTS/blockDim.x);
+    // Offset n global event buffer
+    int globalEventIdx = threadIdx.x;
+
     // Idx valid
     if (filterPos < fn) {
+        // Read filter coefficient from global memory
         float filterVal = gpuFilter[filterPos];
         // Compute x,y,z coodinates in buffer
         int fz = filterPos / fs_xy;
@@ -24,42 +36,47 @@ __global__ void kernelProcessEventsBatchAsync(uint8_t* gpuEventsX,uint8_t* gpuEv
         int fy = fxy / fsx;
         int fx = fxy % fsx;
 
-        // Convert buffer z index (flip z)
+        // Convert buffer coordinates (mirror all axes -> convolution instead of correlation)
+        // Origin for mirroring is x = w/2, y = h/2, z = 0
         int bz = ((ringBufferIdx + (fsz - 1) - fz ) % bsz);
         int bx_tmp = fsx / 2 - fx;
         int by_tmp = fsy / 2 - fy;
         int bPos_tmp = bz*bsy*bsx;
 
-        // Per block shared memory
-        __shared__ uint8_t gpuEventListSharedX[MAX_SHARED_GPU_EVENTS];
-        __shared__ uint8_t gpuEventListSharedY[MAX_SHARED_GPU_EVENTS];
-        // How many runs do we need to process all events
-        int processingRuns = ceil((float)gpuEventListSize/MAX_SHARED_GPU_EVENTS);
-        // Events for each thread to read
-        int eventReadsPerThread = ceil((float)MAX_SHARED_GPU_EVENTS/blockDim.x);
-        // Load events blockwise
+        int sharedEventCnt = MAX_SHARED_GPU_EVENTS;
+        // Iterate over event list in blocks, stored in shared memory
         for(int runIdx = 0; runIdx<processingRuns; runIdx++) {
+            // Last run ? Compute size of shared event list
+            if(runIdx+1 == processingRuns) {
+                sharedEventCnt = gpuEventListSize % MAX_SHARED_GPU_EVENTS;
+            }
+            // Compute index in shared memory
+            int localEventIdx = threadIdx.x;
+
             // Fill the shared memory either with MAX_SHARED_GPU_EVENTS
             // or use each thread mutlible times
             for(int i = 0; i < eventReadsPerThread; i++) {
-                // Compute index in shared memory
-                int localEventIdx = i*blockDim.x+threadIdx.x;
-                // Compute index in global event memory
-                int globalEventIdx = runIdx*MAX_SHARED_GPU_EVENTS+localEventIdx;
                 // Valid indices
-                if(globalEventIdx < gpuEventListSize && localEventIdx < MAX_SHARED_GPU_EVENTS) {
-                    gpuEventListSharedX[localEventIdx] = gpuEventsX[globalEventIdx];
-                    gpuEventListSharedY[localEventIdx] = gpuEventsY[globalEventIdx];
-                }
+                if(localEventIdx >= sharedEventCnt)
+                    break;
+                // Load event into shared memory by using one thread per event
+                gpuEventListSharedX[localEventIdx] = gpuEventsX[globalEventIdx];
+                gpuEventListSharedY[localEventIdx] = gpuEventsY[globalEventIdx];
+
+                // Goto next event for which this thread is responsible
+                localEventIdx += blockDim.x;
+                globalEventIdx += blockDim.x;
             }
 
             // Synchronize threads and wait until shared memory is filled
+            // TODO: Deadlock possible?
+            // At least one thread in each warp should hit that barrier to continue!
+            // Bad relationship between shared event list size and block size could cause problems ?!
             __syncthreads();
 
             // Iterate over every event block in shared memory
-            for(int localEventIdx = 0; localEventIdx < MAX_SHARED_GPU_EVENTS &&
-                    runIdx*MAX_SHARED_GPU_EVENTS+localEventIdx < gpuEventListSize; localEventIdx++) {
-                // Compute corresponding buffer coordinate (flip filter x,y)
+            for(localEventIdx = 0; localEventIdx < sharedEventCnt; localEventIdx++) {
+                // Compute corresponding buffer coordinate
                 int bx = bx_tmp + gpuEventListSharedX[localEventIdx];
                 int by = by_tmp + gpuEventListSharedY[localEventIdx];
 
@@ -98,7 +115,7 @@ __host__ void cudaProcessEventsBatchAsync(uint8_t* gpuEventsX,uint8_t* gpuEvents
 {
     int fs_xy = fsx*fsy;
     int fn = fs_xy*fsz;
-    size_t blocks = ceil((float)fn/THREADS_PER_BLOCK);
+    size_t blocks = ceilf((float)fn/THREADS_PER_BLOCK);
     kernelProcessEventsBatchAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuEventsX,gpuEventsY,gpuEventListSize,
             gpuFilter,fsx,fsy,fsz,
             gpuBuffer,ringBufferIdx,
@@ -144,7 +161,7 @@ __host__ void cudaReadMotionEnergyAsync(float* gpuConvBufferl1,
                                         cudaStream_t cudaStream)
 {
     int n = bsx*bsy;
-    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceilf((float)n/THREADS_PER_BLOCK);
     kernelReadMotionEnergyAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(gpuConvBufferl1,
             gpuConvBufferl2,
             ringBufferIdx,bsx,bsy,n,
@@ -157,6 +174,7 @@ __global__ void kernelNormalizeMotionEnergyAsync(int bsx, int bsy, int n,
         float* gpuEnergyBuffer)
 {
     int bufferPos = threadIdx.x + blockIdx.x * blockDim.x;
+    float sigmaNorm2_2 = 2*sigmaNorm*sigmaNorm;
     if(bufferPos < n) {
         int bx,by;
         int bxy = bufferPos / (bsx*bsy);
@@ -180,7 +198,7 @@ __global__ void kernelNormalizeMotionEnergyAsync(int bsx, int bsy, int n,
                     continue;
                 // TODO
                 // Each thread computes the same
-                float gaus = 1/(2*sigmaNorm*sigmaNorm*M_PI)* exp(-(bx_*bx_ + by_*by_)/(2*sigmaNorm*sigmaNorm));
+                float gaus = 1/(sigmaNorm2_2*M_PI)* exp(-(bx_*bx_ + by_*by_)/sigmaNorm2_2);
                 // TODO Use shared memory to avoid extra global memory access
                 q_i += gpuEnergyBuffer[by_*bsx+bx_]*gaus;
             }
@@ -212,7 +230,7 @@ __host__ void cudaNormalizeMotionEnergyAsync(int bsx, int bsy,
         cudaStream_t cudaStream)
 {
     int n = bsx*bsy;
-    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceilf((float)n/THREADS_PER_BLOCK);
     kernelNormalizeMotionEnergyAsync<<<blocks,THREADS_PER_BLOCK,0,cudaStream>>>(bsx,bsy,n,
             alphaPNorm,alphaQNorm,betaNorm,sigmaNorm,
             gpuEnergyBuffer);

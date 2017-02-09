@@ -4,11 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-// Threads in a single block
-#define THREADS_PER_BLOCK 64
-// Maximum number of events in shared memory
-#define MAX_SHARED_GPU_EVENTS 128
-
+#include "settings.h"
 
 #define GPU_LUT_COLORMAP_SZ 256
 __constant__ unsigned char GPUrgbColormapLUT[GPU_LUT_COLORMAP_SZ*3] = {

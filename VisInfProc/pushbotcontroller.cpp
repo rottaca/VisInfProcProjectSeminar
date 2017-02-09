@@ -15,13 +15,12 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     eventProcessor = NULL;
     robotInterface = NULL;
 
-    P = PUSHBOT_DEFAULT_PID_P;
-    I = PUSHBOT_DEFAULT_PID_I;
-    D = PUSHBOT_DEFAULT_PID_D;
+    Kp = PUSHBOT_PID_P_DEFAULT;
+    Ki = PUSHBOT_PID_I_DEFAULT;
+    Kd = PUSHBOT_PID_D_DEFAULT;
     out = 0;
     eOld = 0;
     eSum = 0;
-    eSumMax = 0;
 
     cudaStreamCreate(&cudaStream);
     opticFlowDir.setCudaStream(cudaStream);
@@ -59,6 +58,9 @@ void PushBotController::startProcessing()
     emit enableMotors(true);
     emit setMotorVelocity(0,PUSHBOT_VELOCITY_DEFAULT);
     emit setMotorVelocity(1,PUSHBOT_VELOCITY_DEFAULT);
+    out = 0;
+    eOld = 0;
+    eSum = 0;
 }
 
 void PushBotController::stopProcessing()
@@ -149,18 +151,20 @@ void PushBotController::processFlow()
         {
             QMutexLocker locker(&pidMutex);
             // Simple PID-Controller
+            // Source: http://rn-wissen.de/wiki/index.php?title=Regelungstechnik#PID-Regler
+            // Difference between horizontal flow on left and right half is error signal
             float e = avgFlowVecXL-avgFlowVecXR;
-
-            eSum = qMax(-eSumMax,qMin(eSum + e,eSumMax));
+            // Compute integrated error
+            eSum = qMax(-PUSHBOT_PID_MAX_ESUM,qMin(eSum + e,PUSHBOT_PID_MAX_ESUM));
             // Ignore differential part in first run
             if(deltaT > 0)
-                out = P*e + I*deltaT*eSum + D/deltaT*(e-eOld);
+                out = Kp*e + Ki*deltaT*eSum + Kd*(e-eOld)/deltaT;
             else
-                out = P*e + I*deltaT*eSum;
-
+                out = Kp*e;
+            // Store last error
             eOld = e;
 
-            // Send commands to pushbot
+            // Send commands to pushbot but clamp output if motor speed is out of range
             speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
                               PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
             speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
@@ -173,5 +177,8 @@ void PushBotController::processFlow()
         } else {  // If not running, write debug info
             PRINT_DEBUG_FMT("[Control output] L: %d, r: %d",speedLeft,speedRight);
         }
+    } else {
+        // Don't generate output
+        out = 0;
     }
 }

@@ -388,6 +388,7 @@ void eDVSInterface::_playbackFile()
 
     // Debug info and finished event
     if(bufferIdx == bytes.length()) {
+#ifdef QT_DEBUG
         quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
         quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
         PRINT_DEBUG_FMT("%s", QString("Executed %1 events in %2 ms instead of %3 ms. Overhead: %4 %")
@@ -396,6 +397,7 @@ void eDVSInterface::_playbackFile()
                         .arg(elapsedTimeEvents/speed/1000.0)
                         .arg((static_cast<double>(elapsedTimeReal)/(elapsedTimeEvents/speed) - 1) *100)
                         .toLocal8Bit().data());
+#endif
 
         {
             QMutexLocker locker2(&operationMutex);
@@ -469,8 +471,10 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     }
     timeVers = Time4Byte;
 
+#ifdef QT_DEBUG
     size_t eventCnt = buff.size()/numBytesPerEvent;
     PRINT_DEBUG_FMT("%s", QString("%1 Events.").arg(eventCnt).toLocal8Bit().data());
+#endif
 
     return buff;
 }

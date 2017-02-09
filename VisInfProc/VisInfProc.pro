@@ -11,7 +11,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = VisInfProc
 TEMPLATE = app
 
-CONFIG(release, debug|release): DEFINES += NDEBUG
 QMAKE_CXXFLAGS += -fopenmp -lnvToolsExt
 LIBS += -fopenmp -lnvToolsExt
 CONFIG += c++11

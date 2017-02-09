@@ -17,6 +17,14 @@
 #define GUI_STAT_UPDATE_FPS 5
 
 /*****************************************************************
+// CUDA
+*****************************************************************/
+// Threads in a single block
+#define THREADS_PER_BLOCK 64
+// Maximum number of events in shared memory
+#define MAX_SHARED_GPU_EVENTS 128
+
+/*****************************************************************
 // OpticFlow estimator
 *****************************************************************/
 // Spatial resolution of garbor filter (odd value)
@@ -31,6 +39,14 @@
 /*****************************************************************
 // Pushbot
 *****************************************************************/
+// Pushbot commands
+#define CMD_SET_TIMESTAMP_MODE "!E1\n"      // Do not change streaming mode !
+#define CMD_ENABLE_EVENT_STREAMING "!E+\n"
+#define CMD_DISABLE_EVENT_STREAMING "!E-\n"
+#define CMD_ENABLE_MOTORS "!M+\n"
+#define CMD_DISABLE_MOTORS "!M-\n"
+#define CMD_SET_VELOCITY "!MV%1=%2\n"
+#define CMD_RESET_BOARD "R\n"
 // Refresh rate of optic flow processing
 #define PUSH_BOT_PROCESS_FPS 15
 // Motor Velocity minimum for pid control (0-100)
@@ -43,20 +59,12 @@
 #define PUSHBOT_MOTOR_RIGHT 1
 // Default speed
 #define PUSHBOT_VELOCITY_DEFAULT 30
-// Pushbot commands
-#define CMD_SET_TIMESTAMP_MODE "!E1\n"      // Do not change streaming mode !
-#define CMD_ENABLE_EVENT_STREAMING "!E+\n"
-#define CMD_DISABLE_EVENT_STREAMING "!E-\n"
-#define CMD_ENABLE_MOTORS "!M+\n"
-#define CMD_DISABLE_MOTORS "!M-\n"
-#define CMD_SET_VELOCITY "!MV%1=%2\n"
-#define CMD_RESET_BOARD "R\n"
 // Default PID values for pushbot PID controller
-// It takes the error between the average horizontal
-// flow of the left and right half image as input signal
-#define PUSHBOT_DEFAULT_PID_P 1
-#define PUSHBOT_DEFAULT_PID_I 0
-#define PUSHBOT_DEFAULT_PID_D 0
+#define PUSHBOT_PID_P_DEFAULT 0.1
+#define PUSHBOT_PID_I_DEFAULT 0.0
+#define PUSHBOT_PID_D_DEFAULT 0.0
+// Maximum absolute integrated error
+#define PUSHBOT_PID_MAX_ESUM 100.f
 
 // Minimum detection energy
 // Summed energy over an image half hast to be greater as the value below
@@ -90,7 +98,7 @@
 *****************************************************************/
 #define CLAMP(v,mn,mx) qMin(mx,qMax(mn,v))
 
-#ifndef NDEBUG
+#ifdef QT_DEBUG
 #define PRINT_DEBUG(msg) qDebug(msg)
 #define PRINT_DEBUG_FMT(format, ...) qDebug(format,__VA_ARGS__)
 #else

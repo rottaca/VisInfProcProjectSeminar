@@ -71,17 +71,17 @@ public:
     void setP(float _P)
     {
         QMutexLocker locker(&pidMutex);
-        P = _P;
+        Kp = _P;
     }
     void setI(float _I)
     {
         QMutexLocker locker(&pidMutex);
-        I = _I;
+        Ki = _I;
     }
     void setD(float _D)
     {
         QMutexLocker locker(&pidMutex);
-        D = _D;
+        Kd = _D;
     }
 
     float getCtrlOutput()
@@ -118,8 +118,8 @@ private:
     // Control parameters
     QTime loopTime;
     QMutex pidMutex;
-    float P,I,D;
-    float out,eOld,eSum, eSumMax;
+    float Kp,Ki,Kd;
+    float out,eOld,eSum;
 };
 
 #endif // PUSHBOTCONTROLLER_H

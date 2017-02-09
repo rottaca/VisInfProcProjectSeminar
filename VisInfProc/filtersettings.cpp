@@ -79,5 +79,7 @@ FilterSettings FilterSettings::getSettings(enum PredefinedSettings ps)
         return FilterSettings(0.15f,0.23f,
                               FILTER_TEMPORAL_END,FILTER_TEMPORAL_RES,FILTER_SPATIAL_SIZE_PX,50000,
                               0.1f,0.002f,1,3.6f,133.466f);
+    default:
+        return FilterSettings();
     }
 }

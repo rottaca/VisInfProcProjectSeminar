@@ -219,6 +219,8 @@ void MotionEnergyEstimator::uploadEvents()
             cpuEventsX[i] = eventsR->events.at(i).x;
             cpuEventsY[i] = eventsR->events.at(i).y;
         }
+
+
         // Upload event data
         gpuErrchk(cudaMemcpyAsync(gpuEventsX,cpuEventsX.data(),
                                   sizeof(uint8_t)*cnt,cudaMemcpyHostToDevice,

@@ -60,9 +60,9 @@ void MainWindow::initUI()
 
 
     ui->sb_energy_threshold->setValue(FLOW_DEFAULT_MIN_ENERGY_THRESHOLD);
-    ui->sb_pushbot_p->setValue(PUSHBOT_DEFAULT_PID_P);
-    ui->sb_pushbot_i->setValue(PUSHBOT_DEFAULT_PID_I);
-    ui->sb_pushbot_d->setValue(PUSHBOT_DEFAULT_PID_D);
+    ui->sb_pushbot_p->setValue(PUSHBOT_PID_P_DEFAULT);
+    ui->sb_pushbot_i->setValue(PUSHBOT_PID_I_DEFAULT);
+    ui->sb_pushbot_d->setValue(PUSHBOT_PID_D_DEFAULT);
 
     onChangeRenderMode();
 }
