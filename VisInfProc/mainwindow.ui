@@ -635,7 +635,7 @@ QGroupBox::title {
         </widget>
        </item>
        <item row="0" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_img_energy">
+        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_1">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -650,8 +650,8 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_img_flow_energy">
+       <item row="0" column="1">
+        <widget class="AspectRatioPixmapLabel" name="l_img_energy">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>
@@ -682,8 +682,8 @@ QGroupBox::title {
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_1">
+       <item row="1" column="2">
+        <widget class="AspectRatioPixmapLabel" name="l_img_flow_energy">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>1</horstretch>

@@ -43,13 +43,6 @@ public:
         quint32 time = ofe->getMotionEnergy(filterNr,orientationIdx,opponentMotionEnergy);
         return time;
     }
-    void getOpticFlowEnergy(Buffer2D &energy, Buffer2D &dir, int speedNr)
-    {
-        //QMutexLocker locker(&mutex);
-        if(ofe == NULL)
-            return;
-        ofe->getOpticFlowEnergy(energy,dir,speedNr);
-    }
     void getOpticFlow(Buffer2D &speed, Buffer2D &dir, Buffer2D &energy)
     {
         //QMutexLocker locker(&mutex);

@@ -463,16 +463,14 @@ QByteArray eDVSInterface::parseEventFile(QString file, AddressVersion &addrVers,
     buff.remove(0,dataToSkip);
 
     // Extract events
-    int numBytesPerEvent = 6;
     addrVers = Addr2Byte;
     if(versionNr == 2) {
-        numBytesPerEvent = 8;
         addrVers = Addr4Byte;
     }
     timeVers = Time4Byte;
 
 #ifdef QT_DEBUG
-    size_t eventCnt = buff.size()/numBytesPerEvent;
+    size_t eventCnt = buff.size()/(addrVers+4);
     PRINT_DEBUG_FMT("%s", QString("%1 Events.").arg(eventCnt).toLocal8Bit().data());
 #endif
 

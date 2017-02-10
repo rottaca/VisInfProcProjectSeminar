@@ -128,9 +128,9 @@ public:
     // -> The starttime of the current time slot
     // -> All event positions
     typedef struct SlotEventData {
-        QVector<DVSEvent> events;        // Event list (only x and y)
+        QVector<DVSEvent> events;           // Event list
         int slotsToSkip;                    // Timeslots to skip after processing the events
-        float currWindowStartTime;         // The start time in us of the current window
+        float currWindowStartTime;          // The start time in us of the current window
     } SlotEventData;
 
     size_t getEventsInCurrSlot()

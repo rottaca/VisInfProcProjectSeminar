@@ -150,19 +150,9 @@ void MainWindow::onUpdate()
         if(debugMode) {
             quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,motionEnergy);
             if(time != UINT32_MAX) {
-                worker.getOpticFlowEnergy(energy,dir,speedIdx);
 
                 QImage img1 = motionEnergy.toImage(0,1.0f);
                 ui->l_img_energy->setPixmap(QPixmap::fromImage(img1));
-
-                cudaFlowToRGB(energy.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
-                              DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,1,cudaStream);
-                gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
-                                          DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
-                                          cudaMemcpyDeviceToHost,cudaStream));
-                cudaStreamSynchronize(cudaStream);
-                ui->l_img_flow_energy->setPixmap(QPixmap::fromImage(rgbImg));
-
             }
         }
 
