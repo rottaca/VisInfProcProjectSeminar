@@ -39,7 +39,7 @@ void BaseBuffer::copyFrom(const BaseBuffer& other)
     if(this == &other)
         return;
 
-    size_t szNew = other.getBufferItemCnt();
+    int szNew = other.getBufferItemCnt();
     // Does the size differ ?
     if(szNew != itemCnt) {
         // delete my buffers on cpu and gpu
@@ -83,7 +83,7 @@ BaseBuffer& BaseBuffer::operator-=(const BaseBuffer &other)
 
     gpuValid = false;
     float * ptrOther = other.getCPUPtr();
-    for(size_t i = 0; i < getBufferItemCnt(); i++) {
+    for(int i = 0; i < getBufferItemCnt(); i++) {
         cpuBuffer[i] -= ptrOther[i];
     }
     return *this;
@@ -97,7 +97,7 @@ BaseBuffer& BaseBuffer::operator+=(const BaseBuffer &other)
 
     gpuValid = false;
     float * ptrOther = other.getCPUPtr();
-    for(size_t i = 0; i < getBufferItemCnt(); i++) {
+    for(int i = 0; i < getBufferItemCnt(); i++) {
         cpuBuffer[i] += ptrOther[i];
     }
     return *this;
@@ -130,14 +130,14 @@ void BaseBuffer::uploadBuffer() const
     //qDebug("Uploading buffer");
 }
 
-void BaseBuffer::createCPUBuffer(size_t sz)
+void BaseBuffer::createCPUBuffer(int sz)
 {
     if(cpuBuffer != NULL)
         delete[] cpuBuffer;
     cpuBuffer = new float[sz];
 }
 
-void BaseBuffer::createGPUBuffer(size_t sz)
+void BaseBuffer::createGPUBuffer(int sz)
 {
     if(gpuBuffer != NULL)
         cudaFreeBuffer(gpuBuffer);

@@ -19,7 +19,7 @@ public:
     virtual BaseBuffer& operator-=(const BaseBuffer &other);
     virtual BaseBuffer& operator+=(const BaseBuffer &other);
 
-    size_t getBufferItemCnt() const
+    int getBufferItemCnt() const
     {
         return itemCnt;
     }
@@ -92,8 +92,8 @@ public:
     }
 
 protected:
-    void createCPUBuffer(size_t sz);
-    void createGPUBuffer(size_t sz);
+    void createCPUBuffer(int sz);
+    void createGPUBuffer(int sz);
 
 protected:
     // Mutable: Allows change on const object
@@ -104,7 +104,7 @@ protected:
     mutable unsigned char   *gpuImage;
 
     mutable bool gpuValid,cpuValid;
-    size_t itemCnt;
+    int itemCnt;
 
     cudaStream_t cudaStream;
 };

@@ -69,29 +69,25 @@
 // Minimum detection energy
 // Summed energy over an image half hast to be greater as the value below
 // Otherwise not steering signal is generated
-#define PUSHBOT_MIN_DETECTION_ENERGY 80
+#define PUSHBOT_MIN_DETECTION_ENERGY 50
 
 /*****************************************************************
 // Debug Section
 *****************************************************************/
-// Uses the direction channel to encode the interpolation state
-// (Interpolate, Out of range, no interpolation,...)
-// Replaces optic flow and disables push bot control
-//#define DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-
-#ifndef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
 // Disables the interpolation between speeds and takes the maximum response
-#define DISABLE_INTERPOLATION
-#endif
+//#define DISABLE_INTERPOLATION
+
+// Insert marks for Nvidia's visual profiler
+//#define DEBUG_INSERT_PROFILER_MARKS
 
 /*****************************************************************
 // Other
 *****************************************************************/
+// Maximum wait time for stopping a thread
+#define THREAD_WAIT_TIME_MS 300
 // Convolution buffers per filter orientation
 // DO NOT CHANGE
 #define FILTERS_PER_ORIENTATION 2
-// Maximum wait time for stopping a thread
-#define THREAD_WAIT_TIME_MS 1000
 
 /*****************************************************************
 // Macros

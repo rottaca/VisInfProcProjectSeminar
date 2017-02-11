@@ -12,39 +12,66 @@ __global__ void kernelComputeFlow(int n,
                                   float minEnergy)
 {
     int pixelIdx = threadIdx.x + blockIdx.x * blockDim.x;
-    float flowX = 0;
-    float flowY = 0;
-    float energy = 0;
-    float speed = 0;
-    int energyIdx = 0;
 
     if(pixelIdx < n) {
+#ifdef DISABLE_INTERPOLATION
         // Combine values from all orientations
+        float energyX = 0;
+        float energyY = 0;
+        float energy = 0;
+        float speed = 0;
+        int energyIdx = 0;
         for(int i = 0; i < speedCnt; i++) {
-            float localFlowX = 0, localFlowY = 0;
+            float localenergyX = 0, localenergyY = 0;
             float localEnergy = 0;
             for(int j = 0; j  < orientationCnt; j++) {
-                localFlowX += gpuArrGpuEnergies[energyIdx][pixelIdx]*cos(gpuArrOrientations[j]);
-                localFlowY += gpuArrGpuEnergies[energyIdx][pixelIdx]*sin(gpuArrOrientations[j]);
+                localenergyX += gpuArrGpuEnergies[energyIdx][pixelIdx]*cos(gpuArrOrientations[j]);
+                localenergyY += gpuArrGpuEnergies[energyIdx][pixelIdx]*sin(gpuArrOrientations[j]);
                 energyIdx++;
             }
-            localEnergy = sqrt(localFlowX*localFlowX+localFlowY*localFlowY);
+            localEnergy = sqrt(localenergyX*localenergyX+localenergyY*localenergyY);
             if(localEnergy > energy) {
                 energy = localEnergy;
-                flowX = localFlowX;
-                flowY = localFlowY;
+                energyX = localenergyX;
+                energyY = localenergyY;
                 speed = gpuArrSpeeds[i];
             }
         }
 
-        gpuDir[pixelIdx] = 0;
-        gpuEnergy[pixelIdx] = 0;
-        gpuSpeed[pixelIdx] = 0;
-
+#else
+        float energyX = 0;
+        float energyY = 0;
+        float speed = 0;
+        float energy =0;
+        for(int j = 0; j  < orientationCnt; j++) {
+            float orientation = gpuArrOrientations[j];
+            float energyTimesSpeed = 0;
+            float energySum = 0;
+            for(int i = 0; i < speedCnt; i++) {
+                float energy = gpuArrGpuEnergies[i*orientationCnt+j][pixelIdx];
+                energySum += energy;
+                energyTimesSpeed += energy*gpuArrSpeeds[i];
+            }
+            // Average speed
+            speed += energyTimesSpeed/energySum;
+            // Average energy
+            energy += energySum;
+            energyX += energySum*cos(orientation);
+            energyY += energySum*sin(orientation);
+        }
+        // Devide by orientation count
+        speed /= orientationCnt;
+        // Devide by orientation count * speed count
+        energy /= orientationCnt*speedCnt;
+#endif
         if(energy >= minEnergy) {
-            gpuDir[pixelIdx] = atan2(flowY,flowX);
+            gpuDir[pixelIdx] = atan2(energyY,energyX);
             gpuEnergy[pixelIdx] = energy;
             gpuSpeed[pixelIdx] = speed;
+        } else {
+            gpuDir[pixelIdx] = 0;
+            gpuEnergy[pixelIdx] = 0;
+            gpuSpeed[pixelIdx] = 0;
         }
     }
 }

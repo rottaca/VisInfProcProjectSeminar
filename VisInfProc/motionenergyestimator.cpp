@@ -198,7 +198,7 @@ void MotionEnergyEstimator::uploadEvents()
                 gpuErrchk(cudaFree(gpuEventsY));
             }
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
             nvtxMark("Alloc new Event list");
 #endif
             // Allocate buffer for event list on cpu and gpu
@@ -210,7 +210,7 @@ void MotionEnergyEstimator::uploadEvents()
         }
 
         // Upload events
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
         nvtxMark("Copy events");
 #endif
         // Not very nice...

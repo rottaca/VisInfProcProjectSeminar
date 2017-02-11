@@ -126,7 +126,7 @@ void OpticFlowEstimator::process()
     //QElapsedTimer timer;
     //size_t eventCnt = motionEnergyEstimators[0]->getEventsInCurrSlot();
     //timer.start();
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxRangeId_t id = nvtxRangeStart("Processing Block");
     nvtxMark("Upload Events");
 #endif
@@ -136,7 +136,7 @@ void OpticFlowEstimator::process()
             motionEnergyEstimators[i]->uploadEvents();
     }
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxMark("Process events");
 #endif
     //qDebug("Start processing");
@@ -146,7 +146,7 @@ void OpticFlowEstimator::process()
             motionEnergyEstimators[i]->startProcessEventsBatchAsync();
     }
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxMark("Read Result");
 #endif
     // qDebug("Read result");
@@ -159,7 +159,7 @@ void OpticFlowEstimator::process()
         }
     }
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxMark("Normalize Result");
 #endif
     // Start parallel normalizing of motion energy
@@ -169,7 +169,7 @@ void OpticFlowEstimator::process()
                 &cpuArrGpuMotionEnergies[i*orientations.length()]);
         }
     }
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxMark("Sync streams");
 #endif
     //qDebug("Sync");
@@ -184,14 +184,14 @@ void OpticFlowEstimator::process()
     motionEnergyMutex.unlock();
     //qDebug("%lu %llu",eventCnt,timer.nsecsElapsed()/1000);
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxRangeEnd(id);
 #endif
 }
 
 void OpticFlowEstimator::computeOpticFlow()
 {
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxRangeId_t id = nvtxRangeStart("Optic Flow");
 #endif
 
@@ -205,7 +205,7 @@ void OpticFlowEstimator::computeOpticFlow()
     cudaStreamSynchronize(cudaStreams[0]);
     opticFlowUpToDate = true;
 
-#ifndef NDEBUG
+#ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxRangeEnd(id);
 #endif
 }
