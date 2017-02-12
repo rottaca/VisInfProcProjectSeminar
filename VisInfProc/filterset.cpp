@@ -38,10 +38,14 @@ FilterSet::FilterSet(FilterSettings fs, float orientation)
     spatialTemporal[PHASE2] = spatialTemporal[ODD_MONO];
     spatialTemporal[PHASE2] -= spatialTemporal[EVEN_BI];
 
-//    QFile file("even.png");
+//    QFile file("phase1.png");
 //    file.open(QIODevice::WriteOnly);
-//    spatialTemporal[LEFT1].toImageXZ(12).save(&file,"PNG");
+//    spatialTemporal[PHASE1].toImageXZ(gaborEven.getSizeY()/2).save(&file,"PNG");
 //    gaborOdd.toImage().save(&file,"PNG");
+//    QFile file2("phase2.png");
+//    file2.open(QIODevice::WriteOnly);
+//    spatialTemporal[PHASE2].toImageXZ(gaborEven.getSizeY()/2).save(&file2,"PNG");
+//    gaborOdd.toImage().save(&file2,"PNG");
 
 }
 FilterSet::~FilterSet()

@@ -69,7 +69,7 @@
 // Minimum detection energy
 // Summed energy over an image half hast to be greater as the value below
 // Otherwise not steering signal is generated
-#define PUSHBOT_MIN_DETECTION_ENERGY 50
+#define PUSHBOT_MIN_DETECTION_ENERGY 40
 
 /*****************************************************************
 // Debug Section
@@ -93,6 +93,8 @@
 // Macros
 *****************************************************************/
 #define CLAMP(v,mn,mx) qMin(mx,qMax(mn,v))
+#define DEG2RAD(d) ((d)*M_PI/180.0)
+#define RAD2DEG(r) ((r)*180.0/M_PI)
 
 #ifdef QT_DEBUG
 #define PRINT_DEBUG(msg) qDebug(msg)

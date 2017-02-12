@@ -52,7 +52,7 @@ void MainWindow::initUI()
     }
     ui->cb_show_orient->clear();
     Q_FOREACH(float o, orientations) {
-        ui->cb_show_orient->addItem(QString("%1").arg(qRadiansToDegrees(o)));
+        ui->cb_show_orient->addItem(QString("%1").arg(RAD2DEG(o)));
     }
 
     rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
@@ -90,15 +90,15 @@ void MainWindow::initSystem()
     // Sort list of settings by speed for interpolation
     std::sort(settings.begin(),settings.end(),sortSettingsBySpeed);
 
-    orientations.append(qDegreesToRadians(0.0f));
-    orientations.append(qDegreesToRadians(180.0f));
-    orientations.append(qDegreesToRadians(-90.0f));
-    orientations.append(qDegreesToRadians(90.0f));
+    orientations.append(DEG2RAD(0.0f));
+    orientations.append(DEG2RAD(180.0f));
+    orientations.append(DEG2RAD(-90.0f));
+    orientations.append(DEG2RAD(90.0f));
 
-//    orientations.append(qDegreesToRadians(45.0f));
-//    orientations.append(qDegreesToRadians(-45.0f));
-//    orientations.append(qDegreesToRadians(-135.0f));
-//    orientations.append(qDegreesToRadians(135.0f));
+//    orientations.append(DEG2RAD(45.0f));
+//    orientations.append(DEG2RAD(-45.0f));
+//    orientations.append(DEG2RAD(-135.0f));
+//    orientations.append(DEG2RAD(135.0f));
 
     pushBotController.setup(settings,orientations);
     worker.setComputationParameters(settings,orientations);
@@ -188,7 +188,7 @@ void MainWindow::onUpdate()
         }
 
         if(debugMode) {
-            painter.setPen(QPen(Qt::red,2));
+            painter.setPen(QPen(Qt::blue,1));
             painter.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
             painter.setPen(QPen(Qt::blue,2));
 
@@ -205,25 +205,30 @@ void MainWindow::onUpdate()
             p1C.setX(DVS_RESOLUTION_WIDTH/2);
             p1C.setY(DVS_RESOLUTION_HEIGHT*2/3);
 
-            pushBotController.getAvgSpeed(fxL,fyL,fxR,fyR);
-            float lL = qSqrt(fxL*fxL+fyL*fyL);
-            float scaleL = lL/maxLength;
-            float lR = qSqrt(fxR*fxR+fyR*fyR);
-            float scaleR = lR/maxLength;
-            float lC = qAbs(lR-lL);
-            float scaleC = lC/maxLength;
+            bool valid = pushBotController.getAvgSpeed(fxL,fyL,fxR,fyR);
+            if(valid) {
+                float lL = qSqrt(fxL*fxL+fyL*fyL);
+                float scaleL = lL/maxLength;
+                float lR = qSqrt(fxR*fxR+fyR*fyR);
+                float scaleR = lR/maxLength;
+                float lC = qAbs(lR-lL);
+                float scaleC = lC/maxLength;
 
-            if(scaleL > 0.01f) {
-                p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
-                painter.drawLine(p1L,p2L);
-            }
-            if(scaleR > 0.01f) {
-                p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
-                painter.drawLine(p1R,p2R);
-            }
-            if(scaleC > 0.01) {
-                p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
-                painter.drawLine(p1C,p2C);
+                if(scaleL > 0.01f) {
+                    p2L = p1L + QPoint(maxLDraw*fxL/lL*scaleL,maxLDraw*fyL/lL*scaleL);
+                    painter.drawLine(p1L,p2L);
+                }
+                if(scaleR > 0.01f) {
+                    p2R = p1R + QPoint(maxLDraw*fxR/lR*scaleR,maxLDraw*fyR/lR*scaleR);
+                    painter.drawLine(p1R,p2R);
+                }
+                if(scaleC > 0.01) {
+                    p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
+                    painter.drawLine(p1C,p2C);
+                }
+            } else {
+                painter.setPen(QPen(Qt::red,2));
+                painter.drawRect(1,1,DVS_RESOLUTION_WIDTH-2,DVS_RESOLUTION_HEIGHT-2);
             }
         }
 

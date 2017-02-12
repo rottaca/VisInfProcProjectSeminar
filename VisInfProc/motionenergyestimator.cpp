@@ -149,7 +149,7 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
     // Do we have to skip any timeslots ? Is the new event too new for the current slot ?
     int timeSlotsToSkip = qFloor(deltaT/timePerSlot);
 
-    if(timeSlotsToSkip != 0) {
+    if(timeSlotsToSkip > 0) {
         // Flip lists
         eventReadMutex.lock();
         // Was the last block not processed by the worker thread ? Then it is lost
@@ -292,25 +292,36 @@ quint32 MotionEnergyEstimator::startReadMotionEnergyAsync(float** gpuEnergyBuffe
         cudaStreamSynchronize(cudaStreams[i*FILTERS_PER_ORIENTATION]);
     }
 
+
     // Set skipped slots to zero
     // Split in two operations when we are at the end of the ringbuffer
-    if(slotsToSkip + ringBufferIdx > bsz) {
-        int slotCntOverflow = (slotsToSkip + ringBufferIdx) % bsz;
-        slotsToSkip -= slotCntOverflow;
-
+    if(slotsToSkip >= bsz) {
+        // Skip full buffer ? Reset all
         for(int i = 0; i < filterCount; i++) {
             cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i],
-                                0, sxy*slotCntOverflow,
+                                0, sxy*bsz,
                                 cudaStreams[i]);
         }
-    }
-    // Set slice at beginning to zero if neccessary
-    if(slotsToSkip > 0) {
-        slotsToSkip = slotsToSkip % bsz;
-        for(int i = 0; i < filterCount; i++) {
-            cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i] + ringBufferIdx*sxy,
-                                0, sxy*slotsToSkip,
-                                cudaStreams[i]);
+    } else {
+        // Only skip parts of the buffer
+        int slotsToSkipRemaining = slotsToSkip;
+        if(slotsToSkipRemaining + ringBufferIdx > bsz) {
+            int slotCntOverflow = (slotsToSkipRemaining + ringBufferIdx) % bsz;
+            slotsToSkipRemaining -= slotCntOverflow;
+
+            for(int i = 0; i < filterCount; i++) {
+                cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i],
+                                    0, sxy*slotCntOverflow,
+                                    cudaStreams[i]);
+            }
+        }
+        // Set slice at beginning to zero if neccessary
+        if(slotsToSkipRemaining > 0) {
+            for(int i = 0; i < filterCount; i++) {
+                cudaSetDoubleBuffer(cpuArrGpuConvBuffers[i] + ringBufferIdx*sxy,
+                                    0, sxy*slotsToSkipRemaining,
+                                    cudaStreams[i]);
+            }
         }
     }
 

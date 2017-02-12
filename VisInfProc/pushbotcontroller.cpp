@@ -21,6 +21,7 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
     out = 0;
     eOld = 0;
     eSum = 0;
+    avgFlowValid = false;
 
     cudaStreamCreate(&cudaStream);
     opticFlowDir.setCudaStream(cudaStream);
@@ -61,6 +62,7 @@ void PushBotController::startProcessing()
     out = 0;
     eOld = 0;
     eSum = 0;
+    avgFlowValid = false;
 }
 
 void PushBotController::stopProcessing()
@@ -74,10 +76,6 @@ void PushBotController::stopProcessing()
 
 void PushBotController::processFlow()
 {
-
-#ifdef DEBUG_FLOW_DIR_ENCODE_INTERPOLATION
-    return;
-#endif
     QMutexLocker locker(&mutex);
 
     eventProcessor->getOpticFlow(opticFlowSpeed,opticFlowDir,opticFlowEnergy);
@@ -96,7 +94,6 @@ void PushBotController::processFlow()
     avgFlowVecYR = 0;
     float cntL = 0,cntR = 0;
 
-    #pragma omp parallel for
     for(int j = 0; j < sx*sy; j++) {
         float dir = flowDirPtr[j];
         float s = flowSpeedPtr[j];
@@ -118,6 +115,7 @@ void PushBotController::processFlow()
     // Normalize
     bool leftFlowValid = cntL > PUSHBOT_MIN_DETECTION_ENERGY;
     bool rightFlowValid = cntR > PUSHBOT_MIN_DETECTION_ENERGY;
+    avgFlowValid = leftFlowValid && rightFlowValid;
 
     if(leftFlowValid) {
         avgFlowVecXL /= cntL;
@@ -129,6 +127,7 @@ void PushBotController::processFlow()
     if(rightFlowValid) {
         avgFlowVecXR /= cntR;
         avgFlowVecYR /= cntR;
+        //PRINT_DEBUG_FMT("AvgSpeedR: %f",avgFlowVecXR);
     } else {
         avgFlowVecXR = 0;
         avgFlowVecYR = 0;

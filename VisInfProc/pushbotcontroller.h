@@ -58,14 +58,17 @@ public:
      * @param YL
      * @param XR
      * @param YR
+     * @return Returns true, if the system calculated a valid average flow or false if the
+     * overall motion energy was too small.
      */
-    void getAvgSpeed(float &XL, float &YL,float &XR, float &YR)
+    bool getAvgSpeed(float &XL, float &YL,float &XR, float &YR)
     {
         QMutexLocker locker(&mutex);
         XL = avgFlowVecXL;
         YL = avgFlowVecYL;
         XR = avgFlowVecXR;
         YR = avgFlowVecYR;
+        return avgFlowValid;
     }
 
     void setP(float _P)
@@ -112,7 +115,7 @@ private:
     QVector<float> orientations;
     float avgFlowVecXL,avgFlowVecYL;
     float avgFlowVecXR,avgFlowVecYR;
-
+    bool avgFlowValid;
     Buffer2D opticFlowDir,opticFlowSpeed,opticFlowEnergy;
 
     // Control parameters
