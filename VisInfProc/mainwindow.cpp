@@ -58,7 +58,6 @@ void MainWindow::initUI()
     rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
     gpuErrchk(cudaMalloc(&gpuRgbImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
 
-
     ui->sb_energy_threshold->setValue(FLOW_DEFAULT_MIN_ENERGY_THRESHOLD);
     ui->sb_pushbot_p->setValue(PUSHBOT_PID_P_DEFAULT);
     ui->sb_pushbot_i->setValue(PUSHBOT_PID_I_DEFAULT);
@@ -141,6 +140,9 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
+    qint64 elapsed = timer.elapsed();
+    timer.restart();
+
     bool debugMode = ui->rb_debug->isChecked();
     int orientIdx = ui->cb_show_orient->currentIndex();
     int speedIdx = ui->cb_show_speed->currentIndex();
@@ -158,6 +160,13 @@ void MainWindow::onUpdate()
 
         worker.getOpticFlow(speed,dir,energy);
 
+        //QFile file2("phase2.png");
+        //file2.open(QIODevice::WriteOnly);
+        //dir.toImage(-360,0).save(&file2,"PNG");
+        //file2.close();
+#ifdef DEBUG_INSERT_PROFILER_MARKS
+        nvtxRangeId_t id = nvtxRangeStart("Flow 2 RGB");
+#endif
         cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
                       DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,
                       settings.back().speed_px_per_sec,
@@ -166,6 +175,10 @@ void MainWindow::onUpdate()
                                   DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
                                   cudaMemcpyDeviceToHost,cudaStream));
         cudaStreamSynchronize(cudaStream);
+#ifdef DEBUG_INSERT_PROFILER_MARKS
+        nvtxRangeEnd(id);
+#endif
+
         ui->l_img_flow->setPixmap(QPixmap::fromImage(rgbImg));
 
         if(debugMode) {
@@ -251,6 +264,8 @@ void MainWindow::onUpdate()
         ui->l_timewindow->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us));
         lastStatisticsUpdate.restart();
     }
+    //qDebug("%llu %llu",elapsed,timer.elapsed());
+    timer.restart();
 }
 
 void MainWindow::onPlaybackFinished()

@@ -68,6 +68,7 @@ private:
     FilterSettings fsettings;
     QTimer updateTimer;
     QTime lastStatisticsUpdate;
+    QElapsedTimer timer;
     QVector<float> orientations;
     QVector<FilterSettings> settings;
     Buffer2D motionEnergy, speed,energy,dir;

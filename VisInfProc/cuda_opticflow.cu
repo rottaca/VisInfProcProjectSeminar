@@ -14,11 +14,13 @@ __global__ void kernelComputeFlow(int n,
     int pixelIdx = threadIdx.x + blockIdx.x * blockDim.x;
 
     if(pixelIdx < n) {
+        float resDir = 0;
+        float resSpeed = 0;
+        float resEnergy = 0;
+
+#ifdef DISABLE_INTERPOLATION
         float resEnergyX = 0;
         float resEnergyY = 0;
-        float resSpeed = 0;
-        float resEnergy =0;
-#ifdef DISABLE_INTERPOLATION
         int energyIdx = 0;
         for(int i = 0; i < speedCnt; i++) {
             float localEnergyX = 0;
@@ -37,31 +39,46 @@ __global__ void kernelComputeFlow(int n,
                 resSpeed = gpuArrSpeeds[i];
             }
         }
-
+        resDir = atan2(resEnergyY,resEnergyX);
 #else
+        float exp = 2;
+        float energySum = 0;
+        float speedX = 0;
+        float speedY = 0;
+
+        // Calcualte energy sum
+        for(int i = 0; i < speedCnt*orientationCnt; i++) {
+            energySum += gpuArrGpuEnergies[i][pixelIdx];
+        }
+
+        float scaleSum = 0;
+        for(int i = 0; i < speedCnt*orientationCnt; i++) {
+            scaleSum += pow(gpuArrGpuEnergies[i][pixelIdx]/energySum,exp);
+        }
+
         for(int j = 0; j  < orientationCnt; j++) {
             float orientation = gpuArrOrientations[j];
-            float energyTimesSpeed = 0;
-            float energySum = 0;
             for(int i = 0; i < speedCnt; i++) {
-                float e = gpuArrGpuEnergies[i*orientationCnt+j][pixelIdx];
-                energySum += e;
-                energyTimesSpeed += e*gpuArrSpeeds[i];
+                float speed = gpuArrSpeeds[i];
+                int idx = i*orientationCnt+j;
+                float energy = gpuArrGpuEnergies[idx][pixelIdx];
+                // calculate scaling factor
+                float scale = pow(gpuArrGpuEnergies[idx][pixelIdx]/energySum,exp)/scaleSum;
+                //float scale = gpuArrGpuEnergies[idx][pixelIdx]/energySum;
+
+                resEnergy += energy*scale;
+                speedX += speed*cos(orientation)*scale;
+                speedY += speed*sin(orientation)*scale;
             }
-            // Average speed
-            resSpeed += energyTimesSpeed/energySum;
-            // Average energy
-            resEnergy += energySum;
-            resEnergyX += energySum*cos(orientation);
-            resEnergyY += energySum*sin(orientation);
         }
-        // Devide by orientation count
-        resSpeed /= orientationCnt;
-        // Devide by orientation count * speed count
-        resEnergy /= orientationCnt*speedCnt;
+        resDir = atan2f(speedY,speedX);
+        resSpeed = sqrtf(speedX*speedX+speedY*speedY);
 #endif
+
         if(resEnergy >= minEnergy) {
-            gpuDir[pixelIdx] = atan2(resEnergyY,resEnergyX);
+            // Keep orientation between 0 and 2*PI
+            if(resDir < 0) resDir += 2*M_PI;
+            gpuDir[pixelIdx] = resDir;
             gpuEnergy[pixelIdx] = resEnergy;
             gpuSpeed[pixelIdx] = resSpeed;
         } else {
@@ -93,7 +110,7 @@ __host__ void cudaComputeFlow(int sx, int sy,
                               cudaStream_t stream)
 {
     int n = sx*sy;
-    size_t blocks = ceil((float)n/THREADS_PER_BLOCK);
+    size_t blocks = ceilf((float)n/THREADS_PER_BLOCK);
     kernelComputeFlow<<<blocks,THREADS_PER_BLOCK,0,stream>>>(
         n,
         gpuEnergy,gpuDir,gpuSpeed,
@@ -112,10 +129,11 @@ __global__ void kernelFlowToRGB(float* gpuEnergy, float* gpuDir, char *gpuImage,
     if(idx < n) {
         float length = gpuEnergy[idx];
         float h = RAD2DEG(gpuDir[idx]);
-        if(h < 0)
-            h+= 360;
-        else if(h>= 360)
-            h = 0;
+
+        // Mod 360
+        h = fmod(h,360.0f);
+        if(h < 0) h += 360;
+
         float s = length/maxLength;
         if(s > 1)
             s = 1;
@@ -157,16 +175,22 @@ __global__ void kernelFlowToRGB(float* gpuEnergy, float* gpuDir, char *gpuImage,
             b = v;
             break;
         case 5:
-        default:
             r = v;
             g = p;
             b = q;
+            break;
+        // This should not happen ! Set color to black
+        default:
+            r = 0;
+            g = 0;
+            b = 0;
             break;
         }
 
         gpuImage[3*idx    ] = r*255;
         gpuImage[3*idx + 1] = g*255;
         gpuImage[3*idx + 2] = b*255;
+
     }
 }
 

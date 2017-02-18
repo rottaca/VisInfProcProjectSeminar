@@ -127,7 +127,7 @@ void PushBotController::processFlow()
     if(rightFlowValid) {
         avgFlowVecXR /= cntR;
         avgFlowVecYR /= cntR;
-        //PRINT_DEBUG_FMT("AvgSpeedR: %f",avgFlowVecXR);
+        PRINT_DEBUG_FMT("AvgSpeedR: %f",avgFlowVecXR);
     } else {
         avgFlowVecXR = 0;
         avgFlowVecYR = 0;

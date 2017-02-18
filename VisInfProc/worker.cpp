@@ -1,5 +1,5 @@
 #include "worker.h"
-
+#include <QElapsedTimer>
 Worker::Worker(QObject *parent) : QThread(parent)
 {
     processing = false;
