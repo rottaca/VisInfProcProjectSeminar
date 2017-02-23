@@ -602,101 +602,17 @@ QGroupBox::title {
        <string>Views</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="1" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_img_flow">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="0">
-        <widget class="AspectRatioPixmapLabel" name="l_img_events">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_1">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
+        <widget class="AspectRatioPixmap" name="l_img_events"/>
        </item>
        <item row="0" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_img_energy">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
+        <widget class="AspectRatioPixmap" name="l_img_energy"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="AspectRatioPixmap" name="l_img_flow"/>
        </item>
        <item row="1" column="1">
-        <widget class="AspectRatioPixmapLabel" name="l_img_ctrl_2">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="AspectRatioPixmapLabel" name="l_img_flow_energy">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
-           <verstretch>1</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-         <property name="scaledContents">
-          <bool>false</bool>
-         </property>
-        </widget>
+        <widget class="AspectRatioPixmap" name="l_img_ctrl_2"/>
        </item>
       </layout>
      </widget>
@@ -863,9 +779,9 @@ QGroupBox::title {
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>AspectRatioPixmapLabel</class>
-   <extends>QLabel</extends>
-   <header>aspectratiopixmaplabel.h</header>
+   <class>AspectRatioPixmap</class>
+   <extends>QGraphicsView</extends>
+   <header>aspectratiopixmap.h</header>
   </customwidget>
  </customwidgets>
  <resources>

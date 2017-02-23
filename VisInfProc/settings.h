@@ -12,7 +12,7 @@
 // GUI
 *****************************************************************/
 // GUI refresh rate
-#define GUI_RENDERING_FPS 25
+#define GUI_RENDERING_FPS 20
 // Refreshrate of statistics
 #define GUI_STAT_UPDATE_FPS 5
 
@@ -26,6 +26,7 @@
 
 /*****************************************************************
 // OpticFlow estimator
+// Additional filter settings located in filtersettings.cpp
 *****************************************************************/
 // Spatial resolution of garbor filter (odd value)
 #define FILTER_SPATIAL_SIZE_PX 11
@@ -33,7 +34,6 @@
 #define FILTER_TEMPORAL_RES 20
 // End value x of temporal function t(x)
 #define FILTER_TEMPORAL_END 0.7f
-// Additional filter settings located in filtersettings.cpp
 #define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.25f
 
 /*****************************************************************

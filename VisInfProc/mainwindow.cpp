@@ -140,7 +140,7 @@ void MainWindow::initSignalsAndSlots()
 
 void MainWindow::onUpdate()
 {
-    qint64 elapsed = timer.elapsed();
+    qint64 elapsed = timer.nsecsElapsed();
     timer.restart();
 
     bool debugMode = ui->rb_debug->isChecked();
@@ -153,8 +153,8 @@ void MainWindow::onUpdate()
             quint32 time = worker.getMotionEnergy(speedIdx,orientIdx,motionEnergy);
             if(time != UINT32_MAX) {
 
-                QImage img1 = motionEnergy.toImage(0,1.0f);
-                ui->l_img_energy->setPixmap(QPixmap::fromImage(img1));
+                QImage &img1 = motionEnergy.toImage(0,1.0f);
+                ui->l_img_energy->setImage(img1);
             }
         }
 
@@ -179,11 +179,11 @@ void MainWindow::onUpdate()
         nvtxRangeEnd(id);
 #endif
 
-        ui->l_img_flow->setPixmap(QPixmap::fromImage(rgbImg));
+        ui->l_img_flow->setImage(rgbImg);
 
         if(debugMode) {
-            QImage engImage = energy.toImage(0,1);
-            ui->l_img_ctrl_2->setPixmap(QPixmap::fromImage(engImage));
+            QImage &engImage = energy.toImage(0,1);
+            ui->l_img_ctrl_2->setImage(engImage);
         }
 
         rgbImg.fill(Qt::white);
@@ -246,7 +246,7 @@ void MainWindow::onUpdate()
         }
 
         painter.end();
-        ui->l_img_events->setPixmap(QPixmap::fromImage(rgbImg));
+        ui->l_img_events->setImage(rgbImg);
 
     }
     if(lastStatisticsUpdate.elapsed() > 1000.0f*1.0f/GUI_STAT_UPDATE_FPS) {
@@ -264,7 +264,7 @@ void MainWindow::onUpdate()
         ui->l_timewindow->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us));
         lastStatisticsUpdate.restart();
     }
-    //qDebug("%llu %llu",elapsed,timer.elapsed());
+    //qDebug("%llu %llu",elapsed,timer.nsecsElapsed());
     timer.restart();
 }
 
@@ -288,10 +288,8 @@ void MainWindow::onClickStartPlayback()
     } else {
         PRINT_DEBUG("Start Playback");
         ui->l_img_flow->clear();
-        ui->l_img_ctrl_1->clear();
         ui->l_img_ctrl_2->clear();
         ui->l_img_events->clear();
-        ui->l_img_flow_energy->clear();
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
         ui->gb_playback_settings->setEnabled(false);
@@ -327,10 +325,8 @@ void MainWindow::onConnectionResult(bool error)
         ui->b_reset->setEnabled(true);
         ui->gb_connect_settings->setEnabled(false);
         ui->l_img_flow->clear();
-        ui->l_img_ctrl_1->clear();
         ui->l_img_ctrl_2->clear();
         ui->l_img_events->clear();
-        ui->l_img_flow_energy->clear();
     } else {
         QMessageBox::critical(this,"Error","Failed to connect!");
     }
@@ -431,22 +427,16 @@ void MainWindow::onChangeRenderMode()
         ui->l_img_events->show();
         ui->l_img_flow->show();
         ui->l_img_energy->show();
-        ui->l_img_flow_energy->show();
-        ui->l_img_ctrl_1->show();
         ui->l_img_ctrl_2->show();
     } else if(ui->rb_disable_render->isChecked()) {
         ui->l_img_events->hide();
         ui->l_img_flow->hide();
         ui->l_img_energy->hide();
-        ui->l_img_flow_energy->hide();
-        ui->l_img_ctrl_1->hide();
         ui->l_img_ctrl_2->hide();
     } else {
         ui->l_img_events->show();
         ui->l_img_flow->show();
         ui->l_img_energy->hide();
-        ui->l_img_flow_energy->hide();
-        ui->l_img_ctrl_1->hide();
         ui->l_img_ctrl_2->hide();
     }
 }

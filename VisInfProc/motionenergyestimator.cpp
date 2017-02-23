@@ -56,7 +56,7 @@ MotionEnergyEstimator::MotionEnergyEstimator(FilterSettings fs, QVector<float> o
 MotionEnergyEstimator::~MotionEnergyEstimator()
 {
     PRINT_DEBUG("Destroying motion energy estimator...");
-    PRINT_DEBUG_FMT("Peak event count per computation: %d",gpuEventListSizeAllocated);
+    qDebug("Peak event count per computation: %d",gpuEventListSizeAllocated);
     for(int i = 0; i < orientations.length(); i++) {
         delete fset[i];
         for(int j = 0; j < FILTERS_PER_ORIENTATION; j++) {

@@ -27,10 +27,12 @@ SOURCES += main.cpp\
     motionenergyestimator.cpp \
     opticflowestimator.cpp \
     worker.cpp \
-    aspectratiopixmaplabel.cpp \
     basebuffer.cpp \
     pushbotcontroller.cpp \
-    edvsinterface.cpp
+    edvsinterface.cpp \
+    eventbuilder.cpp \
+    aspectratiopixmap.cpp \
+    myqgraphicsimage.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -45,12 +47,14 @@ HEADERS  += mainwindow.h \
     cuda_helper.h \
     cuda_settings.h \
     worker.h \
-    aspectratiopixmaplabel.h \
     basebuffer.h \
     settings.h \
     datatypes.h \
     pushbotcontroller.h \
-    edvsinterface.h
+    edvsinterface.h \
+    eventbuilder.h \
+    aspectratiopixmap.h \
+    myqgraphicsimage.h
 
 FORMS    += mainwindow.ui
 

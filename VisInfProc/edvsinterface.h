@@ -7,6 +7,7 @@
 #include <QTcpSocket>
 
 #include "datatypes.h"
+#include "eventbuilder.h"
 
 class Worker;
 class PushBotController;
@@ -15,10 +16,6 @@ class eDVSInterface: public QObject
 {
     Q_OBJECT
 public:
-
-    typedef enum AddressVersion {Addr2Byte = 2,Addr4Byte = 4} AddressVersion;
-    typedef enum TimestampVersion {Time4Byte = 4, Time3Byte = 3, Time2Byte = 2, TimeDelta = -1, TimeNoTime = 0} TimestampVersion;
-
     eDVSInterface(QObject* parent = 0);
     ~eDVSInterface();
 
@@ -147,7 +144,7 @@ public:
 
 private:
     // Playback function to parse and play an event file
-    QByteArray parseEventFile(QString file, AddressVersion &addrVers, TimestampVersion &timeVers);
+    QByteArray parseEventFile(QString file, EventBuilder::AddressVersion &addrVers, EventBuilder::TimestampVersion &timeVers);
     /**
      * @brief _playbackFile Loads and plays an event file
      */
@@ -156,22 +153,6 @@ private:
      * @brief _processSocket Sends and recieves commands from and to the eDVS.
      */
     void _processSocket();
-
-    /**
-     * @brief initEvBuilder Initializes the event builder for a specific address and timestamp format
-     * @param addrVers
-     * @param timeVers
-     */
-    void initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers);
-    /**
-     * @brief evBuilderProcessNextByte Processes the next character from the file or online-stream.
-     * Returns true, when a new event is constructed. Its data stored in the passed object reference.
-     * @param c
-     * @param event
-     * @return
-     */
-    bool evBuilderProcessNextByte(char c, DVSEvent &event);
-    DVSEvent evBuilderParseEvent();
 
 private:
     // Thread for async processing of playback file and tcp socket
@@ -195,21 +176,7 @@ private:
     double playbackSpeed;
     QMutex playbackDataMutex;
 
-    // Data for the event builder
-    TimestampVersion evBuilderTimestampVersion;
-    AddressVersion evBuilderAddressVersion;
-    // Current byte index for the next event
-    int evBuilderByteIdx;
-    // The buffer size for the event builder
-    int evBuilderBufferSz;
-    // Pointer to the event builder data (currently stored bytes for the next event)
-    char* evBuilderData;
-    // Timestamp for events with delta times
-    quint32 evBuilderSyncTimestamp;
-    // Timestamp of last event to detect overflows
-    quint32 evBuilderLastTimestamp;
-    //QMutex evBuilderMutex;
-
+    EventBuilder evBuilder;
 };
 
 #endif // SERIALEDVSINTERFACE_H
