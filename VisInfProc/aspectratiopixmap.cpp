@@ -18,7 +18,7 @@ AspectRatioPixmap::~AspectRatioPixmap()
 
 void AspectRatioPixmap::setImage ( const QImage & img)
 {
-    pix->setImage(img);
+    pix->setImage(img.mirrored());
     setSceneRect(pix->boundingRect());
     fitInView(scene->itemsBoundingRect(),Qt::KeepAspectRatio);
 }

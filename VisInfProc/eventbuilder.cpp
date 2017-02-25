@@ -74,7 +74,6 @@ bool EventBuilder::evBuilderProcessNextByte(char c, DVSEvent &event)
             // Check for leading 1 in timestamp bytes
             if(c & 0x80) {
                 event = evBuilderParseEvent();
-                evBuilderByteIdx = 0;
                 return true;
             } else if(evBuilderByteIdx == evBuilderBufferSz) {
                 qCritical("Event not recognized! Skipped %d data bytes! "
@@ -86,7 +85,6 @@ bool EventBuilder::evBuilderProcessNextByte(char c, DVSEvent &event)
         // Buffer full ? Event ready
         if(evBuilderByteIdx == evBuilderBufferSz) {
             event = evBuilderParseEvent();
-            evBuilderByteIdx = 0;
             return true;
         }
     }
@@ -165,10 +163,11 @@ DVSEvent EventBuilder::evBuilderParseEvent()
     DVSEvent e;
     // Extract event from address by assuming a DVS128 camera
     //e.On = ad & 0x01;       // Polarity: LSB
-    // flip axis to match qt's image coordinate system
-    e.x = 127 - ((ad >> 0x01) & 0x7F);  // X: 0 - 127
-    e.y = 127 - ((ad >> 0x08) & 0x7F) ; // Y: 0 - 127
+    e.x = (ad >> 0x01) & 0x7F;  // X: 0 - 127
+    e.y = (ad >> 0x08) & 0x7F ; // Y: 0 - 127
     e.timestamp = time;
 
+    // Reset buffer
+    evBuilderByteIdx = 0;
     return e;
 }

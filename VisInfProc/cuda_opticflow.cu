@@ -81,6 +81,7 @@ __global__ void kernelComputeFlow(int n,
             gpuDir[pixelIdx] = resDir;
             gpuEnergy[pixelIdx] = resEnergy;
             gpuSpeed[pixelIdx] = resSpeed;
+
         } else {
             gpuDir[pixelIdx] = 0;
             gpuEnergy[pixelIdx] = 0;

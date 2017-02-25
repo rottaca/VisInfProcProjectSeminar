@@ -31,8 +31,7 @@ SOURCES += main.cpp\
     pushbotcontroller.cpp \
     edvsinterface.cpp \
     eventbuilder.cpp \
-    aspectratiopixmap.cpp \
-    myqgraphicsimage.cpp
+    aspectratiopixmap.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \

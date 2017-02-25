@@ -7,7 +7,10 @@
 class MyQGraphicsImage: public QGraphicsItem
 {
 public:
-    MyQGraphicsImage();
+    MyQGraphicsImage():QGraphicsItem (NULL)
+    {
+
+    }
 
     void setImage ( const QImage & img)
     {
