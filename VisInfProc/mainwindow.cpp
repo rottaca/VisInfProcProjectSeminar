@@ -91,13 +91,8 @@ void MainWindow::initSystem()
 
     orientations.append(DEG2RAD(0.0f));
     orientations.append(DEG2RAD(180.0f));
-    orientations.append(DEG2RAD(90.0f));
-    orientations.append(DEG2RAD(-90.0f));
-
-//    orientations.append(DEG2RAD(45.0f));
-//    orientations.append(DEG2RAD(-45.0f));
-//    orientations.append(DEG2RAD(-135.0f));
-//    orientations.append(DEG2RAD(135.0f));
+    //orientations.append(DEG2RAD(90.0f));
+    //orientations.append(DEG2RAD(-90.0f));
 
     pushBotController.setup(settings,orientations);
     worker.setComputationParameters(settings,orientations);

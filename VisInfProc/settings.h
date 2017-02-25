@@ -60,9 +60,9 @@
 // Default speed
 #define PUSHBOT_VELOCITY_DEFAULT 30
 // Default PID values for pushbot PID controller
-#define PUSHBOT_PID_P_DEFAULT 0.1
+#define PUSHBOT_PID_P_DEFAULT 0.5
 #define PUSHBOT_PID_I_DEFAULT 0.0
-#define PUSHBOT_PID_D_DEFAULT 0.0
+#define PUSHBOT_PID_D_DEFAULT 0.0001
 // Maximum absolute integrated error
 #define PUSHBOT_PID_MAX_ESUM 100.f
 

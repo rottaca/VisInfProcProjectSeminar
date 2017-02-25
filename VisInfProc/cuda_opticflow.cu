@@ -41,11 +41,12 @@ __global__ void kernelComputeFlow(int n,
         }
         resDir = atan2(resEnergyY,resEnergyX);
 #else
-        float exp = 2;
+        float exp = 5;
         float energySum = 0;
         float speedX = 0;
         float speedY = 0;
-
+        float energyX = 0;
+        float energyY = 0;
         // Calcualte energy sum
         for(int i = 0; i < speedCnt*orientationCnt; i++) {
             energySum += gpuArrGpuEnergies[i][pixelIdx];
@@ -64,15 +65,23 @@ __global__ void kernelComputeFlow(int n,
                 float energy = gpuArrGpuEnergies[idx][pixelIdx];
                 // calculate scaling factor
                 float scale = pow(gpuArrGpuEnergies[idx][pixelIdx]/energySum,exp)/scaleSum;
-                //float scale = gpuArrGpuEnergies[idx][pixelIdx]/energySum;
 
-                resEnergy += energy*scale;
-                speedX += speed*cos(orientation)*scale;
-                speedY += speed*sin(orientation)*scale;
+                // Compute speed and energy in x and y direction
+                energyX += energy*scale*cos(orientation);
+                energyY += energy*scale*sin(orientation);
+                speedX += speed*scale*cos(orientation);
+                speedY += speed*scale*sin(orientation);
             }
         }
-        resDir = atan2f(speedY,speedX);
+        resDir = atan2f(energyY,energyX);
+        resEnergy = sqrtf(energyX*energyX + energyY+energyY);
         resSpeed = sqrtf(speedX*speedX+speedY*speedY);
+
+        // ignore value, if speed and energy direction differs more than 10 degree
+        if(fabs(resDir - atan2f(speedY,speedX)) > DEG2RAD(10)) {
+            resEnergy = 0;
+            resSpeed = 0;
+        }
 #endif
 
         if(resEnergy >= minEnergy) {
