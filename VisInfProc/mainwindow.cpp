@@ -18,6 +18,7 @@
 #include <QMessageBox>
 
 #include "settings.h"
+#include "filterselectionform.h"
 
 bool sortSettingsBySpeed(const FilterSettings &a, const FilterSettings &b)
 {
@@ -44,16 +45,10 @@ MainWindow::~MainWindow()
 void MainWindow::initUI()
 {
     ui->setupUi(this);
+
+    filterSelectionForm = new FilterSelectionForm();
     lastStatisticsUpdate.start();
 
-    ui->cb_show_speed->clear();
-    Q_FOREACH(FilterSettings fs, settings) {
-        ui->cb_show_speed->addItem(QString("%1").arg(fs.speed_px_per_sec));
-    }
-    ui->cb_show_orient->clear();
-    Q_FOREACH(float o, orientations) {
-        ui->cb_show_orient->addItem(QString("%1").arg(RAD2DEG(o)));
-    }
 
     rgbImg = QImage(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,QImage::Format_RGB888);
     gpuErrchk(cudaMalloc(&gpuRgbImage,DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3));
@@ -62,6 +57,8 @@ void MainWindow::initUI()
     ui->sb_pushbot_p->setValue(PUSHBOT_PID_P_DEFAULT);
     ui->sb_pushbot_i->setValue(PUSHBOT_PID_I_DEFAULT);
     ui->sb_pushbot_d->setValue(PUSHBOT_PID_D_DEFAULT);
+
+    setupActiveFilters();
 
     onChangeRenderMode();
 }
@@ -80,22 +77,29 @@ void MainWindow::initSystem()
     dir.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
     motionEnergy.resize(DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_WIDTH);
 
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
-    settings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
-    //settings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
+    // Add all avaiable speeds
+    allSettings.append(FilterSettings::getSettings(FilterSettings::SPEED_1));
+    allSettings.append(FilterSettings::getSettings(FilterSettings::SPEED_2));
+    allSettings.append(FilterSettings::getSettings(FilterSettings::SPEED_3));
+    allSettings.append(FilterSettings::getSettings(FilterSettings::SPEED_4));
+    allSettings.append(FilterSettings::getSettings(FilterSettings::SPEED_5));
 
     // Sort list of settings by speed for interpolation
-    std::sort(settings.begin(),settings.end(),sortSettingsBySpeed);
+    std::sort(allSettings.begin(),allSettings.end(),sortSettingsBySpeed);
 
-    orientations.append(DEG2RAD(0.0f));
-    orientations.append(DEG2RAD(180.0f));
-    //orientations.append(DEG2RAD(90.0f));
-    //orientations.append(DEG2RAD(-90.0f));
+    // Add all available orientations
+    allOrientations.append(DEG2RAD(0.0f));
+    allOrientations.append(DEG2RAD(180.0f));
+    allOrientations.append(DEG2RAD(90.0f));
+    allOrientations.append(DEG2RAD(-90.0f));
+    allOrientations.append(DEG2RAD(45.0f));
+    allOrientations.append(DEG2RAD(-45.0f));
+    allOrientations.append(DEG2RAD(135.0f));
+    allOrientations.append(DEG2RAD(-135.0f));
 
-    pushBotController.setup(settings,orientations);
-    worker.setComputationParameters(settings,orientations);
+    // Set default speeds and orientations
+    activeOrientationIndices = {0,1,2,3};
+    activeSettingIndices = {1,2,3};
 
     eDVSHandler.setWorker(&worker);
     eDVSHandler.setPushBotCtrl(&pushBotController);
@@ -131,8 +135,10 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->rb_debug,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
     connect(ui->rb_normal,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
     connect(ui->rb_disable_render,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
-}
 
+    connect(filterSelectionForm,SIGNAL(activeFiltersChanged(QVector<int>,QVector<int>)),this,SLOT(activeFiltersChanged(QVector<int>,QVector<int>)));
+    connect(ui->b_changeActiveFilters,SIGNAL(clicked()),this,SLOT(onClickChangeActiveFilters()));
+}
 void MainWindow::onUpdate()
 {
     qint64 elapsed = timer.nsecsElapsed();
@@ -164,7 +170,7 @@ void MainWindow::onUpdate()
 #endif
         cudaFlowToRGB(speed.getGPUPtr(),dir.getGPUPtr(),gpuRgbImage,
                       DVS_RESOLUTION_WIDTH,DVS_RESOLUTION_HEIGHT,
-                      settings.back().speed_px_per_sec,
+                      allSettings.at(activeSettingIndices.back()).speed_px_per_sec,
                       cudaStream);
         gpuErrchk(cudaMemcpyAsync(rgbImg.bits(),gpuRgbImage,
                                   DVS_RESOLUTION_WIDTH*DVS_RESOLUTION_HEIGHT*3,
@@ -205,7 +211,7 @@ void MainWindow::onUpdate()
 
             //paint2.drawLine(DVS_RESOLUTION_WIDTH/2,0,DVS_RESOLUTION_WIDTH/2,DVS_RESOLUTION_HEIGHT);
             float maxLDraw = DVS_RESOLUTION_WIDTH/4.0f;
-            float maxLength = settings.back().speed_px_per_sec; // Fastest speed as maximum
+            float maxLength = allSettings.at(activeSettingIndices.back()).speed_px_per_sec; // Fastest speed as maximum
             p1L.setX(DVS_RESOLUTION_WIDTH/4);
             p1L.setY(DVS_RESOLUTION_HEIGHT/2);
             p1R.setX(DVS_RESOLUTION_WIDTH*3.0f/4.0f);
@@ -247,6 +253,7 @@ void MainWindow::onUpdate()
     if(lastStatisticsUpdate.elapsed() > 1000.0f*1.0f/GUI_STAT_UPDATE_FPS) {
         quint32 evRec = 0, evDisc = 0;
         worker.getStats(evRec,evDisc,speedIdx);
+        int globalSpeedIdx = activeSettingIndices.at(speedIdx);
         float p = 0;
         if(evRec > 0)
             p = 1- (float)evDisc/evRec;
@@ -255,8 +262,8 @@ void MainWindow::onUpdate()
         ui->l_skip_ev_cnt->setNum((int)evDisc);
         ui->l_rec_ev_cnt->setNum((int)evRec);
         ui->l_ctrl_output->setText(QString("%1").arg(pushBotController.getCtrlOutput()));
-        ui->l_time_per_slot->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us/settings.at(speedIdx).temporalSteps));
-        ui->l_timewindow->setText(QString("%1 us").arg(settings.at(speedIdx).timewindow_us));
+        ui->l_time_per_slot->setText(QString("%1 us").arg(allSettings.at(globalSpeedIdx).timewindow_us/allSettings.at(globalSpeedIdx).temporalSteps));
+        ui->l_timewindow->setText(QString("%1 us").arg(allSettings.at(globalSpeedIdx).timewindow_us));
         lastStatisticsUpdate.restart();
     }
     //qDebug("%llu %llu",elapsed,timer.nsecsElapsed());
@@ -434,4 +441,44 @@ void MainWindow::onChangeRenderMode()
         ui->l_img_energy->hide();
         ui->l_img_ctrl_2->hide();
     }
+}
+
+void MainWindow::onClickChangeActiveFilters()
+{
+    filterSelectionForm->show(allOrientations,
+                              allSettings,
+                              activeOrientationIndices,
+                              activeSettingIndices);
+}
+
+void MainWindow::activeFiltersChanged(QVector<int> activeOrientationIndices,
+                                      QVector<int> activeSettingIndices)
+{
+    this->activeOrientationIndices = activeOrientationIndices;
+    this->activeSettingIndices = activeSettingIndices;
+    setupActiveFilters();
+}
+
+void MainWindow::setupActiveFilters()
+{
+
+    QVector<float> activeOrientations;
+    Q_FOREACH(int i,activeOrientationIndices) {
+        activeOrientations.append(allOrientations.at(i));
+    }
+    QVector<FilterSettings> activeSettings;
+    Q_FOREACH(int i,activeSettingIndices) {
+        activeSettings.append(allSettings.at(i));
+    }
+
+    ui->cb_show_speed->clear();
+    Q_FOREACH(FilterSettings fs, activeSettings) {
+        ui->cb_show_speed->addItem(QString("%1").arg(fs.speed_px_per_sec));
+    }
+    ui->cb_show_orient->clear();
+    Q_FOREACH(float o, activeOrientations) {
+        ui->cb_show_orient->addItem(QString("%1").arg(RAD2DEG(o)));
+    }
+    pushBotController.setup(activeSettings,activeOrientations);
+    worker.setComputationParameters(activeSettings,activeOrientations);
 }

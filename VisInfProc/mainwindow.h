@@ -19,6 +19,8 @@
 #include "settings.h"
 #include "pushbotcontroller.h"
 
+class FilterSelectionForm;
+
 namespace Ui
 {
 class MainWindow;
@@ -50,6 +52,9 @@ public slots:
     void onChangePushbotI(double v);
     void onChangePushbotD(double v);
     void onChangeRenderMode();
+    void activeFiltersChanged(QVector<int> activeOrientationIndices,
+                              QVector<int> activeSettingIndices);
+    void onClickChangeActiveFilters();
 
 signals:
     void sendRawCmd(QString cmd);
@@ -61,16 +66,22 @@ private:
     void initUI();
     void initSystem();
     void initSignalsAndSlots();
+    void setupActiveFilters();
 
 private:
     cudaStream_t cudaStream;
     Ui::MainWindow *ui;
-    FilterSettings fsettings;
+    FilterSelectionForm* filterSelectionForm;
     QTimer updateTimer;
     QTime lastStatisticsUpdate;
+
     QElapsedTimer timer;
-    QVector<float> orientations;
-    QVector<FilterSettings> settings;
+
+    QVector<float> allOrientations;
+    QVector<FilterSettings> allSettings;
+    QVector<int> activeOrientationIndices;
+    QVector<int> activeSettingIndices;
+
     Buffer2D motionEnergy, speed,energy,dir;
     QImage rgbImg;
     char* gpuRgbImage;

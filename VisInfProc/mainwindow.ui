@@ -471,6 +471,13 @@ QGroupBox::title {
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="b_changeActiveFilters">
+             <property name="text">
+              <string>change active filters</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_2">
              <property name="orientation">
               <enum>Qt::Vertical</enum>

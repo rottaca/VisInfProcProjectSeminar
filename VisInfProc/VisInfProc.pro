@@ -31,7 +31,8 @@ SOURCES += main.cpp\
     pushbotcontroller.cpp \
     edvsinterface.cpp \
     eventbuilder.cpp \
-    aspectratiopixmap.cpp
+    aspectratiopixmap.cpp \
+    filterselectionform.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -53,9 +54,11 @@ HEADERS  += mainwindow.h \
     edvsinterface.h \
     eventbuilder.h \
     aspectratiopixmap.h \
-    myqgraphicsimage.h
+    myqgraphicsimage.h \
+    filterselectionform.h
 
-FORMS    += mainwindow.ui
+FORMS    += mainwindow.ui \
+    filterselectionform.ui
 
 # CUDA Settings
 CUDA_SOURCES =  cuda_helper.cu \
