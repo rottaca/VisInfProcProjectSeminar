@@ -276,6 +276,7 @@ void MainWindow::onPlaybackFinished()
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
     ui->gb_playback_settings->setEnabled(true);
+    ui->b_changeActiveFilters->setEnabled(true);
     QMessageBox::information(this,"Information","Playback finished!");
 }
 
@@ -287,6 +288,7 @@ void MainWindow::onClickStartPlayback()
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
         ui->gb_playback_settings->setEnabled(true);
+        ui->b_changeActiveFilters->setEnabled(true);
     } else {
         PRINT_DEBUG("Start Playback");
         ui->l_img_flow->clear();
@@ -295,6 +297,7 @@ void MainWindow::onClickStartPlayback()
         ui->b_start_playback->setText("Stop");
         ui->tab_online->setEnabled(false);
         ui->gb_playback_settings->setEnabled(false);
+        ui->b_changeActiveFilters->setEnabled(false);
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
@@ -326,6 +329,7 @@ void MainWindow::onConnectionResult(bool error)
         ui->b_start_streaming->setEnabled(true);
         ui->b_reset->setEnabled(true);
         ui->gb_connect_settings->setEnabled(false);
+        ui->b_changeActiveFilters->setEnabled(false);
         ui->l_img_flow->clear();
         ui->l_img_ctrl_2->clear();
         ui->l_img_events->clear();
@@ -380,6 +384,7 @@ void MainWindow::onClickConnect()
         ui->b_start_streaming->setEnabled(false);
         ui->b_reset->setEnabled(false);
         ui->gb_connect_settings->setEnabled(true);
+        ui->b_changeActiveFilters->setEnabled(false);
     } else {
         ui->te_comands->clear();
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
