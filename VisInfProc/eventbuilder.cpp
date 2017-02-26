@@ -2,172 +2,188 @@
 
 EventBuilder::EventBuilder()
 {
-    evBuilderData = NULL;
-    evBuilderAddressVersion = Addr2Byte;
-    evBuilderTimestampVersion = TimeNoTime;
-    evBuilderBufferSz = 0;
-    evBuilderByteIdx = 0;
-    evBuilderSyncTimestamp = 0;
+    evBuffer = NULL;
+    addressVersion = Addr2Byte;
+    timestampVersion = TimeNoTime;
+    bufferSz = 0;
+    byteIdx = 0;
+    syncTimestamp = 0;
 }
 
 EventBuilder::~EventBuilder()
 {
-    if(evBuilderData != NULL)
-        delete[] evBuilderData;
-    evBuilderData = NULL;
+    if(evBuffer != NULL)
+        delete[] evBuffer;
+    evBuffer = NULL;
 }
 
 void EventBuilder::initEvBuilder(AddressVersion addrVers, TimestampVersion timeVers)
 {
     //QMutexLocker locker(&evBuilderMutex);
-    evBuilderTimestampVersion = timeVers;
-    evBuilderAddressVersion = addrVers;
-    evBuilderByteIdx = 0;
-    evBuilderSyncTimestamp = 0;
-    evBuilderLastTimestamp = 0;
+    timestampVersion = timeVers;
+    addressVersion = addrVers;
+    byteIdx = 0;
+    syncTimestamp = 0;
+    lastTimestamp = 0;
 
     switch(addrVers) {
     case Addr2Byte:
-        evBuilderBufferSz = 2;
+        bufferSz = 2;
         break;
     case Addr4Byte:
-        evBuilderBufferSz = 4;
+        bufferSz = 4;
     }
 
     switch(timeVers) {
     case Time4Byte:
-        evBuilderBufferSz += 4;
+        bufferSz += 4;
         break;
     case Time3Byte:
-        evBuilderBufferSz += 3;
+        bufferSz += 3;
         break;
     case Time2Byte:
-        evBuilderBufferSz += 2;
+        bufferSz += 2;
         break;
     case TimeNoTime:
-        evBuilderBufferSz += 0;
+        bufferSz += 0;
         break;
     case TimeDelta:
-        evBuilderBufferSz += 4;
+        bufferSz += 4;
         break;
     }
 
-    if(evBuilderData != NULL)
-        delete[] evBuilderData;
-    evBuilderData = new char[evBuilderBufferSz];
+    if(evBuffer != NULL)
+        delete[] evBuffer;
+    evBuffer = new char[bufferSz];
 }
 
-bool EventBuilder::evBuilderProcessNextByte(char c, DVSEvent &event)
+bool EventBuilder::evBuilderProcessNextByte(char c, DVSEvent &event, bool onlineMode)
 {
     //QMutexLocker locker(&evBuilderMutex);
-    // Simple sync check: Check if MSB of first byte is 1, otherwise skip
-    //if(evBuilderByteIdx == 0 && !(c & 0x80)) {
-    //    qWarning("Skipped event byte!");
-    //    return false;
-    //}
-
+    if(onlineMode) {
+        // Simple sync check: Check if MSB of first byte is 1, otherwise skip
+        // Address Mode is always 2 Byte, in Online Mode
+        if(byteIdx == 2 && !(c & 0x80)) {
+            qWarning("[EventBuilder] Invalid first byte! Skipped one byte!");
+            return false;
+        }
+    }
     // Store byte in buffer
-    evBuilderData[evBuilderByteIdx++] = c;
-    if(evBuilderTimestampVersion == TimeDelta) {
-        // addressbytes done ?
-        if(evBuilderByteIdx >= evBuilderAddressVersion) {
+    evBuffer[byteIdx++] = c;
+    if(timestampVersion == TimeDelta) {
+        // address bytes received ?
+        if(byteIdx >= addressVersion) {
             // Check for leading 1 in timestamp bytes
             if(c & 0x80) {
-                event = evBuilderParseEvent();
-                return true;
-            } else if(evBuilderByteIdx == evBuilderBufferSz) {
-                qCritical("Event not recognized! Skipped %d data bytes! "
-                          "Please restart!",evBuilderBufferSz);
-                evBuilderByteIdx = 0;
+                return evBuilderParseEvent(onlineMode,event);
+            } else if(byteIdx == bufferSz) {
+                qCritical("[EventBuilder] Delta timestamp not detected! Skipped %d data bytes!",
+                          bufferSz);
+                byteIdx = 0;
             }
         }
     } else {
         // Buffer full ? Event ready
-        if(evBuilderByteIdx == evBuilderBufferSz) {
-            event = evBuilderParseEvent();
-            return true;
-        }
+        if(byteIdx == bufferSz)
+            return evBuilderParseEvent(onlineMode,event);
     }
     return false;
 }
 
-DVSEvent EventBuilder::evBuilderParseEvent()
+bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
 {
-    // TODO: Check endianess from system
-    // Event data is MBS first
-
+    // Event data is big-endian (highest byte first)
+    // Convert to little-endian
     u_int32_t ad = 0,time = 0;
     int idx = 0;
-    int addrBytes = evBuilderAddressVersion;
-    switch (evBuilderAddressVersion) {
+    int addrBytes = addressVersion;
+    switch (addressVersion) {
     case Addr2Byte:
-        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        ad |= uint32_t((uchar)evBuffer[idx++] << 0x08);
+        ad |= uint32_t((uchar)evBuffer[idx++] << 0x00);
         break;
     case Addr4Byte:
-        ad = uint32_t((uchar)evBuilderData[idx++] << 0x18);
-        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
-        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-        ad |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        ad = uint32_t((uchar)evBuffer[idx++] << 0x18);
+        ad |= uint32_t((uchar)evBuffer[idx++] << 0x10);
+        ad |= uint32_t((uchar)evBuffer[idx++] << 0x08);
+        ad |= uint32_t((uchar)evBuffer[idx++] << 0x00);
         break;
     }
-    // TODO Use evBuilderSyncTimestamp for all types of timestamps to avoid overflows in time
-    switch(evBuilderTimestampVersion) {
+    switch(timestampVersion) {
     case Time4Byte:
-        time = uint32_t((uchar)evBuilderData[idx++] << 0x18);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x10);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        time = uint32_t((uchar)evBuffer[idx++] << 0x18);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x10);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x00);
         // No overflow handling when using 4 bytes
+        // Requires 64 bit integers, increases data
         break;
     case Time3Byte:
-        time = uint32_t((uchar)evBuilderData[idx++] << 0x10);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x08);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        time = uint32_t((uchar)evBuffer[idx++] << 0x10);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x00);
         // Timestamp overflow ?
-        if(time < evBuilderLastTimestamp) {
-            evBuilderSyncTimestamp += 0xFFFFFF;
+        if(time < lastTimestamp) {
+            syncTimestamp += 0xFFFFFF;
         }
-        time += evBuilderSyncTimestamp;
+        time += syncTimestamp;
         break;
     case Time2Byte:
-        time = uint32_t((uchar)evBuilderData[idx++] << 0x08);
-        time |= uint32_t((uchar)evBuilderData[idx++] << 0x00);
+        time = uint32_t((uchar)evBuffer[idx++] << 0x08);
+        time |= uint32_t((uchar)evBuffer[idx++] << 0x00);
         // Timestamp overflow ?
-        if(time < evBuilderLastTimestamp) {
-            evBuilderSyncTimestamp += 0xFFFF;
+        if(time < lastTimestamp) {
+            syncTimestamp += 0xFFFF;
         }
-        time += evBuilderSyncTimestamp;
+        time += syncTimestamp;
         break;
     case TimeDelta: {
-        // TODO Check
-        // Parse variable timestamp
-        // Store bytes in flipped order in time variable
-        int pos = (evBuilderByteIdx-1)*7;
-        for(int j = 0; j < evBuilderByteIdx-addrBytes; j++) {
-            time |= uint32_t(((uchar)evBuilderData[idx++] & 0x7F) << pos);
+        // Parse variable timestamp: Store bytes in flipped order in time variable,
+        // concat only the lowest 7 bits per byte
+        int timestampBytes = byteIdx-addrBytes;
+        // Most significant byte first
+        int pos = (timestampBytes-1)*7;
+        for(int j = 0; j < timestampBytes; j++) {
+            time |= uint32_t(((uchar)evBuffer[idx++] & 0x7F) << pos);
             pos-=7;
         }
         // Convert relative to absolute timestamp
-        evBuilderSyncTimestamp += time;
-        time = evBuilderSyncTimestamp;
+        time += syncTimestamp;
+        // Store new sync timestamp
+        syncTimestamp = time;
         break;
     }
+    // Format contains no timestamp
     case TimeNoTime:
         time = 0;
         break;
     }
 
-    evBuilderLastTimestamp = time;
+    lastTimestamp = time;
 
-    DVSEvent e;
     // Extract event from address by assuming a DVS128 camera
-    //e.On = ad & 0x01;       // Polarity: LSB
-    e.x = (ad >> 0x01) & 0x7F;  // X: 0 - 127
-    e.y = (ad >> 0x08) & 0x7F ; // Y: 0 - 127
-    e.timestamp = time;
-
+    if(!onlineMode) {
+        // Format:
+        //   Bit 0: On/Off
+        //   Bit 7-1: X
+        //   Bit 8-14: Y
+        //   Bit 15: External Event, Unused
+        //e.On = ad & 0x01;       // Polarity: LSB
+        e.x = (ad >> 0x01) & 0x007F;  // X: 0 - 127
+        e.y = (ad >> 0x08) & 0x007F ; // Y: 0 - 127
+        e.timestamp = time;
+    } else {
+        // Format:
+        // Bit 0-6: Y
+        // Bit 7: Unused
+        // Bit 8-14: X
+        // Bit 15: On/Off
+        //e.On = (ad >> 0x08) & 0x01;       // Polarity: LSB
+        e.y = (ad >> 0x00) & 0x007F ; // Y: 0 - 127
+        e.x = (ad >> 0x08) & 0x007F;  // X: 0 - 127
+        e.timestamp = time;
+    }
     // Reset buffer
-    evBuilderByteIdx = 0;
-    return e;
+    byteIdx = 0;
+    return true;
 }

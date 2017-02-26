@@ -32,31 +32,34 @@ public:
      * Returns true, when a new event is constructed. Its data stored in the provided object reference.
      * @param c
      * @param event
+     * @param onlineMode
      * @return
      */
-    bool evBuilderProcessNextByte(char c, DVSEvent &event);
+    bool evBuilderProcessNextByte(char c, DVSEvent &event, bool onlineMode);
 private:
     /**
      * @brief evBuilderParseEvent Parses a DVS Event from the current byte buffer
      * and resets the buffer ptr to the beginning.
+     * @param onlineMode
+     * @param e
      * @return
      */
-    DVSEvent evBuilderParseEvent();
+    bool evBuilderParseEvent(bool onlineMode, DVSEvent &e);
 
 private:
     // Data format version for the event builder
-    TimestampVersion evBuilderTimestampVersion;
-    AddressVersion evBuilderAddressVersion;
+    TimestampVersion timestampVersion;
+    AddressVersion addressVersion;
     // Current byte index for the next event
-    int evBuilderByteIdx;
+    int byteIdx;
     // The buffer size for the event builder
-    int evBuilderBufferSz;
+    int bufferSz;
     // Pointer to the event builder data (currently stored bytes for the next event)
-    char* evBuilderData;
+    char* evBuffer;
     // Timestamp for events with delta times
-    quint32 evBuilderSyncTimestamp;
+    quint32 syncTimestamp;
     // Timestamp of last event to detect overflows
-    quint32 evBuilderLastTimestamp;
+    quint32 lastTimestamp;
     //QMutex evBuilderMutex;
 };
 

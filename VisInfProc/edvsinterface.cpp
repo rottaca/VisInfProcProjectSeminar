@@ -225,8 +225,7 @@ void eDVSInterface::_processSocket()
                 if(socket.bytesAvailable()) {
                     socket.getChar(&c);
                     if(processingWorker != NULL &&
-                            evBuilder.evBuilderProcessNextByte(c,eNew)) {
-                        // TODO Check if necessary
+                            evBuilder.evBuilderProcessNextByte(c,eNew,true)) {
                         // send first event directly and start timer
                         if(startTimestamp == UINT32_MAX) {
                             processingWorker->nextEvent(eNew);
@@ -258,8 +257,8 @@ void eDVSInterface::_processSocket()
             QMutexLocker locker2(&operationMutex);
             opModeLocal = operationMode;
         }
-
-        qApp->processEvents();
+        // Process incoming events
+        QCoreApplication::processEvents();
     }
 }
 
@@ -347,7 +346,7 @@ void eDVSInterface::_playbackFile()
     timeMeasure.start();
     do {
         // New event ready ?
-        if(evBuilder.evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew)) {
+        if(evBuilder.evBuilderProcessNextByte(bytes.at(bufferIdx++),eNew,false)) {
 //            if(eNew.On)
 //                continue;
             eventCount++;
@@ -364,6 +363,8 @@ void eDVSInterface::_playbackFile()
                 // Sleep if necessary
                 if(elapsedTimeEvents > elapsedTimeReal) {
                     quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
+                    if(sleepTime > 1000000)
+                        qDebug("[eDVSInterface] Warning! Sleeping %u us until next event!",sleepTime);
                     QThread::usleep(sleepTime);
                 }
 
