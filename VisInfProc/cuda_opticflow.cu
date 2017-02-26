@@ -18,9 +18,19 @@ __global__ void kernelComputeFlow(int n,
         float resSpeed = 0;
         float resEnergy = 0;
 
-#ifdef DISABLE_INTERPOLATION
-        float resEnergyX = 0;
-        float resEnergyY = 0;
+#if !defined(INTERPOLATION_MODE) || (INTERPOLATION_MODE == 0)
+        int energyIdx = 0;
+        for(int i = 0; i < speedCnt; i++) {
+            for(int j = 0; j  < orientationCnt; j++) {
+                float e = gpuArrGpuEnergies[energyIdx++][pixelIdx];
+                if(e > resEnergy) {
+                    resEnergy = e;
+                    resSpeed = gpuArrSpeeds[i];
+                    resDir = gpuArrOrientations[j];
+                }
+            }
+        }
+#elif (INTERPOLATION_MODE == 1)
         int energyIdx = 0;
         for(int i = 0; i < speedCnt; i++) {
             float localEnergyX = 0;
@@ -34,13 +44,11 @@ __global__ void kernelComputeFlow(int n,
             localEnergy = sqrt(localEnergyX*localEnergyX+localEnergyY*localEnergyY);
             if(localEnergy > resEnergy) {
                 resEnergy = localEnergy;
-                resEnergyX = localEnergyX;
-                resEnergyY = localEnergyY;
+                resDir = atan2(localEnergyY,localEnergyX);
                 resSpeed = gpuArrSpeeds[i];
             }
         }
-        resDir = atan2(resEnergyY,resEnergyX);
-#else
+#elif (INTERPOLATION_MODE == 2)
         float exp = 5;
         float energySum = 0;
         float speedX = 0;

@@ -35,6 +35,12 @@
 // End value x of temporal function t(x)
 #define FILTER_TEMPORAL_END 0.7f
 #define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.25f
+// Interpolation modes
+// 0: No interpolation
+// 1: No Speed interpolation, only orientation interpolation
+// 2: Simultanious speed and orientation interpolation with
+//    exponential weighting of energies
+#define INTERPOLATION_MODE 0
 
 
 /*****************************************************************
@@ -75,10 +81,6 @@
 /*****************************************************************
 // Debug Section
 *****************************************************************/
-// Disables the interpolation between speeds and orientation.
-// Takes the maximum response instead
-#define DISABLE_INTERPOLATION
-
 // Insert marks for Nvidia's visual profiler
 #define DEBUG_INSERT_PROFILER_MARKS
 
