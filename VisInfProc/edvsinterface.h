@@ -62,6 +62,10 @@ signals:
      */
     void onCmdSent(QString cmd);
 
+    void onStreamingStarted();
+
+    void onStreamingStopped();
+
 
 public slots:
     /**
@@ -105,7 +109,7 @@ public:
     bool isConnected()
     {
         QMutexLocker locker(&operationMutex);
-        return operationMode == ONLINE_STREAMING || operationMode == ONLINE;
+        return operationMode == STREAMING || operationMode == ONLINE;
     }
     /**
      * @brief isStreaming Returns true when online event streaming from the robot is enabled
@@ -114,7 +118,7 @@ public:
     bool isStreaming()
     {
         QMutexLocker locker(&operationMutex);
-        return operationMode == ONLINE_STREAMING;
+        return operationMode == STREAMING;
     }
     /**
      * @brief isWorking Returns true, when the eDVS interface is online or in playback mode
@@ -156,7 +160,7 @@ private:
     // Thread for async processing of playback file and tcp socket
     QThread thread;
     // Operation mode
-    typedef enum OperationMode {IDLE,PLAYBACK,ONLINE,ONLINE_STREAMING} OperationMode;
+    typedef enum OperationMode {IDLE,PLAYBACK,ONLINE,START_STREAMING,STREAMING, STOP_STREAMING} OperationMode;
     OperationMode operationMode;
     // Pointer to processing thread
     Worker *processingWorker;

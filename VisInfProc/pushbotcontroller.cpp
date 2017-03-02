@@ -34,8 +34,10 @@ PushBotController::PushBotController(QObject* parent):QObject(parent)
 PushBotController::~PushBotController()
 {
     PRINT_DEBUG("Destroying pushBotController...");
-    if(processIntervalTimer.isActive())
+    if(processIntervalTimer.isActive()) {
         emit stopTimer();
+        stopProcessing();
+    }
 
     thread.quit();
     if(!thread.wait(THREAD_WAIT_TIME_MS)) {

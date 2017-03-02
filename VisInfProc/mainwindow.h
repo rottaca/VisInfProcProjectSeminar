@@ -56,6 +56,8 @@ public slots:
                               QVector<int> activeSettingIndices);
     void onClickChangeActiveFilters();
     void onClickStartNavigation();
+    void onStreamingStarted();
+    void onStreamingStopped();
 
 signals:
     void sendRawCmd(QString cmd);

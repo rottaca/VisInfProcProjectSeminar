@@ -37,6 +37,12 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 MainWindow::~MainWindow()
 {
+    if(pushBotController.isProcessing())
+        emit stopPushBotController();
+
+    if(eDVSHandler.isWorking())
+        eDVSHandler.stopWork();
+
     gpuErrchk(cudaFree(gpuRgbImage));
     delete ui;
     cudaStreamDestroy(cudaStream);
@@ -121,6 +127,8 @@ void MainWindow::initSignalsAndSlots()
     connect(&eDVSHandler,SIGNAL(onPlaybackFinished()),this,SLOT(onPlaybackFinished()));
     connect(&eDVSHandler,SIGNAL(onConnectionResult(bool)),this,SLOT(onConnectionResult(bool)));
     connect(&eDVSHandler,SIGNAL(onConnectionClosed(bool)),this,SLOT(onConnectionClosed(bool)));
+    connect(&eDVSHandler,SIGNAL(onStreamingStarted()),this,SLOT(onStreamingStarted()));
+    connect(&eDVSHandler,SIGNAL(onStreamingStopped()),this,SLOT(onStreamingStopped()));
 
     connect(ui->b_browse_play_file,SIGNAL(clicked()),this,SLOT(onChangePlaybackFile()));
     connect(ui->b_start_playback,SIGNAL(clicked()),this,SLOT(onClickStartPlayback()));
@@ -374,17 +382,23 @@ void MainWindow::onCmdSent(QString cmd)
 
 void MainWindow::onClickStartStreaming()
 {
-    if(eDVSHandler.isStreaming()) {
-        ui->b_start_streaming->setText("Start");
-        ui->b_reset->setEnabled(true);
-        ui->b_start_navigation->setEnabled(false);
+    if(eDVSHandler.isStreaming())
         emit stopEventStreaming();
-    } else {
-        ui->b_start_streaming->setText("Stop");
-        ui->b_reset->setEnabled(false);
-        ui->b_start_navigation->setEnabled(true);
+    else
         emit startEventStreaming();
-    }
+}
+void MainWindow::onStreamingStarted()
+{
+    ui->b_start_streaming->setText("Stop");
+    ui->b_reset->setEnabled(false);
+    ui->b_start_navigation->setEnabled(true);
+}
+
+void MainWindow::onStreamingStopped()
+{
+    ui->b_start_streaming->setText("Start");
+    ui->b_reset->setEnabled(true);
+    ui->b_start_navigation->setEnabled(false);
 }
 
 void MainWindow::onClickConnect()
@@ -504,8 +518,10 @@ void MainWindow::setupActiveFilters()
 
 void MainWindow::onClickStartNavigation()
 {
-    if(!eDVSHandler.isStreaming())
+    if(!eDVSHandler.isStreaming()) {
+        qWarning("Not streaming! Navigation not possible!");
         return;
+    }
     if(!pushBotController.isProcessing()) {
         ui->b_start_navigation->setText("Stop navigation");
         ui->b_reset->setEnabled(true);

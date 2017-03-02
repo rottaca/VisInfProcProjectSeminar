@@ -25,11 +25,6 @@ eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 eDVSInterface::~eDVSInterface()
 {
     PRINT_DEBUG("Destroying eDVSInterface...");
-
-
-    if(operationMode != IDLE)
-        stopWork();
-
     thread.quit();
 
     if(!thread.wait(THREAD_WAIT_TIME_MS)) {
@@ -74,7 +69,7 @@ void eDVSInterface::startEventStreaming()
     }
     {
         QMutexLocker locker(&operationMutex);
-        operationMode = ONLINE_STREAMING;
+        operationMode = START_STREAMING;
     }
     evBuilder.initEvBuilder(EventBuilder::Addr2Byte,EventBuilder::Time4Byte);
     processingWorker->startProcessing();
@@ -89,7 +84,7 @@ void eDVSInterface::stopEventStreaming()
     }
     {
         QMutexLocker locker(&operationMutex);
-        operationMode = ONLINE;
+        operationMode = STOP_STREAMING;
     }
     processingWorker->stopProcessing();
 }
@@ -191,8 +186,7 @@ void eDVSInterface::_processSocket()
     QElapsedTimer timeMeasure;
     char c;
 
-    while(opModeLocal == ONLINE ||
-            opModeLocal == ONLINE_STREAMING) {
+    while(opModeLocal != IDLE) {
         {
             QMutexLocker locker(&socketMutex);
             if(socket.state() != QTcpSocket::ConnectedState) {
@@ -204,7 +198,9 @@ void eDVSInterface::_processSocket()
             }
 
             // Normal command mode
-            if(opModeLocal == ONLINE) {
+            if(opModeLocal == ONLINE ||
+                    opModeLocal == START_STREAMING ||
+                    opModeLocal == STOP_STREAMING) {
                 // Reset streaming time
                 if(startTimestamp != UINT32_MAX) {
                     startTimestamp = UINT32_MAX;
@@ -213,9 +209,28 @@ void eDVSInterface::_processSocket()
                 if(socket.waitForReadyRead(10)) {
                     // Read data and remove newline
                     // .remove(QRegExp("[\\n\\t\\r]"));
-                    QString line = QString(socket.readAll());
+                    QString line = QString(socket.readLine());
                     PRINT_DEBUG_FMT("Recieved: %s",line.toLocal8Bit().data());
-                    emit onLineRecived(line);
+
+                    if(opModeLocal == ONLINE) {
+                        emit onLineRecived(line);
+                    } else if(opModeLocal == START_STREAMING &&
+                              line.contains(CMD_ENABLE_EVENT_STREAMING)) {
+                        {
+                            QMutexLocker locker2(&operationMutex);
+                            operationMode = STREAMING;
+                        }
+                        emit onStreamingStarted();
+                        qDebug("Started Streaming");
+                    } else if(opModeLocal == STOP_STREAMING &&
+                              line.contains(CMD_DISABLE_EVENT_STREAMING)) {
+                        {
+                            QMutexLocker locker2(&operationMutex);
+                            operationMode = ONLINE;
+                        }
+                        emit onStreamingStopped();
+                        qDebug("Stopped Streaming");
+                    }
                 }
                 // Streaming mode
             } else {
@@ -237,8 +252,10 @@ void eDVSInterface::_processSocket()
                             if(elapsedTimeEvents > elapsedTimeReal) {
                                 quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
                                 // Dont sleep more than 1 sec
-                                if(sleepTime > 1000000)
+                                if(sleepTime > 1000000) {
                                     sleepTime = 1000000;
+                                    qCritical("Sleep time more than 1 sec. Truncated!");
+                                }
                                 QThread::usleep(sleepTime);
                             }
 
@@ -268,7 +285,7 @@ void eDVSInterface::stopWork()
     operationMutex.unlock();
 
     // Stop streaming
-    if(localOpMode == ONLINE_STREAMING)
+    if(localOpMode == STREAMING)
         stopEventStreaming();
 
     // Stop processing
