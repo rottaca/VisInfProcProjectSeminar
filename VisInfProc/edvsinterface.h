@@ -19,23 +19,6 @@ public:
     eDVSInterface(QObject* parent = 0);
     ~eDVSInterface();
 
-    /**
-     * @brief playbackFile Plays a given file with a given speed. Default = 1.0
-     * @param fileName
-     * @param speed
-     */
-    void playbackFile(QString fileName, double speed = 1.0f);
-    /**
-     * @brief connectToBot Connects to the robot platform.
-     * @param host
-     * @param port
-     */
-    void connectToBot(QString host, int port);
-    /**
-     * @brief stopWork Stops playback of file or closes connection to robot.
-     */
-    void stopWork();
-
 
 signals:
     /**
@@ -69,6 +52,18 @@ signals:
 
 public slots:
     /**
+     * @brief playbackFile Plays a given file with a given speed. Default = 1.0
+     * @param fileName
+     * @param speed
+     */
+    void playbackFile(QString fileName, double speed = 1.0f);
+    /**
+     * @brief connectToBot Connects to the robot platform.
+     * @param host
+     * @param port
+     */
+    void connectToBot(QString host, int port);
+    /**
      * @brief sendRawCmd Sends the provided command to the robot if connected
      * @param cmd
      */
@@ -99,6 +94,10 @@ public slots:
      * @brief process Starts the processing in the worker thread. Don't call this function by your own!
      */
     void process();
+    /**
+     * @brief stopWork Stops playback of file or closes connection to robot.
+     */
+    void stopWork();
 
 public:
     // Getters / Setters

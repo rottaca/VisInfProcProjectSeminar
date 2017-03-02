@@ -47,13 +47,14 @@
 // Pushbot
 *****************************************************************/
 // Pushbot commands
-#define CMD_SET_TIMESTAMP_MODE "!E4\n"      // Do not change streaming mode !
+#define CMD_SET_TIMESTAMP_MODE "!E2\n"      // Do not change streaming mode !
 #define CMD_ENABLE_EVENT_STREAMING "E+\n"
 #define CMD_DISABLE_EVENT_STREAMING "E-\n"
 #define CMD_ENABLE_MOTORS "!M+\n"
 #define CMD_DISABLE_MOTORS "!M-\n"
 #define CMD_SET_VELOCITY "!MV%1=%2\n"
 #define CMD_RESET_BOARD "R\n"
+#define CMD_UART_ECHO_MODE "!U2\n"  // Reply to all commands
 // Refresh rate of optic flow processing
 #define PUSH_BOT_PROCESS_FPS 15
 // Motor Velocity minimum for pid control (0-100)

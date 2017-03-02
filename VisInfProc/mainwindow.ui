@@ -63,7 +63,7 @@ QGroupBox::title {
           </size>
          </property>
          <property name="currentIndex">
-          <number>2</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tab_online">
           <attribute name="title">
@@ -116,7 +116,7 @@ QGroupBox::title {
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Reset Board</string>
+              <string>Reset board</string>
              </property>
             </widget>
            </item>

@@ -40,8 +40,13 @@ MainWindow::~MainWindow()
     if(pushBotController.isProcessing())
         emit stopPushBotController();
 
+    // Wait for pushbot to stop
+    while (pushBotController.isProcessing()) {
+        QThread::usleep(1000);
+    }
+
     if(eDVSHandler.isWorking())
-        eDVSHandler.stopWork();
+        emit eDVSInterfaceStopWork();
 
     gpuErrchk(cudaFree(gpuRgbImage));
     delete ui;
@@ -121,6 +126,11 @@ void MainWindow::initSignalsAndSlots()
     connect(this,SIGNAL(startEventStreaming()),&eDVSHandler,SLOT(startEventStreaming()));
     connect(this,SIGNAL(stopEventStreaming()),&eDVSHandler,SLOT(stopEventStreaming()));
     connect(this,SIGNAL(reset()),&eDVSHandler,SLOT(resetBoard()));
+    connect(this,SIGNAL(eDVSInterfaceStopWork()),&eDVSHandler,SLOT(stopWork()));
+    connect(this,SIGNAL(eDVSInterfaceStopWork()),&eDVSHandler,SLOT(stopWork()));
+    connect(this,SIGNAL( playbackFile(QString, double)),&eDVSHandler,SLOT( playbackFile(QString, double)));
+    connect(this,SIGNAL(connectToBot(QString, int)),&eDVSHandler,SLOT(connectToBot(QString, int)));
+
 
     connect(&eDVSHandler,SIGNAL(onCmdSent(QString)),this,SLOT(onCmdSent(QString)));
     connect(&eDVSHandler,SIGNAL(onLineRecived(QString)),this,SLOT(onLineRecived(QString)));
@@ -303,7 +313,11 @@ void MainWindow::onClickStartPlayback()
     if(eDVSHandler.isWorking()) {
         PRINT_DEBUG("Stop Playback");
         emit stopPushBotController();
-        eDVSHandler.stopWork();
+        // Wait for pushbot to stop
+        while (pushBotController.isProcessing()) {
+            QThread::usleep(1000);
+        }
+        emit eDVSInterfaceStopWork();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
         ui->gb_playback_settings->setEnabled(true);
@@ -321,7 +335,7 @@ void MainWindow::onClickStartPlayback()
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
-        eDVSHandler.playbackFile(file,speed);
+        emit playbackFile(file,speed);
     }
 }
 
@@ -333,7 +347,9 @@ void MainWindow::onConnectionClosed(bool error)
     ui->b_start_streaming->setEnabled(false);
     ui->b_reset->setEnabled(false);
     ui->gb_connect_settings->setEnabled(true);
-    ui->b_start_streaming->setText("Start");
+    ui->b_start_navigation->setEnabled(false);
+    ui->b_start_navigation->setText("Start navigation");
+    ui->b_start_streaming->setText("Start streaming");
 
     if(error) {
         QMessageBox::critical(this,"Error","Connection closed unexpectedly!");
@@ -389,14 +405,14 @@ void MainWindow::onClickStartStreaming()
 }
 void MainWindow::onStreamingStarted()
 {
-    ui->b_start_streaming->setText("Stop");
+    ui->b_start_streaming->setText("Stop streaming");
     ui->b_reset->setEnabled(false);
     ui->b_start_navigation->setEnabled(true);
 }
 
 void MainWindow::onStreamingStopped()
 {
-    ui->b_start_streaming->setText("Start");
+    ui->b_start_streaming->setText("Start streaming");
     ui->b_reset->setEnabled(true);
     ui->b_start_navigation->setEnabled(false);
 }
@@ -404,9 +420,16 @@ void MainWindow::onStreamingStopped()
 void MainWindow::onClickConnect()
 {
     if(eDVSHandler.isWorking()) {
-        eDVSHandler.stopWork();
+        if(pushBotController.isProcessing()) {
+            emit stopPushBotController();
+            // Wait for pushbot to stop
+            while (pushBotController.isProcessing()) {
+                QThread::usleep(1000);
+            }
+        }
+        emit eDVSInterfaceStopWork();
         ui->b_connect->setText("Connect");
-        ui->b_start_streaming->setText("Start");
+        ui->b_start_streaming->setText("Start streaming");
         ui->tab_playback->setEnabled(true);
         ui->gb_cmdline->setEnabled(false);
         ui->b_start_streaming->setEnabled(false);
@@ -415,7 +438,7 @@ void MainWindow::onClickConnect()
         ui->b_changeActiveFilters->setEnabled(true);
     } else {
         ui->te_comands->clear();
-        eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
+        emit connectToBot(ui->le_host->text(),ui->sb_port->value());
     }
 }
 void MainWindow::onCmdEntered()
@@ -524,11 +547,11 @@ void MainWindow::onClickStartNavigation()
     }
     if(!pushBotController.isProcessing()) {
         ui->b_start_navigation->setText("Stop navigation");
-        ui->b_reset->setEnabled(true);
+        ui->b_start_streaming->setEnabled(false);
         emit startPushBotController();
     } else {
         ui->b_start_navigation->setText("Start navigation");
-        ui->b_reset->setEnabled(false);
+        ui->b_start_streaming->setEnabled(true);
         emit stopPushBotController();
     }
 }

@@ -17,6 +17,7 @@ eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 
     moveToThread(&thread);
     socket.moveToThread(&thread);
+    thread.start();
 
     // Call process function in eventloop of new thread
     connect(&thread,SIGNAL(started()),this,SLOT(process()));
@@ -25,6 +26,10 @@ eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
 eDVSInterface::~eDVSInterface()
 {
     PRINT_DEBUG("Destroying eDVSInterface...");
+    {
+        QMutexLocker locker2(&operationMutex);
+        operationMode = IDLE;
+    }
     thread.quit();
 
     if(!thread.wait(THREAD_WAIT_TIME_MS)) {
@@ -54,7 +59,7 @@ void eDVSInterface::connectToBot(QString host, int port)
         operationMode = ONLINE;
     }
 
-    thread.start();
+    _processSocket();
 }
 
 void eDVSInterface::startEventStreaming()
@@ -71,7 +76,18 @@ void eDVSInterface::startEventStreaming()
         QMutexLocker locker(&operationMutex);
         operationMode = START_STREAMING;
     }
-    evBuilder.initEvBuilder(EventBuilder::Addr2Byte,EventBuilder::Time4Byte);
+
+    EventBuilder::TimestampVersion tv = EventBuilder::TimeNoTime;
+    if(strcmp(CMD_UART_ECHO_MODE,"!E2\n")==0)
+        tv = EventBuilder::Time2Byte;
+    else if(strcmp(CMD_UART_ECHO_MODE,"!E3\n")==0)
+        tv = EventBuilder::Time3Byte;
+    else if(strcmp(CMD_UART_ECHO_MODE,"!E4\n")==0)
+        tv = EventBuilder::Time4Byte;
+    else if(strcmp(CMD_UART_ECHO_MODE,"!E1\n")==0)
+        tv = EventBuilder::TimeDelta;
+
+    evBuilder.initEvBuilder(EventBuilder::Addr2Byte,tv);
     processingWorker->startProcessing();
 }
 void eDVSInterface::stopEventStreaming()
@@ -153,11 +169,10 @@ void eDVSInterface::process()
     }
 
     // Process all remaining events
-    qApp->processEvents();
+    //qApp->processEvents();
     // Wait for processing stopped
-    thread.quit();
+    //thread.quit();
 
-    PRINT_DEBUG("Done");
 }
 void eDVSInterface::_processSocket()
 {
@@ -173,13 +188,17 @@ void eDVSInterface::_processSocket()
                   ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
         return;
     }
-    emit onConnectionResult(false);
-    qInfo("Connection established");
     OperationMode opModeLocal;
     {
         QMutexLocker locker2(&operationMutex);
         opModeLocal = operationMode;
     }
+    emit onConnectionResult(false);
+    qInfo("Connection established");
+
+    socket.write(CMD_UART_ECHO_MODE);
+    socket.waitForBytesWritten();
+    emit onCmdSent(CMD_UART_ECHO_MODE);
 
     DVSEvent eNew;
     quint32 startTimestamp = UINT32_MAX;
@@ -269,12 +288,13 @@ void eDVSInterface::_processSocket()
             }
         }
 
+        // Process incoming events
+        QCoreApplication::processEvents();
+
         {
             QMutexLocker locker2(&operationMutex);
             opModeLocal = operationMode;
         }
-        // Process incoming events
-        QCoreApplication::processEvents();
     }
 }
 
@@ -293,14 +313,8 @@ void eDVSInterface::stopWork()
     operationMode = IDLE;
     operationMutex.unlock();
 
-    PRINT_DEBUG("Stopping eDVSInterface...");
-    if(!thread.wait(THREAD_WAIT_TIME_MS)) {
-        qCritical("Failed to stop eDVSInterface!");
-        thread.terminate();
-        thread.wait();
-    }
     // Close socket
-    if(localOpMode == ONLINE) {
+    if(localOpMode != IDLE && localOpMode != PLAYBACK) {
         QMutexLocker locker2(&socketMutex);
         socket.disconnectFromHost();
         emit onConnectionClosed(false);
@@ -319,7 +333,8 @@ void eDVSInterface::playbackFile(QString fileName, double speed)
         playbackFileName = fileName;
         playbackSpeed = speed;
     }
-    thread.start();
+    //thread.start();
+    _playbackFile();
 }
 void eDVSInterface::_playbackFile()
 {

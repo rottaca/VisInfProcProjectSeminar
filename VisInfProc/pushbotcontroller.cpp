@@ -58,9 +58,9 @@ void PushBotController::startProcessing()
 {
     PRINT_DEBUG("Start pushbot controller");
     processIntervalTimer.start(1000/PUSH_BOT_PROCESS_FPS);
-    emit enableMotors(true);
     emit setMotorVelocity(0,PUSHBOT_VELOCITY_DEFAULT);
     emit setMotorVelocity(1,PUSHBOT_VELOCITY_DEFAULT);
+    emit enableMotors(true);
     out = 0;
     eOld = 0;
     eSum = 0;

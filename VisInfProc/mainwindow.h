@@ -60,9 +60,12 @@ public slots:
     void onStreamingStopped();
 
 signals:
+    void playbackFile(QString fileName, double speed);
+    void connectToBot(QString host, int port);
     void sendRawCmd(QString cmd);
     void startEventStreaming();
     void stopEventStreaming();
+    void eDVSInterfaceStopWork();
     void reset();
     void startPushBotController();
     void stopPushBotController();
