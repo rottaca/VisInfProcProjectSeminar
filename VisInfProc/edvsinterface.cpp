@@ -26,9 +26,9 @@ eDVSInterface::~eDVSInterface()
 {
     PRINT_DEBUG("Destroying eDVSInterface...");
 
-    operationMutex.lock();
-    operationMode = IDLE;
-    operationMutex.unlock();
+
+    if(operationMode != IDLE)
+        stopWork();
 
     thread.quit();
 
@@ -44,8 +44,6 @@ void eDVSInterface::setPushBotCtrl(PushBotController* pushBotCtrl)
 {
     QMutexLocker locker(&operationMutex);
     pushBotController = pushBotCtrl;
-    connect(this,SIGNAL(onStartPushBotController()),pushBotController,SLOT(startProcessing()));
-    connect(this,SIGNAL(onStopPushBotController()),pushBotController,SLOT(stopProcessing()));
 }
 void eDVSInterface::connectToBot(QString host, int port)
 {
@@ -74,28 +72,26 @@ void eDVSInterface::startEventStreaming()
         emit onCmdSent(CMD_SET_TIMESTAMP_MODE);
         emit onCmdSent(CMD_ENABLE_EVENT_STREAMING);
     }
-    evBuilder.initEvBuilder(EventBuilder::Addr2Byte,EventBuilder::TimeDelta);
     {
         QMutexLocker locker(&operationMutex);
         operationMode = ONLINE_STREAMING;
     }
+    evBuilder.initEvBuilder(EventBuilder::Addr2Byte,EventBuilder::Time4Byte);
     processingWorker->startProcessing();
-    emit onStartPushBotController();
 }
 void eDVSInterface::stopEventStreaming()
 {
-    {
-        QMutexLocker locker(&operationMutex);
-        operationMode = ONLINE;
-    }
     {
         QMutexLocker locker(&socketMutex);
         socket.write(CMD_DISABLE_EVENT_STREAMING);
         socket.waitForBytesWritten();
         emit onCmdSent(CMD_DISABLE_EVENT_STREAMING);
     }
+    {
+        QMutexLocker locker(&operationMutex);
+        operationMode = ONLINE;
+    }
     processingWorker->stopProcessing();
-    emit onStopPushBotController();
 }
 void eDVSInterface::sendRawCmd(QString cmd)
 {
@@ -183,7 +179,7 @@ void eDVSInterface::_processSocket()
         return;
     }
     emit onConnectionResult(false);
-    PRINT_DEBUG("Connection established");
+    qInfo("Connection established");
     OperationMode opModeLocal;
     {
         QMutexLocker locker2(&operationMutex);
@@ -216,7 +212,8 @@ void eDVSInterface::_processSocket()
                 // Wait for command bytes
                 if(socket.waitForReadyRead(10)) {
                     // Read data and remove newline
-                    QString line = QString(socket.readAll()).remove(QRegExp("[\\n\\t\\r]"));;
+                    // .remove(QRegExp("[\\n\\t\\r]"));
+                    QString line = QString(socket.readAll());
                     PRINT_DEBUG_FMT("Recieved: %s",line.toLocal8Bit().data());
                     emit onLineRecived(line);
                 }
@@ -239,7 +236,9 @@ void eDVSInterface::_processSocket()
                             // Sleep if necessary
                             if(elapsedTimeEvents > elapsedTimeReal) {
                                 quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
-                                PRINT_DEBUG_FMT("Sleep: %u us",sleepTime);
+                                // Dont sleep more than 1 sec
+                                if(sleepTime > 1000000)
+                                    sleepTime = 1000000;
                                 QThread::usleep(sleepTime);
                             }
 
@@ -326,7 +325,6 @@ void eDVSInterface::_playbackFile()
 
     PRINT_DEBUG("Start worker");
     workerLocal->startProcessing();
-    emit onStartPushBotController();
 
     // read file, parse header
     EventBuilder::TimestampVersion timeVers;
@@ -405,7 +403,6 @@ void eDVSInterface::_playbackFile()
     }
     PRINT_DEBUG("Stop worker");
     workerLocal->stopProcessing();
-    emit onStopPushBotController();
 }
 
 QByteArray eDVSInterface::parseEventFile(QString file, EventBuilder::AddressVersion &addrVers, EventBuilder::TimestampVersion &timeVers)

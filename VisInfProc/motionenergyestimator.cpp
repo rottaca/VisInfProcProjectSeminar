@@ -136,7 +136,8 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
     // Do we have an event with older timestamp?
     else if (lastEventTime > e.timestamp) {
         qCritical("Event is not in order according to timestamp! Restarting Buffers...");
-        reset();
+        // TODO
+        //reset();
         // TODO Don't throw away the current event
         return false;
     }
@@ -159,6 +160,7 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
             PRINT_DEBUG_FMT("[MotionEnergyEstimator] Skipped %d events.",eventsR->events.length());
             eventStatisticsMutex.unlock();
         }
+
         // Flip read and write lists
         SlotEventData* eventsROld = eventsR;
         eventsR = eventsW;
@@ -211,7 +213,7 @@ void MotionEnergyEstimator::uploadEvents()
 
         // Upload events
 #ifdef DEBUG_INSERT_PROFILER_MARKS
-        nvtxMark("Copy events");
+        nvtxMark(QString("Upload %1 events").arg(eventsR->events.size()).toStdString().c_str());
 #endif
         // Not very nice...
         // Convert interleaved struct data into seperate arrays for x and y

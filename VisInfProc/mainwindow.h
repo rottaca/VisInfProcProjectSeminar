@@ -55,12 +55,15 @@ public slots:
     void activeFiltersChanged(QVector<int> activeOrientationIndices,
                               QVector<int> activeSettingIndices);
     void onClickChangeActiveFilters();
+    void onClickStartNavigation();
 
 signals:
     void sendRawCmd(QString cmd);
     void startEventStreaming();
     void stopEventStreaming();
     void reset();
+    void startPushBotController();
+    void stopPushBotController();
 
 private:
     void initUI();

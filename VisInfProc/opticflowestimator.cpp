@@ -128,7 +128,6 @@ void OpticFlowEstimator::process()
     //timer.start();
 #ifdef DEBUG_INSERT_PROFILER_MARKS
     nvtxRangeId_t id = nvtxRangeStart("Processing Block");
-    nvtxMark("Upload Events");
 #endif
     // Upload event lists to gpu
     for(int i = 0; i < energyEstimatorCnt; i++) {

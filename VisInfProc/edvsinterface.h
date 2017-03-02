@@ -62,8 +62,6 @@ signals:
      */
     void onCmdSent(QString cmd);
 
-    void onStartPushBotController();
-    void onStopPushBotController();
 
 public slots:
     /**

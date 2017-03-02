@@ -1,5 +1,6 @@
 #include "eventbuilder.h"
 
+#include "settings.h"
 EventBuilder::EventBuilder()
 {
     evBuffer = NULL;
@@ -63,7 +64,7 @@ bool EventBuilder::evBuilderProcessNextByte(char c, DVSEvent &event, bool online
     if(onlineMode) {
         // Simple sync check: Check if MSB of first byte is 1, otherwise skip
         // Address Mode is always 2 Byte, in Online Mode
-        if(byteIdx == 2 && !(c & 0x80)) {
+        if(byteIdx == 0 && !(c & 0x80)) {
             qWarning("[EventBuilder] Invalid first byte! Skipped one byte!");
             return false;
         }
@@ -125,6 +126,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         // Timestamp overflow ?
         if(time < lastTimestamp) {
             syncTimestamp += 0xFFFFFF;
+            PRINT_DEBUG("Timestmap warped!");
         }
         time += syncTimestamp;
         break;
@@ -134,6 +136,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         // Timestamp overflow ?
         if(time < lastTimestamp) {
             syncTimestamp += 0xFFFF;
+            PRINT_DEBUG("Timestmap warped!");
         }
         time += syncTimestamp;
         break;
@@ -162,6 +165,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
     lastTimestamp = time;
 
     // Extract event from address by assuming a DVS128 camera
+    // Wierd event format !?
     if(!onlineMode) {
         // Format:
         //   Bit 0: On/Off
@@ -169,8 +173,8 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         //   Bit 8-14: Y
         //   Bit 15: External Event, Unused
         //e.On = ad & 0x01;       // Polarity: LSB
-        e.x = (ad >> 0x01) & 0x007F;  // X: 0 - 127
-        e.y = (ad >> 0x08) & 0x007F ; // Y: 0 - 127
+        e.x = ((ad >> 0x01) & 0x007F);  // X: 0 - 127
+        e.y = ((ad >> 0x08) & 0x007F); // Y: 0 - 127
         e.timestamp = time;
     } else {
         // Format:
@@ -179,8 +183,8 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         // Bit 8-14: X
         // Bit 15: On/Off
         //e.On = (ad >> 0x08) & 0x01;       // Polarity: LSB
-        e.y = (ad >> 0x00) & 0x007F ; // Y: 0 - 127
-        e.x = (ad >> 0x08) & 0x007F;  // X: 0 - 127
+        e.x = ((ad >> 0x00) & 0x007F); // Y: 0 - 127
+        e.y = 127 - ((ad >> 0x08) & 0x007F);  // X: 0 - 127
         e.timestamp = time;
     }
     // Reset buffer

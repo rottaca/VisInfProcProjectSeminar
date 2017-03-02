@@ -133,9 +133,8 @@ void PushBotController::processFlow()
         avgFlowVecYR = 0;
     }
 
-    // Steering signal is useless if only left or
-    // right motion is used for computation
-    if(leftFlowValid && rightFlowValid) {
+    // Compute output
+    if(leftFlowValid || rightFlowValid) {
 
         // Get elapsed time
         float deltaT;
@@ -151,8 +150,22 @@ void PushBotController::processFlow()
             QMutexLocker locker(&pidMutex);
             // Simple PID-Controller
             // Source: http://rn-wissen.de/wiki/index.php?title=Regelungstechnik#PID-Regler
-            // Difference between horizontal flow on left and right half is error signal
-            float e = avgFlowVecXL-avgFlowVecXR;
+
+            // Compute error signal
+            float e = 0;
+            // Same flow direction on left and right half
+            if(avgFlowVecXL*avgFlowVecXR > 0) {
+                e = -(avgFlowVecXL-avgFlowVecXR);
+            }
+            // Different flow on left and right half
+            else if(avgFlowVecXL*avgFlowVecXR < 0) {
+                e = (-avgFlowVecXL+avgFlowVecXR);
+            }
+            // TODO
+            else {
+                e = 0;
+            }
+
             // Compute integrated error
             eSum = qMax(-PUSHBOT_PID_MAX_ESUM,qMin(eSum + e,PUSHBOT_PID_MAX_ESUM));
             // Ignore differential part in first run

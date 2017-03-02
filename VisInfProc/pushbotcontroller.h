@@ -93,6 +93,11 @@ public:
         return out;
     }
 
+    bool isProcessing()
+    {
+        return processIntervalTimer.isActive();
+    }
+
 public slots:
     void startProcessing();
     void stopProcessing();

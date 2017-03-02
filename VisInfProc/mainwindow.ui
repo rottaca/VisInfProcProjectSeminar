@@ -63,13 +63,63 @@ QGroupBox::title {
           </size>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>2</number>
          </property>
          <widget class="QWidget" name="tab_online">
           <attribute name="title">
            <string>Online</string>
           </attribute>
           <layout class="QGridLayout" name="gridLayout_4">
+           <item row="0" column="0" colspan="2">
+            <widget class="QGroupBox" name="gb_connect_settings">
+             <property name="title">
+              <string>Settings</string>
+             </property>
+             <layout class="QGridLayout" name="gridLayout_8">
+              <item row="0" column="2">
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>Port</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>Host</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="2">
+               <widget class="QSpinBox" name="sb_port">
+                <property name="maximum">
+                 <number>65535</number>
+                </property>
+                <property name="value">
+                 <number>56000</number>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="le_host">
+                <property name="text">
+                 <string>10.42.0.242</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QPushButton" name="b_reset">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Reset Board</string>
+             </property>
+            </widget>
+           </item>
            <item row="5" column="0" colspan="2">
             <widget class="QGroupBox" name="gb_cmdline">
              <property name="enabled">
@@ -135,63 +185,23 @@ QGroupBox::title {
              </property>
             </widget>
            </item>
-           <item row="6" column="1">
-            <widget class="QPushButton" name="b_reset">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>Reset Board</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0" colspan="2">
-            <widget class="QGroupBox" name="gb_connect_settings">
-             <property name="title">
-              <string>Settings</string>
-             </property>
-             <layout class="QGridLayout" name="gridLayout_8">
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>Port</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="label_6">
-                <property name="text">
-                 <string>Host</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="2">
-               <widget class="QSpinBox" name="sb_port">
-                <property name="maximum">
-                 <number>65535</number>
-                </property>
-                <property name="value">
-                 <number>4444</number>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLineEdit" name="le_host">
-                <property name="text">
-                 <string>127.0.0.1</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
            <item row="6" column="0">
             <widget class="QPushButton" name="b_start_streaming">
              <property name="enabled">
               <bool>false</bool>
              </property>
              <property name="text">
-              <string>Start</string>
+              <string>Start streaming</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QPushButton" name="b_start_navigation">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Start navigation</string>
              </property>
             </widget>
            </item>
@@ -382,7 +392,7 @@ QGroupBox::title {
                  <double>0.050000000000000</double>
                 </property>
                 <property name="value">
-                 <double>0.250000000000000</double>
+                 <double>0.500000000000000</double>
                 </property>
                </widget>
               </item>
@@ -442,6 +452,9 @@ QGroupBox::title {
                 <property name="decimals">
                  <number>5</number>
                 </property>
+                <property name="minimum">
+                 <double>-100000.000000000000000</double>
+                </property>
                 <property name="maximum">
                  <double>100000.000000000000000</double>
                 </property>
@@ -452,6 +465,9 @@ QGroupBox::title {
                 <property name="decimals">
                  <number>5</number>
                 </property>
+                <property name="minimum">
+                 <double>-100000.000000000000000</double>
+                </property>
                 <property name="maximum">
                  <double>100000.000000000000000</double>
                 </property>
@@ -461,6 +477,9 @@ QGroupBox::title {
                <widget class="QDoubleSpinBox" name="sb_pushbot_d">
                 <property name="decimals">
                  <number>5</number>
+                </property>
+                <property name="minimum">
+                 <double>-100000.000000000000000</double>
                 </property>
                 <property name="maximum">
                  <double>100000.000000000000000</double>
@@ -473,7 +492,7 @@ QGroupBox::title {
            <item>
             <widget class="QPushButton" name="b_changeActiveFilters">
              <property name="text">
-              <string>change active filters</string>
+              <string>Active Filters</string>
              </property>
             </widget>
            </item>

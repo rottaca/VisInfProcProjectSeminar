@@ -135,9 +135,13 @@ void MainWindow::initSignalsAndSlots()
     connect(ui->rb_debug,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
     connect(ui->rb_normal,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
     connect(ui->rb_disable_render,SIGNAL(clicked()),this,SLOT(onChangeRenderMode()));
+    connect(ui->b_start_navigation,SIGNAL(clicked()),this,SLOT(onClickStartNavigation()));
 
     connect(filterSelectionForm,SIGNAL(activeFiltersChanged(QVector<int>,QVector<int>)),this,SLOT(activeFiltersChanged(QVector<int>,QVector<int>)));
     connect(ui->b_changeActiveFilters,SIGNAL(clicked()),this,SLOT(onClickChangeActiveFilters()));
+
+    connect(this,SIGNAL(startPushBotController()),&pushBotController,SLOT(startProcessing()));
+    connect(this,SIGNAL(stopPushBotController()),&pushBotController,SLOT(stopProcessing()));
 }
 void MainWindow::onUpdate()
 {
@@ -240,6 +244,12 @@ void MainWindow::onUpdate()
                     p2C = p1C + QPoint(maxLDraw*(fxL-fxR)/lC*scaleC,maxLDraw*(fyL-fyR)/lC*scaleC);
                     painter.drawLine(p1C,p2C);
                 }
+                float ctrl = pushBotController.getCtrlOutput();
+                p1C.setY(DVS_RESOLUTION_HEIGHT*1/3);
+                p2C = p1C + QPoint(ctrl*2*maxLDraw/(PUSHBOT_VELOCITY_MAX-PUSHBOT_VELOCITY_MIN),0);
+                painter.setPen(QPen(Qt::red,2));
+                painter.drawLine(p1C,p2C);
+
             } else {
                 painter.setPen(QPen(Qt::red,2));
                 painter.drawRect(1,1,DVS_RESOLUTION_WIDTH-2,DVS_RESOLUTION_HEIGHT-2);
@@ -284,6 +294,7 @@ void MainWindow::onClickStartPlayback()
 {
     if(eDVSHandler.isWorking()) {
         PRINT_DEBUG("Stop Playback");
+        emit stopPushBotController();
         eDVSHandler.stopWork();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
@@ -291,6 +302,7 @@ void MainWindow::onClickStartPlayback()
         ui->b_changeActiveFilters->setEnabled(true);
     } else {
         PRINT_DEBUG("Start Playback");
+        emit startPushBotController();
         ui->l_img_flow->clear();
         ui->l_img_ctrl_2->clear();
         ui->l_img_events->clear();
@@ -365,10 +377,12 @@ void MainWindow::onClickStartStreaming()
     if(eDVSHandler.isStreaming()) {
         ui->b_start_streaming->setText("Start");
         ui->b_reset->setEnabled(true);
+        ui->b_start_navigation->setEnabled(false);
         emit stopEventStreaming();
     } else {
         ui->b_start_streaming->setText("Stop");
         ui->b_reset->setEnabled(false);
+        ui->b_start_navigation->setEnabled(true);
         emit startEventStreaming();
     }
 }
@@ -384,7 +398,7 @@ void MainWindow::onClickConnect()
         ui->b_start_streaming->setEnabled(false);
         ui->b_reset->setEnabled(false);
         ui->gb_connect_settings->setEnabled(true);
-        ui->b_changeActiveFilters->setEnabled(false);
+        ui->b_changeActiveFilters->setEnabled(true);
     } else {
         ui->te_comands->clear();
         eDVSHandler.connectToBot(ui->le_host->text(),ui->sb_port->value());
@@ -486,4 +500,19 @@ void MainWindow::setupActiveFilters()
     }
     pushBotController.setup(activeSettings,activeOrientations);
     worker.setComputationParameters(activeSettings,activeOrientations);
+}
+
+void MainWindow::onClickStartNavigation()
+{
+    if(!eDVSHandler.isStreaming())
+        return;
+    if(!pushBotController.isProcessing()) {
+        ui->b_start_navigation->setText("Stop navigation");
+        ui->b_reset->setEnabled(true);
+        emit startPushBotController();
+    } else {
+        ui->b_start_navigation->setText("Start navigation");
+        ui->b_reset->setEnabled(false);
+        emit stopPushBotController();
+    }
 }

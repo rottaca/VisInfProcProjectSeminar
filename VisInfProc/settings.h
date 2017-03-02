@@ -34,7 +34,7 @@
 #define FILTER_TEMPORAL_RES 20
 // End value x of temporal function t(x)
 #define FILTER_TEMPORAL_END 0.7f
-#define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.25f
+#define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.5f
 // Interpolation modes
 // 0: No interpolation
 // 1: No Speed interpolation, only orientation interpolation
@@ -47,9 +47,9 @@
 // Pushbot
 *****************************************************************/
 // Pushbot commands
-#define CMD_SET_TIMESTAMP_MODE "!E1\n"      // Do not change streaming mode !
-#define CMD_ENABLE_EVENT_STREAMING "!E+\n"
-#define CMD_DISABLE_EVENT_STREAMING "!E-\n"
+#define CMD_SET_TIMESTAMP_MODE "!E4\n"      // Do not change streaming mode !
+#define CMD_ENABLE_EVENT_STREAMING "E+\n"
+#define CMD_DISABLE_EVENT_STREAMING "E-\n"
 #define CMD_ENABLE_MOTORS "!M+\n"
 #define CMD_DISABLE_MOTORS "!M-\n"
 #define CMD_SET_VELOCITY "!MV%1=%2\n"
@@ -57,19 +57,19 @@
 // Refresh rate of optic flow processing
 #define PUSH_BOT_PROCESS_FPS 15
 // Motor Velocity minimum for pid control (0-100)
-#define PUSHBOT_VELOCITY_MIN 5
+#define PUSHBOT_VELOCITY_MIN 1
 // Motor Velocity maximum for pid control
-#define PUSHBOT_VELOCITY_MAX 50
+#define PUSHBOT_VELOCITY_MAX 20
 // Pushbot motor number left
 #define PUSHBOT_MOTOR_LEFT 0
 // Pushbot motor number right
 #define PUSHBOT_MOTOR_RIGHT 1
 // Default speed
-#define PUSHBOT_VELOCITY_DEFAULT 30
+#define PUSHBOT_VELOCITY_DEFAULT 10
 // Default PID values for pushbot PID controller
 #define PUSHBOT_PID_P_DEFAULT 0.5
 #define PUSHBOT_PID_I_DEFAULT 0.0
-#define PUSHBOT_PID_D_DEFAULT 0.0001
+#define PUSHBOT_PID_D_DEFAULT -0.0001
 // Maximum absolute integrated error
 #define PUSHBOT_PID_MAX_ESUM 100.f
 
