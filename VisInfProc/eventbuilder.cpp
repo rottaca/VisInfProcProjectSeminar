@@ -127,6 +127,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         if(time < lastTimestamp) {
             syncTimestamp += 0xFFFFFF;
             PRINT_DEBUG("Timestmap warped!");
+            PRINT_DEBUG_FMT("Sync: %u",syncTimestamp);
         }
         time += syncTimestamp;
         break;
@@ -137,6 +138,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         if(time < lastTimestamp) {
             syncTimestamp += 0xFFFF;
             PRINT_DEBUG("Timestmap warped!");
+            PRINT_DEBUG_FMT("Sync: %u",syncTimestamp);
         }
         time += syncTimestamp;
         break;

@@ -16,11 +16,8 @@ eDVSInterface::eDVSInterface(QObject *parent):QObject(parent)
     playbackFileName = "";
 
     moveToThread(&thread);
-    socket.moveToThread(&thread);
+    serialPort.moveToThread(&thread);
     thread.start();
-
-    // Call process function in eventloop of new thread
-    connect(&thread,SIGNAL(started()),this,SLOT(process()));
 }
 
 eDVSInterface::~eDVSInterface()
@@ -45,32 +42,27 @@ void eDVSInterface::setPushBotCtrl(PushBotController* pushBotCtrl)
     QMutexLocker locker(&operationMutex);
     pushBotController = pushBotCtrl;
 }
-void eDVSInterface::connectToBot(QString host, int port)
+void eDVSInterface::connectToBot(QString port)
 {
-
-    {
-        QMutexLocker locker2(&socketMutex);
-        this->host = host;
-        this->port = port;
-    }
-
     {
         QMutexLocker locker2(&operationMutex);
         operationMode = ONLINE;
     }
 
-    _processSocket();
+    _processSocket(port);
 }
 
 void eDVSInterface::startEventStreaming()
 {
     {
         QMutexLocker locker(&socketMutex);
-        socket.write(CMD_SET_TIMESTAMP_MODE);
-        socket.write(CMD_ENABLE_EVENT_STREAMING);
-        socket.waitForBytesWritten();
+        serialPort.write(CMD_SET_TIMESTAMP_MODE);
+        serialPort.write(CMD_ENABLE_EVENT_STREAMING);
+        //serialPort.write(CMD_UART_DISABLE_ECHO_MODE);
+        //serialPort.waitForBytesWritten();
         emit onCmdSent(CMD_SET_TIMESTAMP_MODE);
         emit onCmdSent(CMD_ENABLE_EVENT_STREAMING);
+        //emit onCmdSent(CMD_UART_DISABLE_ECHO_MODE);
     }
     {
         QMutexLocker locker(&operationMutex);
@@ -78,38 +70,38 @@ void eDVSInterface::startEventStreaming()
     }
 
     EventBuilder::TimestampVersion tv = EventBuilder::TimeNoTime;
-    if(strcmp(CMD_UART_ECHO_MODE,"!E2\n")==0)
+    if(strcmp(CMD_SET_TIMESTAMP_MODE,"!E2\n")==0)
         tv = EventBuilder::Time2Byte;
-    else if(strcmp(CMD_UART_ECHO_MODE,"!E3\n")==0)
+    else if(strcmp(CMD_SET_TIMESTAMP_MODE,"!E3\n")==0)
         tv = EventBuilder::Time3Byte;
-    else if(strcmp(CMD_UART_ECHO_MODE,"!E4\n")==0)
+    else if(strcmp(CMD_SET_TIMESTAMP_MODE,"!E4\n")==0)
         tv = EventBuilder::Time4Byte;
-    else if(strcmp(CMD_UART_ECHO_MODE,"!E1\n")==0)
+    else if(strcmp(CMD_SET_TIMESTAMP_MODE,"!E1\n")==0)
         tv = EventBuilder::TimeDelta;
 
     evBuilder.initEvBuilder(EventBuilder::Addr2Byte,tv);
-    processingWorker->startProcessing();
 }
 void eDVSInterface::stopEventStreaming()
 {
     {
         QMutexLocker locker(&socketMutex);
-        socket.write(CMD_DISABLE_EVENT_STREAMING);
-        socket.waitForBytesWritten();
+        serialPort.write(CMD_DISABLE_EVENT_STREAMING);
+        //serialPort.write(CMD_UART_ENABLE_ECHO_MODE);
+        //serialPort.waitForBytesWritten();
         emit onCmdSent(CMD_DISABLE_EVENT_STREAMING);
+        //emit onCmdSent(CMD_UART_ENABLE_ECHO_MODE);
     }
     {
         QMutexLocker locker(&operationMutex);
         operationMode = STOP_STREAMING;
     }
-    processingWorker->stopProcessing();
 }
 void eDVSInterface::sendRawCmd(QString cmd)
 {
     if(isConnected()) {
         QMutexLocker locker(&socketMutex);
-        socket.write(cmd.toLocal8Bit());
-        socket.waitForBytesWritten();
+        serialPort.write(cmd.toLocal8Bit());
+        //serialPort.waitForBytesWritten();
         emit onCmdSent(cmd);
     }
 }
@@ -118,10 +110,10 @@ void eDVSInterface::enableMotors(bool enable)
     if(isConnected()) {
         QMutexLocker locker(&socketMutex);
         if(enable)
-            socket.write(CMD_ENABLE_MOTORS);
+            serialPort.write(CMD_ENABLE_MOTORS);
         else
-            socket.write(CMD_DISABLE_MOTORS);
-        socket.waitForBytesWritten();
+            serialPort.write(CMD_DISABLE_MOTORS);
+        //serialPort.waitForBytesWritten();
         if(enable)
             emit onCmdSent(CMD_ENABLE_MOTORS);
         else
@@ -133,8 +125,8 @@ void eDVSInterface::setMotorVelocity(int motorId, int speed)
     if(isConnected()) {
         QMutexLocker locker(&socketMutex);
         QString cmd = QString(CMD_SET_VELOCITY).arg(motorId).arg(speed);
-        socket.write(cmd.toLocal8Bit());
-        socket.waitForBytesWritten();
+        serialPort.write(cmd.toLocal8Bit());
+        //serialPort.waitForBytesWritten();
         emit onCmdSent(cmd);
     }
 }
@@ -142,44 +134,18 @@ void eDVSInterface::resetBoard()
 {
     if(isConnected()) {
         QMutexLocker locker(&socketMutex);
-        socket.write(CMD_RESET_BOARD);
-        socket.waitForBytesWritten();
+        serialPort.write(CMD_RESET_BOARD);
+        //serialPort.waitForBytesWritten();
         emit onCmdSent(CMD_RESET_BOARD);
     }
 }
 
-void eDVSInterface::process()
-{
-
-    OperationMode opModeLocal;
-    {
-        QMutexLocker locker(&operationMutex);
-        opModeLocal = operationMode;
-    }
-
-    switch (opModeLocal) {
-    case PLAYBACK:
-        _playbackFile();
-        break;
-    case ONLINE:
-        _processSocket();
-        break;
-    default:
-        break;
-    }
-
-    // Process all remaining events
-    //qApp->processEvents();
-    // Wait for processing stopped
-    //thread.quit();
-
-}
-void eDVSInterface::_processSocket()
+void eDVSInterface::_processSocket(QString port)
 {
     // Init serial port
-    socket.connectToHost(host,port);
-    qInfo("Connecting to %s: %d",host.toLocal8Bit().data(),port);
-    if(!socket.waitForConnected(2000)) {
+    //socket.connectToHost(host,port);
+    //qInfo("Connecting to %s: %d",host.toLocal8Bit().data(),port);
+    /*if(!socket.waitForConnected(2000)) {
         operationMutex.lock();
         operationMode = IDLE;
         operationMutex.unlock();
@@ -187,7 +153,24 @@ void eDVSInterface::_processSocket()
         qCritical("Can't connect to socket \"%s:%d\": %s"
                   ,host.toLocal8Bit().data(),port,socket.errorString().toLocal8Bit().data());
         return;
+    }*/
+    serialPort.setBaudRate(12000000);
+    serialPort.setDataBits(QSerialPort::Data8);
+    serialPort.setStopBits(QSerialPort::OneStop);
+    serialPort.setParity(QSerialPort::NoParity);
+    serialPort.setFlowControl(QSerialPort::HardwareControl);
+    serialPort.setPortName(port);
+    qInfo("Connecting to %s",port.toLocal8Bit().data());
+    if(!serialPort.open(QIODevice::ReadWrite)) {
+        operationMutex.lock();
+        operationMode = IDLE;
+        operationMutex.unlock();
+        emit onConnectionResult(true);
+        qCritical("Can't connect to socket \"%s\": %s"
+                  ,port.toLocal8Bit().data(),serialPort.errorString().toLocal8Bit().data());
+        return;
     }
+
     OperationMode opModeLocal;
     {
         QMutexLocker locker2(&operationMutex);
@@ -196,24 +179,28 @@ void eDVSInterface::_processSocket()
     emit onConnectionResult(false);
     qInfo("Connection established");
 
-    socket.write(CMD_UART_ECHO_MODE);
-    socket.waitForBytesWritten();
-    emit onCmdSent(CMD_UART_ECHO_MODE);
+    serialPort.write(CMD_UART_ENABLE_ECHO_MODE);
+    //serialPort.waitForBytesWritten();
+    emit onCmdSent(CMD_UART_ENABLE_ECHO_MODE);
 
     DVSEvent eNew;
     quint32 startTimestamp = UINT32_MAX;
     QElapsedTimer timeMeasure;
-    char c;
 
     while(opModeLocal != IDLE) {
         {
             QMutexLocker locker(&socketMutex);
-            if(socket.state() != QTcpSocket::ConnectedState) {
-                PRINT_DEBUG_FMT("Connection closed: %s",socket.errorString().toLocal8Bit().data());
+            //if(serialPort.state() != QTcpSocket::ConnectedState) {
+            if(!serialPort.isOpen()) {
+                PRINT_DEBUG_FMT("Connection closed: %s",serialPort.errorString().toLocal8Bit().data());
                 QMutexLocker locker2(&operationMutex);
                 operationMode = IDLE;
                 emit onConnectionClosed(true);
                 break;
+            }
+            if(serialPort.error() != QSerialPort::NoError) {
+                qCritical("Error: %s",serialPort.errorString().toLocal8Bit().data());
+                stopWork();
             }
 
             // Normal command mode
@@ -225,36 +212,44 @@ void eDVSInterface::_processSocket()
                     startTimestamp = UINT32_MAX;
                 }
                 // Wait for command bytes
-                if(socket.waitForReadyRead(10)) {
+                if(serialPort.bytesAvailable()) {
                     // Read data and remove newline
                     // .remove(QRegExp("[\\n\\t\\r]"));
-                    QString line = QString(socket.readLine());
+                    QString line = QString(serialPort.readLine());
                     PRINT_DEBUG_FMT("Recieved: %s",line.toLocal8Bit().data());
 
-                    if(opModeLocal == ONLINE) {
-                        emit onLineRecived(line);
-                    } else if(opModeLocal == START_STREAMING &&
-                              line.contains(CMD_ENABLE_EVENT_STREAMING)) {
+                    emit onLineRecived(line);
+                    if(opModeLocal == START_STREAMING &&
+                            line.contains(CMD_ENABLE_EVENT_STREAMING)) {
                         {
                             QMutexLocker locker2(&operationMutex);
                             operationMode = STREAMING;
                         }
+                        processingWorker->startProcessing();
                         emit onStreamingStarted();
                         qDebug("Started Streaming");
-                    } else if(opModeLocal == STOP_STREAMING &&
-                              line.contains(CMD_DISABLE_EVENT_STREAMING)) {
-                        {
-                            QMutexLocker locker2(&operationMutex);
-                            operationMode = ONLINE;
-                        }
-                        emit onStreamingStopped();
-                        qDebug("Stopped Streaming");
                     }
+                } else if(opModeLocal == STOP_STREAMING) {
+                    {
+                        QMutexLocker locker2(&operationMutex);
+                        operationMode = ONLINE;
+                    }
+                    processingWorker->stopProcessing();
+                    emit onStreamingStopped();
+                    qDebug("Stopped Streaming");
+                } else {
+                    // TODO Busy waiting bad here ?
+                    QThread::usleep(1);
                 }
                 // Streaming mode
             } else {
-                if(socket.bytesAvailable()) {
-                    socket.getChar(&c);
+                if(serialPort.bytesAvailable()) {
+                    // TODO Read all
+                    //QByteArray data = serialPort.readAll();
+                    char c;
+                    serialPort.getChar(&c);
+                    //qDebug("0b%8s", QString::number( (unsigned char)c, 2 ).toLocal8Bit().data());
+                    //for(QByteArray::Iterator it = data.begin() ; it != data.end(); it++) {
                     if(processingWorker != NULL &&
                             evBuilder.evBuilderProcessNextByte(c,eNew,true)) {
                         // send first event directly and start timer
@@ -265,31 +260,35 @@ void eDVSInterface::_processSocket()
                         }
                         // Compute sleep time
                         else {
-                            quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
-                            quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
-                            // Sleep if necessary
-                            if(elapsedTimeEvents > elapsedTimeReal) {
-                                quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
-                                // Dont sleep more than 1 sec
-                                if(sleepTime > 1000000) {
-                                    sleepTime = 1000000;
-                                    qCritical("Sleep time more than 1 sec. Truncated!");
-                                }
-                                QThread::usleep(sleepTime);
-                            }
+//                                quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
+//                                quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
+//                                qDebug("%u %u",elapsedTimeReal,elapsedTimeEvents);
+//                                // Sleep if necessary
+//                                if(elapsedTimeEvents > elapsedTimeReal) {
+//                                    quint32 sleepTime = elapsedTimeEvents - elapsedTimeReal;
+//                                    qDebug("Sleep %u",sleepTime);
+//                                    // Dont sleep more than 1 sec
+//                                    if(sleepTime > 1000000) {
+//                                        sleepTime = 0;
+//                                        qCritical("Sleep time more than 1 sec. Truncated!");
+//                                    }
+//                                    QThread::usleep(sleepTime);
+//                                }
 
                             processingWorker->nextEvent(eNew);
                         }
                     }
+                    // }
                 } else {
+                    //qDebug("No data");
                     // TODO Busy waiting bad here ?
                     QThread::usleep(1);
                 }
             }
         }
 
-        // Process incoming events
-        QCoreApplication::processEvents();
+        // Process incoming signals
+        QCoreApplication::processEvents(QEventLoop::AllEvents,5);
 
         {
             QMutexLocker locker2(&operationMutex);
@@ -316,7 +315,8 @@ void eDVSInterface::stopWork()
     // Close socket
     if(localOpMode != IDLE && localOpMode != PLAYBACK) {
         QMutexLocker locker2(&socketMutex);
-        socket.disconnectFromHost();
+        //socket.disconnectFromHost();
+        serialPort.close();
         emit onConnectionClosed(false);
     }
 }
@@ -333,7 +333,6 @@ void eDVSInterface::playbackFile(QString fileName, double speed)
         playbackFileName = fileName;
         playbackSpeed = speed;
     }
-    //thread.start();
     _playbackFile();
 }
 void eDVSInterface::_playbackFile()
@@ -402,6 +401,8 @@ void eDVSInterface::_playbackFile()
             }
         }
 
+        // Process incoming events
+        QCoreApplication::processEvents();
         {
             QMutexLocker locker2(&operationMutex);
             opModeLocal = operationMode;

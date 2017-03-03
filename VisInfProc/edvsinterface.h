@@ -9,6 +9,8 @@
 #include "datatypes.h"
 #include "eventbuilder.h"
 
+#include <QtSerialPort/QtSerialPort>
+
 class Worker;
 class PushBotController;
 
@@ -62,7 +64,8 @@ public slots:
      * @param host
      * @param port
      */
-    void connectToBot(QString host, int port);
+    //void connectToBot(QString host, int port);
+    void connectToBot(QString port);
     /**
      * @brief sendRawCmd Sends the provided command to the robot if connected
      * @param cmd
@@ -91,10 +94,6 @@ public slots:
     void resetBoard();
 
     /**
-     * @brief process Starts the processing in the worker thread. Don't call this function by your own!
-     */
-    void process();
-    /**
      * @brief stopWork Stops playback of file or closes connection to robot.
      */
     void stopWork();
@@ -108,7 +107,7 @@ public:
     bool isConnected()
     {
         QMutexLocker locker(&operationMutex);
-        return operationMode == STREAMING || operationMode == ONLINE;
+        return operationMode != IDLE && operationMode != PLAYBACK;
     }
     /**
      * @brief isStreaming Returns true when online event streaming from the robot is enabled
@@ -153,7 +152,7 @@ private:
     /**
      * @brief _processSocket Sends and recieves commands from and to the eDVS.
      */
-    void _processSocket();
+    void _processSocket(QString port);
 
 private:
     // Thread for async processing of playback file and tcp socket
@@ -167,9 +166,10 @@ private:
     QMutex operationMutex;
 
     // Tcp connection for realtime processing
-    QTcpSocket socket;
-    QString host;
-    int port;
+    //QTcpSocket socket;
+    QSerialPort serialPort;
+    //QString host;
+    //int port;
     QMutex socketMutex;
 
     // Playback data

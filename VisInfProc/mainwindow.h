@@ -34,6 +34,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+
+    void closeEvent(QCloseEvent *bar);
+
 public slots:
     void onConnectionResult(bool error);
     void onUpdate();
@@ -58,10 +61,12 @@ public slots:
     void onClickStartNavigation();
     void onStreamingStarted();
     void onStreamingStopped();
+    void stopAll();
 
 signals:
     void playbackFile(QString fileName, double speed);
-    void connectToBot(QString host, int port);
+    //void connectToBot(QString host, int port);
+    void connectToBot(QString port);
     void sendRawCmd(QString cmd);
     void startEventStreaming();
     void stopEventStreaming();

@@ -94,7 +94,7 @@ void PushBotController::processFlow()
     avgFlowVecYL = 0;
     avgFlowVecXR = 0;
     avgFlowVecYR = 0;
-    float cntL = 0,cntR = 0;
+    float energyL = 0,energyR = 0;
 
     for(int j = 0; j < sx*sy; j++) {
         float dir = flowDirPtr[j];
@@ -105,30 +105,30 @@ void PushBotController::processFlow()
             if(j % sx < sx/2) {
                 avgFlowVecXL += cos(dir)*s*e;
                 avgFlowVecYL += sin(dir)*s*e;
-                cntL+=e;
+                energyL+=e;
             } else {
                 avgFlowVecXR += cos(dir)*s*e;
                 avgFlowVecYR += sin(dir)*s*e;
-                cntR+=e;
+                energyR+=e;
             }
         }
     }
 
     // Normalize
-    bool leftFlowValid = cntL > PUSHBOT_MIN_DETECTION_ENERGY;
-    bool rightFlowValid = cntR > PUSHBOT_MIN_DETECTION_ENERGY;
+    bool leftFlowValid = energyL > PUSHBOT_MIN_DETECTION_ENERGY;
+    bool rightFlowValid = energyR > PUSHBOT_MIN_DETECTION_ENERGY;
     avgFlowValid = leftFlowValid && rightFlowValid;
 
     if(leftFlowValid) {
-        avgFlowVecXL /= cntL;
-        avgFlowVecYL /= cntL;
+        avgFlowVecXL /= energyL;
+        avgFlowVecYL /= energyL;
     } else {
         avgFlowVecXL = 0;
         avgFlowVecYL = 0;
     }
     if(rightFlowValid) {
-        avgFlowVecXR /= cntR;
-        avgFlowVecYR /= cntR;
+        avgFlowVecXR /= energyR;
+        avgFlowVecYR /= energyR;
         PRINT_DEBUG_FMT("AvgSpeedR: %f",avgFlowVecXR);
     } else {
         avgFlowVecXR = 0;
@@ -147,7 +147,6 @@ void PushBotController::processFlow()
         }
         loopTime.restart();
 
-        int speedLeft,speedRight;
         {
             QMutexLocker locker(&pidMutex);
             // Simple PID-Controller
@@ -157,19 +156,19 @@ void PushBotController::processFlow()
             float e = 0;
             // Same flow direction on left and right half
             if(avgFlowVecXL*avgFlowVecXR > 0) {
-                e = -(avgFlowVecXL-avgFlowVecXR);
+                e = (energyL*avgFlowVecXL+energyR*avgFlowVecXR)/(energyL+energyR);
             }
             // Different flow on left and right half
-            else if(avgFlowVecXL*avgFlowVecXR < 0) {
-                e = (-avgFlowVecXL+avgFlowVecXR);
-            }
-            // TODO
-            else {
-                e = 0;
+            else if(avgFlowVecXL*avgFlowVecXR <= 0) {
+                e = -(energyL*avgFlowVecXL+energyR*avgFlowVecXR)/(energyL+energyR);
             }
 
             // Compute integrated error
             eSum = qMax(-PUSHBOT_PID_MAX_ESUM,qMin(eSum + e,PUSHBOT_PID_MAX_ESUM));
+            PRINT_DEBUG_FMT("ESum: %f",eSum);
+            PRINT_DEBUG_FMT("P: %f",Kp*e);
+            PRINT_DEBUG_FMT("I: %f",Ki*deltaT*eSum);
+            PRINT_DEBUG_FMT("D: %f",Kd*(e-eOld)/deltaT);
             // Ignore differential part in first run
             if(deltaT > 0)
                 out = Kp*e + Ki*deltaT*eSum + Kd*(e-eOld)/deltaT;
@@ -177,22 +176,22 @@ void PushBotController::processFlow()
                 out = Kp*e;
             // Store last error
             eOld = e;
-
-            // Send commands to pushbot but clamp output if motor speed is out of range
-            speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
-                              PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
-            speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
-                               PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
         }
 
-        if(robotInterface->isStreaming()) {
-            emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
-            emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
-        } else {  // If not running, write debug info
-            PRINT_DEBUG_FMT("[Control output] L: %d, r: %d",speedLeft,speedRight);
-        }
     } else {
         // Don't generate output
         out = 0;
+    }
+    int speedLeft,speedRight;
+    // Send commands to pushbot but clamp output if motor speed is out of range
+    speedLeft = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT + out/2),
+                      PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
+    speedRight = CLAMP((int)round(PUSHBOT_VELOCITY_DEFAULT - out/2),
+                       PUSHBOT_VELOCITY_MIN,PUSHBOT_VELOCITY_MAX);
+    if(robotInterface->isStreaming()) {
+        emit setMotorVelocity(PUSHBOT_MOTOR_LEFT,speedLeft);
+        emit setMotorVelocity(PUSHBOT_MOTOR_RIGHT,speedRight);
+    } else {  // If not running, write debug info
+        PRINT_DEBUG_FMT("[Control output] L: %d, r: %d",speedLeft,speedRight);
     }
 }

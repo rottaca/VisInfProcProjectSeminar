@@ -47,32 +47,33 @@
 // Pushbot
 *****************************************************************/
 // Pushbot commands
-#define CMD_SET_TIMESTAMP_MODE "!E2\n"      // Do not change streaming mode !
+#define CMD_SET_TIMESTAMP_MODE "!E4\n"      // Do not change streaming mode !
 #define CMD_ENABLE_EVENT_STREAMING "E+\n"
 #define CMD_DISABLE_EVENT_STREAMING "E-\n"
 #define CMD_ENABLE_MOTORS "!M+\n"
 #define CMD_DISABLE_MOTORS "!M-\n"
 #define CMD_SET_VELOCITY "!MV%1=%2\n"
 #define CMD_RESET_BOARD "R\n"
-#define CMD_UART_ECHO_MODE "!U2\n"  // Reply to all commands
+#define CMD_UART_ENABLE_ECHO_MODE "!U1\n"
+//#define CMD_UART_DISABLE_ECHO_MODE "!U0\n"
 // Refresh rate of optic flow processing
-#define PUSH_BOT_PROCESS_FPS 15
+#define PUSH_BOT_PROCESS_FPS 20
 // Motor Velocity minimum for pid control (0-100)
 #define PUSHBOT_VELOCITY_MIN 1
 // Motor Velocity maximum for pid control
-#define PUSHBOT_VELOCITY_MAX 20
+#define PUSHBOT_VELOCITY_MAX 40
 // Pushbot motor number left
 #define PUSHBOT_MOTOR_LEFT 0
 // Pushbot motor number right
 #define PUSHBOT_MOTOR_RIGHT 1
 // Default speed
-#define PUSHBOT_VELOCITY_DEFAULT 10
+#define PUSHBOT_VELOCITY_DEFAULT 20
 // Default PID values for pushbot PID controller
-#define PUSHBOT_PID_P_DEFAULT 0.5
-#define PUSHBOT_PID_I_DEFAULT 0.0
-#define PUSHBOT_PID_D_DEFAULT -0.0001
+#define PUSHBOT_PID_P_DEFAULT 0.3
+#define PUSHBOT_PID_I_DEFAULT 0.001
+#define PUSHBOT_PID_D_DEFAULT 0.002
 // Maximum absolute integrated error
-#define PUSHBOT_PID_MAX_ESUM 100.f
+#define PUSHBOT_PID_MAX_ESUM 500.f
 
 // Minimum detection energy
 // Summed energy over an image half hast to be greater as the value below
