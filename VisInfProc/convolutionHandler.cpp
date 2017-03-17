@@ -1,4 +1,4 @@
-#include "worker.h"
+#include "convolutionHandler.h"
 #include <QElapsedTimer>
 Worker::Worker(QObject *parent) : QThread(parent)
 {

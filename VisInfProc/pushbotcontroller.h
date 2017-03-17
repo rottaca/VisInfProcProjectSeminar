@@ -8,6 +8,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QVector>
+#include <QElapsedTimer>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -15,6 +16,7 @@
 #include "settings.h"
 #include "filtersettings.h"
 #include "buffer2d.h"
+
 
 class Worker;
 class eDVSInterface;
@@ -92,7 +94,10 @@ public:
         QMutexLocker locker(&pidMutex);
         return out;
     }
-
+    /**
+     * @brief isProcessing Returns true if pushbot controller is running
+     * @return
+     */
     bool isProcessing()
     {
         return processIntervalTimer.isActive();
@@ -124,7 +129,8 @@ private:
     Buffer2D opticFlowDir,opticFlowSpeed,opticFlowEnergy;
 
     // Control parameters
-    QTime loopTime;
+    QElapsedTimer loopTime;
+    //QElapsedTimer timer2;
     QMutex pidMutex;
     float Kp,Ki,Kd;
     float out,eOld,eSum;

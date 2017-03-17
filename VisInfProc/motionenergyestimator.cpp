@@ -111,6 +111,7 @@ void MotionEnergyEstimator::reset()
     eventStatisticsMutex.lock();
     eventsAll = 0;
     eventsSkipped = 0;
+    //averagedEventsPerTimeslot = 0;
     eventStatisticsMutex.unlock();
 
     eventsInWindowMutex.lock();
@@ -122,9 +123,19 @@ void MotionEnergyEstimator::reset()
 
 bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
 {
-    eventStatisticsMutex.lock();
-    eventsAll++;
-    eventStatisticsMutex.unlock();
+    {
+        QMutexLocker locker(&eventStatisticsMutex);
+        eventsAll++;
+        // Compute skip factor to skip single events instead of skipping whole timeslots
+        /*if(eventsAll > 0) {
+            float avgEventsPerSec = averagedEventsPerTimeslot*1000000.f/timePerSlot;
+            float ratio = avgEventsPerSec/FLOW_MAX_EVENTS_PER_SEC;
+            if(ratio > 1 && qRound(fmod(eventsAll, ratio)) == 0) {
+                eventsSkipped++;
+                return false;
+            }
+        }*/
+    }
     QMutexLocker locker(&eventWriteMutex);
 
     // Get time from first event as reference
@@ -139,6 +150,7 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
         // TODO
         //reset();
         // TODO Don't throw away the current event
+        // Anyway, this issue causes a freeze
         return false;
     }
 
@@ -154,12 +166,14 @@ bool MotionEnergyEstimator::onNewEvent(const DVSEvent &e)
         // Flip lists
         eventReadMutex.lock();
         // Was the last block not processed by the worker thread ? Then it is lost
+        eventStatisticsMutex.lock();
         if(eventListReadyForReading && eventsR->events.length() > 0) {
-            eventStatisticsMutex.lock();
             eventsSkipped+=eventsR->events.length();
             PRINT_DEBUG_FMT("[MotionEnergyEstimator] Skipped %d events.",eventsR->events.length());
-            eventStatisticsMutex.unlock();
         }
+        /*averagedEventsPerTimeslot = (1-FLOW_SKIPPING_LOW_PASS_FILTER_COEFF)*averagedEventsPerTimeslot
+                                    + FLOW_SKIPPING_LOW_PASS_FILTER_COEFF*eventsW->events.size();*/
+        eventStatisticsMutex.unlock();
 
         // Flip read and write lists
         SlotEventData* eventsROld = eventsR;

@@ -4,7 +4,6 @@ AspectRatioPixmap::AspectRatioPixmap(QWidget *parent) :
     QGraphicsView(parent)
 {
     this->setMinimumSize(1,1);
-    sizePolicy().setHorizontalStretch(1);
     scene = new QGraphicsScene();
     pix = new MyQGraphicsImage();
     scene->addItem(pix);

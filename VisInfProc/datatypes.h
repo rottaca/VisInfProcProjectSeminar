@@ -7,6 +7,7 @@ typedef struct DVSEvent {
     // Use 32 Bit integer to use propper alignment on GPU
     uint32_t x;
     uint32_t y;
+    //uint8_t polarity;
     uint32_t timestamp;
 } DVSEvent;
 

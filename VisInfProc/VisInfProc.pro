@@ -26,13 +26,13 @@ SOURCES += main.cpp\
     helper.cpp \
     motionenergyestimator.cpp \
     opticflowestimator.cpp \
-    worker.cpp \
     basebuffer.cpp \
     pushbotcontroller.cpp \
     edvsinterface.cpp \
     eventbuilder.cpp \
     aspectratiopixmap.cpp \
-    filterselectionform.cpp
+    filterselectionform.cpp \
+    convolutionHandler.cpp
 
 HEADERS  += mainwindow.h \
     filtersettings.h \
@@ -46,7 +46,6 @@ HEADERS  += mainwindow.h \
     opticflowestimator.h \
     cuda_helper.h \
     cuda_settings.h \
-    worker.h \
     basebuffer.h \
     settings.h \
     datatypes.h \
@@ -55,7 +54,8 @@ HEADERS  += mainwindow.h \
     eventbuilder.h \
     aspectratiopixmap.h \
     myqgraphicsimage.h \
-    filterselectionform.h
+    filterselectionform.h \
+    convolutionHandler.h
 
 FORMS    += mainwindow.ui \
     filterselectionform.ui

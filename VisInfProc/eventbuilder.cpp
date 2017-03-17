@@ -174,7 +174,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         //   Bit 7-1: X
         //   Bit 8-14: Y
         //   Bit 15: External Event, Unused
-        //e.On = ad & 0x01;       // Polarity: LSB
+        //e.polarity = ad & 0x01;       // Polarity: LSB
         e.x = ((ad >> 0x01) & 0x007F);  // X: 0 - 127
         e.y = ((ad >> 0x08) & 0x007F); // Y: 0 - 127
         e.timestamp = time;
@@ -184,7 +184,7 @@ bool EventBuilder::evBuilderParseEvent(bool onlineMode, DVSEvent &e)
         // Bit 7: Unused
         // Bit 8-14: X
         // Bit 15: On/Off
-        //e.On = (ad >> 0x08) & 0x01;       // Polarity: LSB
+        //e.polarity = (ad >> 0x08) & 0x01;
         e.x = ((ad >> 0x00) & 0x007F); // Y: 0 - 127
         e.y = 127 - ((ad >> 0x08) & 0x007F);  // X: 0 - 127
         e.timestamp = time;

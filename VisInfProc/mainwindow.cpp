@@ -99,7 +99,7 @@ void MainWindow::initSystem()
 
     // Set default speeds and orientations
     activeOrientationIndices = {0,1,2,3};
-    activeSettingIndices = {1,2,3};
+    activeSettingIndices = {0,1,2};
 
     eDVSHandler.setWorker(&worker);
     eDVSHandler.setPushBotCtrl(&pushBotController);
@@ -290,6 +290,7 @@ void MainWindow::onUpdate()
 void MainWindow::onPlaybackFinished()
 {
     PRINT_DEBUG("PlaybackFinished");
+    emit stopPushBotController();
     ui->b_start_playback->setText("Start");
     ui->tab_online->setEnabled(true);
     ui->gb_playback_settings->setEnabled(true);
@@ -301,6 +302,7 @@ void MainWindow::onClickStartPlayback()
 {
     if(eDVSHandler.isWorking()) {
         PRINT_DEBUG("Stop Playback");
+        emit stopPushBotController();
         stopAll();
         ui->b_start_playback->setText("Start");
         ui->tab_online->setEnabled(true);
@@ -308,7 +310,6 @@ void MainWindow::onClickStartPlayback()
         ui->b_changeActiveFilters->setEnabled(true);
     } else {
         PRINT_DEBUG("Start Playback");
-        emit startPushBotController();
         ui->l_img_flow->clear();
         ui->l_img_ctrl_2->clear();
         ui->l_img_events->clear();
@@ -319,6 +320,7 @@ void MainWindow::onClickStartPlayback()
         QString file = ui->le_file_name_playback->text();
         float speed = ui->sb_play_speed->value()/100.0f;
 
+        emit startPushBotController();
         emit playbackFile(file,speed);
     }
 }

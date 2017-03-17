@@ -34,14 +34,21 @@
 #define FILTER_TEMPORAL_RES 20
 // End value x of temporal function t(x)
 #define FILTER_TEMPORAL_END 0.7f
-#define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.5f
+#define FLOW_DEFAULT_MIN_ENERGY_THRESHOLD 0.6f
 // Interpolation modes
 // 0: No interpolation
 // 1: No Speed interpolation, only orientation interpolation
 // 2: Simultanious speed and orientation interpolation with
 //    exponential weighting of energies
-#define INTERPOLATION_MODE 0
-
+#define FLOW_INTERPOLATION_MODE 0
+/*
+// The maximum number of events per second (per motion energy)
+// Additional events are skipped
+#define FLOW_MAX_EVENTS_PER_SEC 20000
+// Low pass filter coefficient to compute averaged events per slot
+// Values between 0 - 1, greater values produce faster adaption
+#define FLOW_SKIPPING_LOW_PASS_FILTER_COEFF (0.3)
+*/
 
 /*****************************************************************
 // Pushbot
@@ -69,9 +76,9 @@
 // Default speed
 #define PUSHBOT_VELOCITY_DEFAULT 20
 // Default PID values for pushbot PID controller
-#define PUSHBOT_PID_P_DEFAULT 0.3
-#define PUSHBOT_PID_I_DEFAULT 0.001
-#define PUSHBOT_PID_D_DEFAULT 0.002
+#define PUSHBOT_PID_P_DEFAULT 0.2
+#define PUSHBOT_PID_I_DEFAULT 0.4
+#define PUSHBOT_PID_D_DEFAULT 0.005
 // Maximum absolute integrated error
 #define PUSHBOT_PID_MAX_ESUM 500.f
 
@@ -101,6 +108,7 @@
 #define CLAMP(v,mn,mx) qMin(mx,qMax(mn,v))
 #define DEG2RAD(d) ((d)*M_PI/180.0)
 #define RAD2DEG(r) ((r)/M_PI*180.0)
+#define SIGN(T) (((0) < (T)) - ((T) < (0)))
 
 #ifdef QT_DEBUG
 #define PRINT_DEBUG(msg) qDebug(msg)

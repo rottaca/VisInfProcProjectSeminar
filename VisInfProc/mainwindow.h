@@ -14,7 +14,7 @@
 #include "filtersettings.h"
 #include "filterset.h"
 #include "opticflowestimator.h"
-#include "worker.h"
+#include "convolutionHandler.h"
 #include "edvsinterface.h"
 #include "settings.h"
 #include "pushbotcontroller.h"

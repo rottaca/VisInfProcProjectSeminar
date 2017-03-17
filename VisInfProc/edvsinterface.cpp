@@ -3,7 +3,7 @@
 #include <QFile>
 #include <QElapsedTimer>
 
-#include "worker.h"
+#include "convolutionHandler.h"
 #include "pushbotcontroller.h"
 
 
@@ -244,22 +244,21 @@ void eDVSInterface::_processSocket(QString port)
                 // Streaming mode
             } else {
                 if(serialPort.bytesAvailable()) {
-                    // TODO Read all
-                    //QByteArray data = serialPort.readAll();
-                    char c;
-                    serialPort.getChar(&c);
+                    QByteArray data = serialPort.readAll();
+                    //char c;
+                    //serialPort.getChar(&c);
                     //qDebug("0b%8s", QString::number( (unsigned char)c, 2 ).toLocal8Bit().data());
-                    //for(QByteArray::Iterator it = data.begin() ; it != data.end(); it++) {
-                    if(processingWorker != NULL &&
-                            evBuilder.evBuilderProcessNextByte(c,eNew,true)) {
-                        // send first event directly and start timer
-                        if(startTimestamp == UINT32_MAX) {
-                            processingWorker->nextEvent(eNew);
-                            startTimestamp = eNew.timestamp;
-                            timeMeasure.restart();
-                        }
-                        // Compute sleep time
-                        else {
+                    for(QByteArray::Iterator it = data.begin() ; it != data.end(); it++) {
+                        if(processingWorker != NULL &&
+                                evBuilder.evBuilderProcessNextByte(*it,eNew,true)) {
+                            // send first event directly and start timer
+                            if(startTimestamp == UINT32_MAX) {
+                                startTimestamp = eNew.timestamp;
+                                processingWorker->nextEvent(eNew);
+                                //timeMeasure.restart();
+                            }
+                            // Compute sleep time
+                            else {
 //                                quint32 elapsedTimeReal = timeMeasure.nsecsElapsed()/1000;
 //                                quint32 elapsedTimeEvents = eNew.timestamp - startTimestamp;
 //                                qDebug("%u %u",elapsedTimeReal,elapsedTimeEvents);
@@ -275,14 +274,14 @@ void eDVSInterface::_processSocket(QString port)
 //                                    QThread::usleep(sleepTime);
 //                                }
 
-                            processingWorker->nextEvent(eNew);
+                                processingWorker->nextEvent(eNew);
+                            }
                         }
                     }
-                    // }
                 } else {
                     //qDebug("No data");
                     // TODO Busy waiting bad here ?
-                    QThread::usleep(1);
+                    //QThread::usleep(1);
                 }
             }
         }

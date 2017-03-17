@@ -170,7 +170,7 @@ private:
     quint32 startTime;
     // The time of the last event; used to detect time jumps
     quint32 lastEventTime;
-    // Time per timeslot
+    // Time per timeslot in us
     float timePerSlot;
 
     // All events in the timewindow
@@ -198,6 +198,7 @@ private:
     SlotEventData eventsRBackup;
 
     // Data for statistics computations
+    //quint32 averagedEventsPerTimeslot;
     quint32  eventsSkipped;
     quint32 eventsAll;
     QMutex eventStatisticsMutex;
